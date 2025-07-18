@@ -75,6 +75,8 @@ interface DataBleedEffect {
 }
 
 interface Effects {
+  // Canvas effects only - visual effects moved to VFX wrapper
+  // These properties are kept for backward compatibility but will be unused
   glitchOffset: { x: number; y: number }
   colorShift: number
   pulseFactor: number
@@ -117,43 +119,26 @@ const Game = forwardRef<GameRef>((props, ref) => {
   const gameRef = useRef<any>(null)
   const [isEffectsLabOpen, setIsEffectsLabOpen] = useState(false)
   const [effectsLabSettings, setEffectsLabSettings] = useState({
-    glitch: { 
-      enabled: false, 
-      intensity: 5,
-      frequency: 0.1,
-      xOffset: 10,
-      yOffset: 10
-    },
-
-    chromatic: { 
-      enabled: false, 
-      intensity: 1,
-      speed: 0.01,
-      saturation: 100,
-      brightness: 50
-    },
-    pulsing: { 
-      enabled: false, 
-      intensity: 0.3,
-      speed: 0.005,
-      minAlpha: 0.7,
-      maxAlpha: 1.0
-    },
+    // Canvas effects only - visual effects moved to VFX wrapper
     wobble: { 
       enabled: false,
       amplitude: 5,
       frequency: 0.05,
       speed: 0.002
     },
-    scanlines: { 
-      enabled: false,
-      spacing: 4,
-      opacity: 0.25,
-      speed: 0.001
-    },
     upsideDown: { enabled: false },
     invert: { enabled: false },
-    backwards: { enabled: false }
+    backwards: { enabled: false },
+    melting: { 
+      enabled: false,
+      intensity: 1,
+      speed: 0.01
+    },
+    dataBleed: { 
+      enabled: false,
+      intensity: 1,
+      duration: 20
+    }
   })
   const [effectsLabPresets, setEffectsLabPresets] = useState<Array<{ name: string; settings: any }>>([])
   const [selectedPresetName, setSelectedPresetName] = useState('')
@@ -240,43 +225,26 @@ const Game = forwardRef<GameRef>((props, ref) => {
       // Development toggle - set to true for testing, false for production
       private readonly DEV_MODE = true;
       effectsLabSettings!: {
-        glitch: { 
-          enabled: boolean; 
-          intensity: number;
-          frequency: number;
-          xOffset: number;
-          yOffset: number;
-        };
-
-        chromatic: { 
-          enabled: boolean; 
-          intensity: number;
-          speed: number;
-          saturation: number;
-          brightness: number;
-        };
-        pulsing: { 
-          enabled: boolean; 
-          intensity: number;
-          speed: number;
-          minAlpha: number;
-          maxAlpha: number;
-        };
+        // Canvas effects only - visual effects moved to VFX wrapper
         wobble: { 
           enabled: boolean;
           amplitude: number;
           frequency: number;
           speed: number;
         };
-        scanlines: { 
-          enabled: boolean;
-          spacing: number;
-          opacity: number;
-          speed: number;
-        };
         upsideDown: { enabled: boolean };
         invert: { enabled: boolean };
         backwards: { enabled: boolean };
+        melting: { 
+          enabled: boolean;
+          intensity: number;
+          speed: number;
+        };
+        dataBleed: { 
+          enabled: boolean;
+          intensity: number;
+          duration: number;
+        };
       };
       effectsLabPresets!: Array<{ name: string; settings: any }>;
       selectedPresetName!: string;
@@ -313,45 +281,27 @@ const Game = forwardRef<GameRef>((props, ref) => {
         this.isEffectsLabUnlocked = this.DEV_MODE || getFromStorage('effectsLabUnlocked') || false
         this.activeCustomEffects = getFromStorage('activeCustomEffects') || null
         
-        // Initialize Effects Lab settings
+        // Initialize Effects Lab settings (canvas effects only)
         this.effectsLabSettings = {
-          glitch: { 
-            enabled: false, 
-            intensity: 5,
-            frequency: 0.1,
-            xOffset: 10,
-            yOffset: 10
-          },
-          
-          chromatic: { 
-            enabled: false, 
-            intensity: 1,
-            speed: 0.01,
-            saturation: 100,
-            brightness: 50
-          },
-          pulsing: { 
-            enabled: false, 
-            intensity: 0.3,
-            speed: 0.005,
-            minAlpha: 0.7,
-            maxAlpha: 1.0
-          },
           wobble: { 
             enabled: false,
             amplitude: 5,
             frequency: 0.05,
             speed: 0.002
           },
-          scanlines: { 
-            enabled: false,
-            spacing: 4,
-            opacity: 0.25,
-            speed: 0.001
-          },
           upsideDown: { enabled: false },
           invert: { enabled: false },
-          backwards: { enabled: false }
+          backwards: { enabled: false },
+          melting: { 
+            enabled: false,
+            intensity: 1,
+            speed: 0.01
+          },
+          dataBleed: { 
+            enabled: false,
+            intensity: 1,
+            duration: 20
+          }
         }
         
         // Initialize Effects Lab presets from localStorage
@@ -825,22 +775,20 @@ const Game = forwardRef<GameRef>((props, ref) => {
       }
 
       assignLevelEffects() {
-        const effectPool = [
-          "glitch",
-          "melting",
-          "chromatic",
-          "pulsing",
+        // Canvas effects only - visual effects will be handled by VFX wrapper
+        const canvasEffectPool = [
           "wobble",
-          "scanlines",
           "upsideDown",
           "invert",
           "backwards",
+          "melting",
+          "dataBleed",
         ]
         this.levelEffects = []
         this.isReversed = false
 
         // Filter out disorienting effects for level 1
-        let availableEffects = [...effectPool]
+        let availableEffects = [...canvasEffectPool]
         if (this.currentLevel === 1) {
           availableEffects = availableEffects.filter(effect => 
             effect !== "upsideDown" && effect !== "backwards"
@@ -856,7 +804,7 @@ const Game = forwardRef<GameRef>((props, ref) => {
         // Determine number of effects (1 or 2)
         const effectCount = Math.random() > 0.6 ? 2 : 1
 
-        // Add random effects
+        // Add random canvas effects
         for (let i = 0; i < effectCount && i < availableEffects.length; i++) {
           this.levelEffects.push(availableEffects[i])
         }
@@ -1103,23 +1051,20 @@ const Game = forwardRef<GameRef>((props, ref) => {
       }
 
       updateEffects() {
-        // Determine which effects to use: custom effects if available, otherwise level effects
-        const activeEffects = this.activeCustomEffects || this.levelEffects
-        
-        // Helper function to check if an effect is enabled
-        const isEffectEnabled = (effectName: string) => {
+        // Helper function to check if a canvas effect is enabled
+        const isCanvasEffectEnabled = (effectName: string) => {
           if (this.activeCustomEffects) {
             // Check custom effects settings
             const effect = this.activeCustomEffects[effectName as keyof typeof this.activeCustomEffects]
             return effect && typeof effect === 'object' && 'enabled' in effect && (effect as any).enabled
           } else {
-            // Check level effects
+            // Check level effects (only canvas effects)
             return this.levelEffects.includes(effectName)
           }
         }
         
-        // Helper function to get effect intensity
-        const getEffectIntensity = (effectName: string, defaultValue: number) => {
+        // Helper function to get canvas effect intensity
+        const getCanvasEffectIntensity = (effectName: string, defaultValue: number) => {
           if (this.activeCustomEffects) {
             const effect = this.activeCustomEffects[effectName as keyof typeof this.activeCustomEffects]
             return effect && typeof effect === 'object' && 'intensity' in effect ? (effect as any).intensity : defaultValue
@@ -1127,53 +1072,35 @@ const Game = forwardRef<GameRef>((props, ref) => {
           return defaultValue
         }
 
-        // Reset effects to defaults
+        // Reset canvas effects to defaults
         this.effects.glitchOffset = { x: 0, y: 0 }
         this.effects.colorShift = 0
         this.effects.pulseFactor = 1
 
-        // Apply glitch effect
-        if (isEffectEnabled("glitch")) {
-          const glitchSettings = this.activeCustomEffects?.glitch || { intensity: 10, frequency: 0.1, xOffset: 10, yOffset: 10 }
-          const intensity = glitchSettings.intensity || 10
-          const frequency = glitchSettings.frequency || 0.1
-          const xOffset = glitchSettings.xOffset || 10
-          const yOffset = glitchSettings.yOffset || 10
-          
-          // Only apply glitch based on frequency
-          if (Math.random() < frequency) {
-            this.effects.glitchOffset = {
-              x: (Math.random() - 0.5) * xOffset,
-              y: (Math.random() - 0.5) * yOffset,
-            }
-          } else {
-            this.effects.glitchOffset = { x: 0, y: 0 }
-          }
+        // Apply wobble effect (canvas effect - affects object positions)
+        if (isCanvasEffectEnabled("wobble")) {
+          // Wobble is handled in renderToContext() method
+          // This is just a placeholder for future wobble-specific logic
         }
         
-
-        
-        // Apply chromatic effect
-        if (isEffectEnabled("chromatic")) {
-          const chromaticSettings = this.activeCustomEffects?.chromatic || { intensity: 1, speed: 0.01, saturation: 100, brightness: 50 }
-          const intensity = chromaticSettings.intensity || 1
-          const speed = chromaticSettings.speed || 0.01
-          this.effects.colorShift = (Date.now() * speed * intensity) % (Math.PI * 2)
+        // Apply backwards effect (canvas effect - affects game direction)
+        if (isCanvasEffectEnabled("backwards")) {
+          this.isReversed = true
+        } else {
+          this.isReversed = false
         }
         
-        // Apply pulsing effect
-        if (isEffectEnabled("pulsing")) {
-          const pulsingSettings = this.activeCustomEffects?.pulsing || { intensity: 0.3, speed: 0.005, minAlpha: 0.7, maxAlpha: 1.0 }
-          const intensity = pulsingSettings.intensity || 0.3
-          const speed = pulsingSettings.speed || 0.005
-          const minAlpha = pulsingSettings.minAlpha || 0.7
-          const maxAlpha = pulsingSettings.maxAlpha || 1.0
-          const range = maxAlpha - minAlpha
-          this.effects.pulseFactor = minAlpha + (Math.sin(Date.now() * speed) * 0.5 + 0.5) * range * intensity
-        }
+        // Apply upsideDown effect (canvas effect - affects coordinate system)
+        // Handled in render() method via canvas transformations
         
-        // Set the reversed flag based on active effects
-        this.isReversed = isEffectEnabled("backwards")
+        // Apply invert effect (canvas effect - affects colors)
+        // Handled in render() method via CSS filters
+        
+        // Apply melting effect (canvas effect - affects object shapes)
+        // TODO: Implement melting effect logic
+        
+        // Apply dataBleed effect (canvas effect - affects screen capture)
+        // Handled in renderDataBleed() method
       }
 
       
@@ -1385,8 +1312,8 @@ const Game = forwardRef<GameRef>((props, ref) => {
           return
         }
 
-        // Helper function to check if an effect is enabled
-        const isEffectEnabled = (effectName: string) => {
+        // Helper function to check if a canvas effect is enabled
+        const isCanvasEffectEnabled = (effectName: string) => {
           if (this.activeCustomEffects) {
             const effect = this.activeCustomEffects[effectName as keyof typeof this.activeCustomEffects]
             return effect && typeof effect === 'object' && 'enabled' in effect && (effect as any).enabled
@@ -1395,34 +1322,28 @@ const Game = forwardRef<GameRef>((props, ref) => {
           }
         }
 
-        // Normal rendering
+        // Canvas rendering with canvas effects only
         this.ctx.save()
 
-        if (isEffectEnabled("upsideDown")) {
+        // Apply upsideDown effect (canvas effect - coordinate system)
+        if (isCanvasEffectEnabled("upsideDown")) {
           this.ctx.translate(0, this.height)
           this.ctx.scale(1, -1)
         }
-        if (isEffectEnabled("backwards")) {
+        
+        // Apply backwards effect (canvas effect - direction)
+        if (isCanvasEffectEnabled("backwards")) {
           this.ctx.translate(this.width, 0)
           this.ctx.scale(-1, 1)
         }
-        if (isEffectEnabled("glitch")) {
-          this.ctx.translate(
-            this.effects.glitchOffset.x,
-            this.effects.glitchOffset.y
-          )
-        }
-        if (isEffectEnabled("invert")) {
+        
+        // Apply invert effect (canvas effect - colors)
+        if (isCanvasEffectEnabled("invert")) {
           this.ctx.filter = "invert(1) hue-rotate(180deg)"
         }
 
         this.renderToContext(this.ctx)
         
-        this.ctx.restore()
-
-        // Render overlays last
-        this.ctx.save()
-        if (isEffectEnabled("scanlines")) this.renderScanlinesToContext(this.ctx)
         this.ctx.restore()
       }
 
@@ -1433,15 +1354,19 @@ const Game = forwardRef<GameRef>((props, ref) => {
         ctx.translate(-this.camera.x, -this.camera.y)
 
         const now = Date.now()
-        const wobbleActive = this.activeCustomEffects ? 
-          this.activeCustomEffects.wobble?.enabled : 
-          this.levelEffects.includes("wobble")
-        const pulsingActive = this.activeCustomEffects ? 
-          this.activeCustomEffects.pulsing?.enabled : 
-          this.levelEffects.includes("pulsing")
-        const meltingActive = this.activeCustomEffects ? 
-          this.activeCustomEffects.melting?.enabled : 
-          this.levelEffects.includes("melting")
+        
+        // Helper function to check if a canvas effect is enabled
+        const isCanvasEffectEnabled = (effectName: string) => {
+          if (this.activeCustomEffects) {
+            const effect = this.activeCustomEffects[effectName as keyof typeof this.activeCustomEffects]
+            return effect && typeof effect === 'object' && 'enabled' in effect && (effect as any).enabled
+          } else {
+            return this.levelEffects.includes(effectName)
+          }
+        }
+        
+        const wobbleActive = isCanvasEffectEnabled("wobble")
+        const meltingActive = isCanvasEffectEnabled("melting")
         
         // Get wobble settings
         const wobbleSettings = this.activeCustomEffects?.wobble || { amplitude: 5, frequency: 0.05, speed: 0.002 }
@@ -1449,32 +1374,17 @@ const Game = forwardRef<GameRef>((props, ref) => {
         const wobbleFrequency = wobbleSettings.frequency || 0.05
         const wobbleSpeed = wobbleSettings.speed || 0.002
 
-        // Draw platforms
+        // Draw platforms with canvas effects
         this.platforms.forEach((p) => {
           const yOffset = wobbleActive
             ? Math.sin(p.x * wobbleFrequency + now * wobbleSpeed) * wobbleAmplitude
             : 0
           
-
-          
-          if (pulsingActive) {
-            ctx.save()
-            ctx.globalAlpha = this.effects.pulseFactor
-          }
-          ctx.fillStyle = this.activeCustomEffects?.chromatic?.enabled || this.levelEffects.includes("chromatic")
-            ? `hsl(${
-                ((this.effects.colorShift * 180) / Math.PI) % 360
-              }, 100%, 50%)`
-            : p.color
-          
+          ctx.fillStyle = p.color
           ctx.fillRect(p.x, p.y + yOffset, p.width, p.height)
-          
-          if (pulsingActive) {
-            ctx.restore()
-          }
         })
 
-        // Draw enemies, collectibles, and player with wobble
+        // Draw enemies with canvas effects
         const drawWobbled = (obj: any) => {
           const yOffset = wobbleActive
             ? Math.sin(obj.x * wobbleFrequency + now * wobbleSpeed) * wobbleAmplitude
@@ -1485,10 +1395,9 @@ const Game = forwardRef<GameRef>((props, ref) => {
         this.enemies.forEach((e) => {
           ctx.fillStyle = e.color
           drawWobbled(e)
-
-
         })
         
+        // Draw collectibles with canvas effects
         this.collectibles.forEach((c) => {
           if (!c.collected) {
             ctx.fillStyle = c.color
@@ -1502,11 +1411,10 @@ const Game = forwardRef<GameRef>((props, ref) => {
             ctx.lineTo(cx + size / 2, cy + size / 2)
             ctx.closePath()
             ctx.fill()
-
-
           }
         })
 
+        // Draw player trail with canvas effects
         this.player.trail.forEach((point, index) => {
           ctx.fillStyle = `rgba(0, 255, 255, ${index * 0.05})`
           const yOffset = wobbleActive
@@ -1520,32 +1428,15 @@ const Game = forwardRef<GameRef>((props, ref) => {
           )
         })
 
+        // Draw player with canvas effects
         ctx.fillStyle =
           (this.player.invulnerable > 0 || this.levelStartInvincibility > 0) && Math.floor(now / 100) % 2 === 0
             ? "white"
             : this.player.color
-        if (this.levelEffects.includes("chromatic"))
-          ctx.fillStyle = `hsl(${
-            ((this.effects.colorShift * 180) / Math.PI + 180) % 360
-          }, 100%, 50%)`
         drawWobbled(this.player)
-
-
       }
 
-      renderScanlines() {
-        this.ctx.fillStyle = "rgba(0,0,0,0.25)"
-        for (let y = 0; y < this.height; y += 4) {
-          this.ctx.fillRect(0, y, this.width, 2)
-        }
-      }
-
-      renderScanlinesToContext(ctx: CanvasRenderingContext2D) {
-        ctx.fillStyle = "rgba(0,0,0,0.25)"
-        for (let y = 0; y < this.height; y += 4) {
-          ctx.fillRect(0, y, this.width, 2)
-        }
-      }
+      // renderScanlines methods removed - visual effects will be handled by VFX wrapper
 
       renderDataBleed() {
         if (this.dataBleedEffects.length === 0) return

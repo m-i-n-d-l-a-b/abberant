@@ -39,13 +39,13 @@
     - [x] 1.2.3 Design communication interface between components
     - [x] 1.2.4 Create architecture diagrams and documentation
 
-- [ ] 2.0 Game Component Refactoring
-  - [ ] 2.1 Remove Visual Effects from Game
-    - [ ] 2.1.1 Remove glitch, chromatic, pulsing, scanlines from game's effect pool
-    - [ ] 2.1.2 Keep only logic-based effects in levelEffects
-    - [ ] 2.1.3 Simplify updateEffects() to handle only canvas-specific effects
-    - [ ] 2.1.4 Remove visual effect rendering from render() method
-    - [ ] 2.1.5 Update Game component tests to reflect changes
+- [x] 2.0 Game Component Refactoring
+  - [x] 2.1 Remove Visual Effects from Game
+    - [x] 2.1.1 Remove glitch, chromatic, pulsing, scanlines from game's effect pool
+    - [x] 2.1.2 Keep only logic-based effects in levelEffects
+    - [x] 2.1.3 Simplify updateEffects() to handle only canvas-specific effects
+    - [x] 2.1.4 Remove visual effect rendering from render() method
+    - [x] 2.1.5 Update Game component tests to reflect changes
   - [ ] 2.2 Enhance Game Effects Lab
     - [ ] 2.2.1 Focus Effects Lab on canvas effects only
     - [ ] 2.2.2 Improve UI for remaining effects (wobble, backwards, etc.)
