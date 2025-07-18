@@ -1686,255 +1686,7 @@ const Game = forwardRef<GameRef>((props, ref) => {
               </button>
             </div>
             <div className="effects-controls">
-              {/* Glitch Effect */}
-              <div className="effect-control">
-                <label>
-                  <input 
-                    type="checkbox" 
-                    checked={effectsLabSettings.glitch.enabled}
-                    onChange={(e) => {
-                      const newSettings = {...effectsLabSettings}
-                      newSettings.glitch.enabled = e.target.checked
-                      setEffectsLabSettings(newSettings)
-                      if (gameRef.current) {
-                        gameRef.current.effectsLabSettings.glitch.enabled = e.target.checked
-                      }
-                    }}
-                  />
-                  Glitch
-                </label>
-                <div className="slider-group">
-                  <label>Intensity: {effectsLabSettings.glitch.intensity}</label>
-                  <input 
-                    type="range" 
-                    min="1" max="50" step="1" 
-                    value={effectsLabSettings.glitch.intensity}
-                    onChange={(e) => {
-                      const newSettings = {...effectsLabSettings}
-                      newSettings.glitch.intensity = parseInt(e.target.value)
-                      setEffectsLabSettings(newSettings)
-                      if (gameRef.current) {
-                        gameRef.current.effectsLabSettings.glitch.intensity = parseInt(e.target.value)
-                      }
-                    }}
-                    disabled={!effectsLabSettings.glitch.enabled}
-                  />
-                  
-                  <label>Frequency: {(effectsLabSettings.glitch.frequency * 100).toFixed(0)}%</label>
-                  <input 
-                    type="range" 
-                    min="0.01" max="1" step="0.01" 
-                    value={effectsLabSettings.glitch.frequency}
-                    onChange={(e) => {
-                      const newSettings = {...effectsLabSettings}
-                      newSettings.glitch.frequency = parseFloat(e.target.value)
-                      setEffectsLabSettings(newSettings)
-                      if (gameRef.current) {
-                        gameRef.current.effectsLabSettings.glitch.frequency = parseFloat(e.target.value)
-                      }
-                    }}
-                    disabled={!effectsLabSettings.glitch.enabled}
-                  />
-                  
-                  <label>X Offset: {effectsLabSettings.glitch.xOffset}</label>
-                  <input 
-                    type="range" 
-                    min="0" max="50" step="1" 
-                    value={effectsLabSettings.glitch.xOffset}
-                    onChange={(e) => {
-                      const newSettings = {...effectsLabSettings}
-                      newSettings.glitch.xOffset = parseInt(e.target.value)
-                      setEffectsLabSettings(newSettings)
-                      if (gameRef.current) {
-                        gameRef.current.effectsLabSettings.glitch.xOffset = parseInt(e.target.value)
-                      }
-                    }}
-                    disabled={!effectsLabSettings.glitch.enabled}
-                  />
-                  
-                  <label>Y Offset: {effectsLabSettings.glitch.yOffset}</label>
-                  <input 
-                    type="range" 
-                    min="0" max="50" step="1" 
-                    value={effectsLabSettings.glitch.yOffset}
-                    onChange={(e) => {
-                      const newSettings = {...effectsLabSettings}
-                      newSettings.glitch.yOffset = parseInt(e.target.value)
-                      setEffectsLabSettings(newSettings)
-                      if (gameRef.current) {
-                        gameRef.current.effectsLabSettings.glitch.yOffset = parseInt(e.target.value)
-                      }
-                    }}
-                    disabled={!effectsLabSettings.glitch.enabled}
-                  />
-                </div>
-              </div>
-
-
-
-              {/* Chromatic Effect */}
-              <div className="effect-control">
-                <label>
-                  <input 
-                    type="checkbox" 
-                    checked={effectsLabSettings.chromatic.enabled}
-                    onChange={(e) => {
-                      const newSettings = {...effectsLabSettings}
-                      newSettings.chromatic.enabled = e.target.checked
-                      setEffectsLabSettings(newSettings)
-                      if (gameRef.current) {
-                        gameRef.current.effectsLabSettings.chromatic.enabled = e.target.checked
-                      }
-                    }}
-                  />
-                  Chromatic
-                </label>
-                <div className="slider-group">
-                  <label>Intensity: {effectsLabSettings.chromatic.intensity}</label>
-                  <input 
-                    type="range" 
-                    min="0.1" max="10" step="0.1" 
-                    value={effectsLabSettings.chromatic.intensity}
-                    onChange={(e) => {
-                      const newSettings = {...effectsLabSettings}
-                      newSettings.chromatic.intensity = parseFloat(e.target.value)
-                      setEffectsLabSettings(newSettings)
-                      if (gameRef.current) {
-                        gameRef.current.effectsLabSettings.chromatic.intensity = parseFloat(e.target.value)
-                      }
-                    }}
-                    disabled={!effectsLabSettings.chromatic.enabled}
-                  />
-                  <label>Speed: {effectsLabSettings.chromatic.speed}</label>
-                  <input 
-                    type="range" 
-                    min="0.001" max="0.1" step="0.001" 
-                    value={effectsLabSettings.chromatic.speed}
-                    onChange={(e) => {
-                      const newSettings = {...effectsLabSettings}
-                      newSettings.chromatic.speed = parseFloat(e.target.value)
-                      setEffectsLabSettings(newSettings)
-                      if (gameRef.current) {
-                        gameRef.current.effectsLabSettings.chromatic.speed = parseFloat(e.target.value)
-                      }
-                    }}
-                    disabled={!effectsLabSettings.chromatic.enabled}
-                  />
-                  <label>Saturation: {effectsLabSettings.chromatic.saturation}</label>
-                  <input 
-                    type="range" 
-                    min="0" max="200" step="1" 
-                    value={effectsLabSettings.chromatic.saturation}
-                    onChange={(e) => {
-                      const newSettings = {...effectsLabSettings}
-                      newSettings.chromatic.saturation = parseInt(e.target.value)
-                      setEffectsLabSettings(newSettings)
-                      if (gameRef.current) {
-                        gameRef.current.effectsLabSettings.chromatic.saturation = parseInt(e.target.value)
-                      }
-                    }}
-                    disabled={!effectsLabSettings.chromatic.enabled}
-                  />
-                  <label>Brightness: {effectsLabSettings.chromatic.brightness}</label>
-                  <input 
-                    type="range" 
-                    min="0" max="100" step="1" 
-                    value={effectsLabSettings.chromatic.brightness}
-                    onChange={(e) => {
-                      const newSettings = {...effectsLabSettings}
-                      newSettings.chromatic.brightness = parseInt(e.target.value)
-                      setEffectsLabSettings(newSettings)
-                      if (gameRef.current) {
-                        gameRef.current.effectsLabSettings.chromatic.brightness = parseInt(e.target.value)
-                      }
-                    }}
-                    disabled={!effectsLabSettings.chromatic.enabled}
-                  />
-                </div>
-              </div>
-
-              {/* Pulsing Effect */}
-              <div className="effect-control">
-                <label>
-                  <input 
-                    type="checkbox" 
-                    checked={effectsLabSettings.pulsing.enabled}
-                    onChange={(e) => {
-                      const newSettings = {...effectsLabSettings}
-                      newSettings.pulsing.enabled = e.target.checked
-                      setEffectsLabSettings(newSettings)
-                      if (gameRef.current) {
-                        gameRef.current.effectsLabSettings.pulsing.enabled = e.target.checked
-                      }
-                    }}
-                  />
-                  Pulsing
-                </label>
-                <div className="slider-group">
-                  <label>Intensity: {effectsLabSettings.pulsing.intensity}</label>
-                  <input 
-                    type="range" 
-                    min="0.1" max="3" step="0.1" 
-                    value={effectsLabSettings.pulsing.intensity}
-                    onChange={(e) => {
-                      const newSettings = {...effectsLabSettings}
-                      newSettings.pulsing.intensity = parseFloat(e.target.value)
-                      setEffectsLabSettings(newSettings)
-                      if (gameRef.current) {
-                        gameRef.current.effectsLabSettings.pulsing.intensity = parseFloat(e.target.value)
-                      }
-                    }}
-                    disabled={!effectsLabSettings.pulsing.enabled}
-                  />
-                  <label>Speed: {effectsLabSettings.pulsing.speed}</label>
-                  <input 
-                    type="range" 
-                    min="0.001" max="0.05" step="0.001" 
-                    value={effectsLabSettings.pulsing.speed}
-                    onChange={(e) => {
-                      const newSettings = {...effectsLabSettings}
-                      newSettings.pulsing.speed = parseFloat(e.target.value)
-                      setEffectsLabSettings(newSettings)
-                      if (gameRef.current) {
-                        gameRef.current.effectsLabSettings.pulsing.speed = parseFloat(e.target.value)
-                      }
-                    }}
-                    disabled={!effectsLabSettings.pulsing.enabled}
-                  />
-                  <label>Min Alpha: {effectsLabSettings.pulsing.minAlpha}</label>
-                  <input 
-                    type="range" 
-                    min="0" max="1" step="0.01" 
-                    value={effectsLabSettings.pulsing.minAlpha}
-                    onChange={(e) => {
-                      const newSettings = {...effectsLabSettings}
-                      newSettings.pulsing.minAlpha = parseFloat(e.target.value)
-                      setEffectsLabSettings(newSettings)
-                      if (gameRef.current) {
-                        gameRef.current.effectsLabSettings.pulsing.minAlpha = parseFloat(e.target.value)
-                      }
-                    }}
-                    disabled={!effectsLabSettings.pulsing.enabled}
-                  />
-                  <label>Max Alpha: {effectsLabSettings.pulsing.maxAlpha}</label>
-                  <input 
-                    type="range" 
-                    min="0" max="1" step="0.01" 
-                    value={effectsLabSettings.pulsing.maxAlpha}
-                    onChange={(e) => {
-                      const newSettings = {...effectsLabSettings}
-                      newSettings.pulsing.maxAlpha = parseFloat(e.target.value)
-                      setEffectsLabSettings(newSettings)
-                      if (gameRef.current) {
-                        gameRef.current.effectsLabSettings.pulsing.maxAlpha = parseFloat(e.target.value)
-                      }
-                    }}
-                    disabled={!effectsLabSettings.pulsing.enabled}
-                  />
-                </div>
-              </div>
-
-              {/* Wobble Effect */}
+              {/* Wobble Effect - Canvas Effect */}
               <div className="effect-control">
                 <label>
                   <input 
@@ -1949,7 +1701,7 @@ const Game = forwardRef<GameRef>((props, ref) => {
                       }
                     }}
                   />
-                  Wobble
+                  Wobble (Canvas)
                 </label>
                 <div className="slider-group">
                   <label>Amplitude: {effectsLabSettings.wobble.amplitude}</label>
@@ -2000,73 +1752,109 @@ const Game = forwardRef<GameRef>((props, ref) => {
                 </div>
               </div>
 
-              {/* Scanlines Effect */}
+              {/* Melting Effect - Canvas Effect */}
               <div className="effect-control">
                 <label>
                   <input 
                     type="checkbox" 
-                    checked={effectsLabSettings.scanlines.enabled}
+                    checked={effectsLabSettings.melting.enabled}
                     onChange={(e) => {
                       const newSettings = {...effectsLabSettings}
-                      newSettings.scanlines.enabled = e.target.checked
+                      newSettings.melting.enabled = e.target.checked
                       setEffectsLabSettings(newSettings)
                       if (gameRef.current) {
-                        gameRef.current.effectsLabSettings.scanlines.enabled = e.target.checked
+                        gameRef.current.effectsLabSettings.melting.enabled = e.target.checked
                       }
                     }}
                   />
-                  Scanlines
+                  Melting (Canvas)
                 </label>
                 <div className="slider-group">
-                  <label>Spacing: {effectsLabSettings.scanlines.spacing}</label>
+                  <label>Intensity: {effectsLabSettings.melting.intensity}</label>
                   <input 
                     type="range" 
-                    min="2" max="20" step="1" 
-                    value={effectsLabSettings.scanlines.spacing}
+                    min="0.1" max="5" step="0.1" 
+                    value={effectsLabSettings.melting.intensity}
                     onChange={(e) => {
                       const newSettings = {...effectsLabSettings}
-                      newSettings.scanlines.spacing = parseInt(e.target.value)
+                      newSettings.melting.intensity = parseFloat(e.target.value)
                       setEffectsLabSettings(newSettings)
                       if (gameRef.current) {
-                        gameRef.current.effectsLabSettings.scanlines.spacing = parseInt(e.target.value)
+                        gameRef.current.effectsLabSettings.melting.intensity = parseFloat(e.target.value)
                       }
                     }}
-                    disabled={!effectsLabSettings.scanlines.enabled}
+                    disabled={!effectsLabSettings.melting.enabled}
                   />
-                  <label>Opacity: {effectsLabSettings.scanlines.opacity}</label>
+                  <label>Speed: {effectsLabSettings.melting.speed}</label>
                   <input 
                     type="range" 
-                    min="0.01" max="1" step="0.01" 
-                    value={effectsLabSettings.scanlines.opacity}
+                    min="0.001" max="0.05" step="0.001" 
+                    value={effectsLabSettings.melting.speed}
                     onChange={(e) => {
                       const newSettings = {...effectsLabSettings}
-                      newSettings.scanlines.opacity = parseFloat(e.target.value)
+                      newSettings.melting.speed = parseFloat(e.target.value)
                       setEffectsLabSettings(newSettings)
                       if (gameRef.current) {
-                        gameRef.current.effectsLabSettings.scanlines.opacity = parseFloat(e.target.value)
+                        gameRef.current.effectsLabSettings.melting.speed = parseFloat(e.target.value)
                       }
                     }}
-                    disabled={!effectsLabSettings.scanlines.enabled}
-                  />
-                  <label>Speed: {effectsLabSettings.scanlines.speed}</label>
-                  <input 
-                    type="range" 
-                    min="0.001" max="0.01" step="0.001" 
-                    value={effectsLabSettings.scanlines.speed}
-                    onChange={(e) => {
-                      const newSettings = {...effectsLabSettings}
-                      newSettings.scanlines.speed = parseFloat(e.target.value)
-                      setEffectsLabSettings(newSettings)
-                      if (gameRef.current) {
-                        gameRef.current.effectsLabSettings.scanlines.speed = parseFloat(e.target.value)
-                      }
-                    }}
-                    disabled={!effectsLabSettings.scanlines.enabled}
+                    disabled={!effectsLabSettings.melting.enabled}
                   />
                 </div>
               </div>
 
-              {/* Upside Down Effect */}
+              {/* Data Bleed Effect - Canvas Effect */}
+              <div className="effect-control">
+                <label>
+                  <input 
+                    type="checkbox" 
+                    checked={effectsLabSettings.dataBleed.enabled}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.dataBleed.enabled = e.target.checked
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.dataBleed.enabled = e.target.checked
+                      }
+                    }}
+                  />
+                  Data Bleed (Canvas)
+                </label>
+                <div className="slider-group">
+                  <label>Intensity: {effectsLabSettings.dataBleed.intensity}</label>
+                  <input 
+                    type="range" 
+                    min="0.1" max="3" step="0.1" 
+                    value={effectsLabSettings.dataBleed.intensity}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.dataBleed.intensity = parseFloat(e.target.value)
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.dataBleed.intensity = parseFloat(e.target.value)
+                      }
+                    }}
+                    disabled={!effectsLabSettings.dataBleed.enabled}
+                  />
+                  <label>Duration: {effectsLabSettings.dataBleed.duration}</label>
+                  <input 
+                    type="range" 
+                    min="10" max="120" step="5" 
+                    value={effectsLabSettings.dataBleed.duration}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.dataBleed.duration = parseInt(e.target.value)
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.dataBleed.duration = parseInt(e.target.value)
+                      }
+                    }}
+                    disabled={!effectsLabSettings.dataBleed.enabled}
+                  />
+                </div>
+              </div>
+
+              {/* Upside Down Effect - Canvas Effect */}
               <div className="effect-control">
                 <label>
                   <input 
@@ -2081,11 +1869,11 @@ const Game = forwardRef<GameRef>((props, ref) => {
                       }
                     }}
                   />
-                  Upside Down
+                  Upside Down (Canvas)
                 </label>
               </div>
 
-              {/* Invert Effect */}
+              {/* Invert Effect - Canvas Effect */}
               <div className="effect-control">
                 <label>
                   <input 
@@ -2100,11 +1888,11 @@ const Game = forwardRef<GameRef>((props, ref) => {
                       }
                     }}
                   />
-                  Invert
+                  Invert (Canvas)
                 </label>
               </div>
 
-              {/* Backwards Effect */}
+              {/* Backwards Effect - Canvas Effect */}
               <div className="effect-control">
                 <label>
                   <input 
@@ -2119,14 +1907,14 @@ const Game = forwardRef<GameRef>((props, ref) => {
                       }
                     }}
                   />
-                  Backwards
+                  Backwards (Canvas)
                 </label>
               </div>
             </div>
             
             {/* Preset Management */}
             <div className="preset-management">
-              <h4>Presets</h4>
+              <h4>Canvas Effect Presets</h4>
               <div className="preset-controls">
                 <input 
                   type="text" 
@@ -2145,6 +1933,59 @@ const Game = forwardRef<GameRef>((props, ref) => {
                   }
                 }}>
                   Save Preset
+                </button>
+              </div>
+              
+              {/* Quick Preset Buttons */}
+              <div className="quick-presets">
+                <h5>Quick Presets</h5>
+                <button onClick={() => {
+                  const newSettings = {
+                    wobble: { enabled: true, amplitude: 8, frequency: 0.08, speed: 0.003 },
+                    upsideDown: { enabled: false },
+                    invert: { enabled: false },
+                    backwards: { enabled: false },
+                    melting: { enabled: false, intensity: 1, speed: 0.01 },
+                    dataBleed: { enabled: false, intensity: 1, duration: 20 }
+                  }
+                  setEffectsLabSettings(newSettings)
+                  if (gameRef.current) {
+                    gameRef.current.effectsLabSettings = newSettings
+                  }
+                }}>
+                  Gentle Wobble
+                </button>
+                <button onClick={() => {
+                  const newSettings = {
+                    wobble: { enabled: true, amplitude: 15, frequency: 0.12, speed: 0.005 },
+                    upsideDown: { enabled: true },
+                    invert: { enabled: false },
+                    backwards: { enabled: false },
+                    melting: { enabled: false, intensity: 1, speed: 0.01 },
+                    dataBleed: { enabled: false, intensity: 1, duration: 20 }
+                  }
+                  setEffectsLabSettings(newSettings)
+                  if (gameRef.current) {
+                    gameRef.current.effectsLabSettings = newSettings
+                  }
+                }}>
+                  Disorienting
+                </button>
+                <button onClick={() => {
+                  const newSettings = {
+                    wobble: { enabled: false, amplitude: 5, frequency: 0.05, speed: 0.002 },
+                    upsideDown: { enabled: false },
+                    invert: { enabled: true },
+                    backwards: { enabled: true },
+                    melting: { enabled: true, intensity: 2, speed: 0.02 },
+                    dataBleed: { enabled: true, intensity: 2, duration: 40 }
+                  }
+                  setEffectsLabSettings(newSettings)
+                  if (gameRef.current) {
+                    gameRef.current.effectsLabSettings = newSettings
+                  }
+                }}>
+                  Chaos Mode
                 </button>
               </div>
               

@@ -46,12 +46,12 @@
     - [x] 2.1.3 Simplify updateEffects() to handle only canvas-specific effects
     - [x] 2.1.4 Remove visual effect rendering from render() method
     - [x] 2.1.5 Update Game component tests to reflect changes
-  - [ ] 2.2 Enhance Game Effects Lab
-    - [ ] 2.2.1 Focus Effects Lab on canvas effects only
-    - [ ] 2.2.2 Improve UI for remaining effects (wobble, backwards, etc.)
-    - [ ] 2.2.3 Add better presets for canvas effect combinations
-    - [ ] 2.2.4 Remove visual effect controls from Effects Lab
-    - [ ] 2.2.5 Update Effects Lab tests
+  - [x] 2.2 Enhance Game Effects Lab
+    - [x] 2.2.1 Focus Effects Lab on canvas effects only
+    - [x] 2.2.2 Improve UI for remaining effects (wobble, backwards, etc.)
+    - [x] 2.2.3 Add better presets for canvas effect combinations
+    - [x] 2.2.4 Remove visual effect controls from Effects Lab
+    - [x] 2.2.5 Update Effects Lab tests
   - [ ] 2.3 Game Communication Interface
     - [ ] 2.3.1 Expand GameRef interface to expose canvas effect settings
     - [ ] 2.3.2 Add Effect Lab state to GameRef interface
