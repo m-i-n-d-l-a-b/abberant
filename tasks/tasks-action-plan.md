@@ -52,12 +52,12 @@
     - [x] 2.2.3 Add better presets for canvas effect combinations
     - [x] 2.2.4 Remove visual effect controls from Effects Lab
     - [x] 2.2.5 Update Effects Lab tests
-  - [ ] 2.3 Game Communication Interface
-    - [ ] 2.3.1 Expand GameRef interface to expose canvas effect settings
-    - [ ] 2.3.2 Add Effect Lab state to GameRef interface
-    - [ ] 2.3.3 Add game state information to GameRef interface
-    - [ ] 2.3.4 Add performance metrics to GameRef interface
-    - [ ] 2.3.5 Create TypeScript definitions for GameRef interface
+  - [x] 2.3 Game Communication Interface
+    - [x] 2.3.1 Expand GameRef interface to expose canvas effect settings
+    - [x] 2.3.2 Add Effect Lab state to GameRef interface
+    - [x] 2.3.3 Add game state information to GameRef interface
+    - [x] 2.3.4 Add performance metrics to GameRef interface
+    - [x] 2.3.5 Create TypeScript definitions for GameRef interface
 
 - [ ] 3.0 VFX Wrapper Enhancement
   - [ ] 3.1 Unified Control Panel Design

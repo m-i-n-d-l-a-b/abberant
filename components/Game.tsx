@@ -108,10 +108,86 @@ interface TouchInput {
   dash: boolean
 }
 
+// Canvas effect settings interface
+export interface CanvasEffectSettings {
+  wobble: { 
+    enabled: boolean;
+    amplitude: number;
+    frequency: number;
+    speed: number;
+  };
+  upsideDown: { enabled: boolean };
+  invert: { enabled: boolean };
+  backwards: { enabled: boolean };
+  melting: { 
+    enabled: boolean;
+    intensity: number;
+    speed: number;
+  };
+  dataBleed: { 
+    enabled: boolean;
+    intensity: number;
+    duration: number;
+  };
+}
+
+// Game state information interface
+export interface GameStateInfo {
+  gameState: string;
+  currentLevel: number;
+  lives: number;
+  score: number;
+  combo: number;
+  bestCombo: number;
+  paused: boolean;
+  isReversed: boolean;
+  levelProgress: number;
+  levelTarget: number;
+  levelEffects: string[];
+}
+
+// Performance metrics interface
+export interface PerformanceMetrics {
+  fps: number;
+  frameCount: number;
+  lastTime: number;
+  isEffectsLabUnlocked: boolean;
+  activeCustomEffects: any;
+}
+
+// Effects Lab state interface
+export interface EffectsLabState {
+  settings: CanvasEffectSettings;
+  presets: Array<{ name: string; settings: any }>;
+  selectedPresetName: string;
+}
+
 export interface GameRef {
-  setActiveCustomEffects: (effects: any) => void
-  getActiveCustomEffects: () => any
-  updateEffects: () => void
+  // Canvas effect management
+  setActiveCustomEffects: (effects: any) => void;
+  getActiveCustomEffects: () => any;
+  updateEffects: () => void;
+  
+  // Canvas effect settings
+  getCanvasEffectSettings: () => CanvasEffectSettings;
+  setCanvasEffectSettings: (settings: CanvasEffectSettings) => void;
+  
+  // Game state information
+  getGameState: () => GameStateInfo;
+  
+  // Performance metrics
+  getPerformanceMetrics: () => PerformanceMetrics;
+  
+  // Effects Lab state
+  getEffectsLabState: () => EffectsLabState;
+  saveEffectsLabPreset: (presetName: string) => void;
+  loadEffectsLabPreset: (presetName: string) => void;
+  deleteEffectsLabPreset: (presetName: string) => void;
+  
+  // Game control methods
+  togglePause: () => void;
+  resetLevel: (fullReset?: boolean) => void;
+  nextLevel: () => void;
 }
 
 const Game = forwardRef<GameRef>((props, ref) => {
@@ -146,6 +222,7 @@ const Game = forwardRef<GameRef>((props, ref) => {
 
   // Expose game methods to parent components
   useImperativeHandle(ref, () => ({
+    // Canvas effect management
     setActiveCustomEffects: (effects: any) => {
       if (gameRef.current) {
         gameRef.current.activeCustomEffects = effects
@@ -158,6 +235,130 @@ const Game = forwardRef<GameRef>((props, ref) => {
       if (gameRef.current) {
         // Force effects update
         gameRef.current.updateEffects()
+      }
+    },
+    
+    // Canvas effect settings
+    getCanvasEffectSettings: () => {
+      return gameRef.current?.effectsLabSettings || {
+        wobble: { enabled: false, amplitude: 5, frequency: 0.05, speed: 0.002 },
+        upsideDown: { enabled: false },
+        invert: { enabled: false },
+        backwards: { enabled: false },
+        melting: { enabled: false, intensity: 1, speed: 0.01 },
+        dataBleed: { enabled: false, intensity: 1, duration: 20 }
+      }
+    },
+    setCanvasEffectSettings: (settings: CanvasEffectSettings) => {
+      if (gameRef.current) {
+        gameRef.current.effectsLabSettings = settings
+      }
+    },
+    
+    // Game state information
+    getGameState: () => {
+      if (!gameRef.current) {
+        return {
+          gameState: "start",
+          currentLevel: 1,
+          lives: 3,
+          score: 0,
+          combo: 0,
+          bestCombo: 0,
+          paused: false,
+          isReversed: false,
+          levelProgress: 0,
+          levelTarget: 2500,
+          levelEffects: []
+        }
+      }
+      return {
+        gameState: gameRef.current.gameState,
+        currentLevel: gameRef.current.currentLevel,
+        lives: gameRef.current.lives,
+        score: gameRef.current.score,
+        combo: gameRef.current.combo,
+        bestCombo: gameRef.current.bestCombo,
+        paused: gameRef.current.paused,
+        isReversed: gameRef.current.isReversed,
+        levelProgress: gameRef.current.levelProgress,
+        levelTarget: gameRef.current.levelTarget,
+        levelEffects: gameRef.current.levelEffects
+      }
+    },
+    
+    // Performance metrics
+    getPerformanceMetrics: () => {
+      if (!gameRef.current) {
+        return {
+          fps: 60,
+          frameCount: 0,
+          lastTime: 0,
+          isEffectsLabUnlocked: false,
+          activeCustomEffects: null
+        }
+      }
+      return {
+        fps: gameRef.current.fps,
+        frameCount: gameRef.current.frameCount,
+        lastTime: gameRef.current.lastTime,
+        isEffectsLabUnlocked: gameRef.current.isEffectsLabUnlocked,
+        activeCustomEffects: gameRef.current.activeCustomEffects
+      }
+    },
+    
+    // Effects Lab state
+    getEffectsLabState: () => {
+      if (!gameRef.current) {
+        return {
+          settings: {
+            wobble: { enabled: false, amplitude: 5, frequency: 0.05, speed: 0.002 },
+            upsideDown: { enabled: false },
+            invert: { enabled: false },
+            backwards: { enabled: false },
+            melting: { enabled: false, intensity: 1, speed: 0.01 },
+            dataBleed: { enabled: false, intensity: 1, duration: 20 }
+          },
+          presets: [],
+          selectedPresetName: ''
+        }
+      }
+      return {
+        settings: gameRef.current.effectsLabSettings,
+        presets: gameRef.current.effectsLabPresets,
+        selectedPresetName: gameRef.current.selectedPresetName
+      }
+    },
+    saveEffectsLabPreset: (presetName: string) => {
+      if (gameRef.current) {
+        gameRef.current.saveEffectsLabPreset(presetName)
+      }
+    },
+    loadEffectsLabPreset: (presetName: string) => {
+      if (gameRef.current) {
+        gameRef.current.loadEffectsLabPreset(presetName)
+      }
+    },
+    deleteEffectsLabPreset: (presetName: string) => {
+      if (gameRef.current) {
+        gameRef.current.deleteEffectsLabPreset(presetName)
+      }
+    },
+    
+    // Game control methods
+    togglePause: () => {
+      if (gameRef.current) {
+        gameRef.current.togglePause()
+      }
+    },
+    resetLevel: (fullReset = true) => {
+      if (gameRef.current) {
+        gameRef.current.resetLevel(fullReset)
+      }
+    },
+    nextLevel: () => {
+      if (gameRef.current) {
+        gameRef.current.nextLevel()
       }
     }
   }), [])
