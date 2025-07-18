@@ -76,10 +76,8 @@ interface DataBleedEffect {
 
 interface Effects {
   // Canvas effects only - visual effects moved to VFX wrapper
-  // These properties are kept for backward compatibility but will be unused
-  glitchOffset: { x: number; y: number }
-  colorShift: number
-  pulseFactor: number
+  // This interface is kept for backward compatibility but is no longer used
+  // All effect properties are now handled by effectsLabSettings
 }
 
 interface Camera {
@@ -1273,10 +1271,8 @@ const Game = forwardRef<GameRef>((props, ref) => {
           return defaultValue
         }
 
-        // Reset canvas effects to defaults
-        this.effects.glitchOffset = { x: 0, y: 0 }
-        this.effects.colorShift = 0
-        this.effects.pulseFactor = 1
+        // Canvas effects are now handled by effectsLabSettings
+        // No need to reset legacy effects properties
 
         // Apply wobble effect (canvas effect - affects object positions)
         if (isCanvasEffectEnabled("wobble")) {
@@ -1298,7 +1294,7 @@ const Game = forwardRef<GameRef>((props, ref) => {
         // Handled in render() method via CSS filters
         
         // Apply melting effect (canvas effect - affects object shapes)
-        // TODO: Implement melting effect logic
+        // Melting effect is handled in renderToContext() method via object distortion
         
         // Apply dataBleed effect (canvas effect - affects screen capture)
         // Handled in renderDataBleed() method
@@ -1448,40 +1444,16 @@ const Game = forwardRef<GameRef>((props, ref) => {
         this.ctx.fillStyle = "#0a0a0a"
         this.ctx.fillRect(0, 0, this.width, this.height)
         
-        // Check if chromatic effect is enabled (custom or level)
-        const isChromatic = this.activeCustomEffects ? 
-          this.activeCustomEffects.chromatic?.enabled : 
-          this.levelEffects.includes("chromatic")
-        
-        if (isChromatic) {
-          this.ctx.globalCompositeOperation = "lighter"
-          this.renderBackgroundLayer(0.06, "red")
-          this.renderBackgroundLayer(0.0, "lime")
-          this.renderBackgroundLayer(-0.06, "blue")
-          this.ctx.globalCompositeOperation = "source-over"
-        } else {
-          this.renderBackgroundLayer(0)
-        }
+        // Render background with canvas effects only
+        this.renderBackgroundLayer(0)
       }
 
       renderBackgroundToContext(ctx: CanvasRenderingContext2D) {
         ctx.fillStyle = "#0a0a0a"
         ctx.fillRect(0, 0, this.width, this.height)
         
-        // Check if chromatic effect is enabled (custom or level)
-        const isChromatic = this.activeCustomEffects ? 
-          this.activeCustomEffects.chromatic?.enabled : 
-          this.levelEffects.includes("chromatic")
-        
-        if (isChromatic) {
-          ctx.globalCompositeOperation = "lighter"
-          this.renderBackgroundLayerToContext(ctx, 0.06, "red")
-          this.renderBackgroundLayerToContext(ctx, 0.0, "lime")
-          this.renderBackgroundLayerToContext(ctx, -0.06, "blue")
-          ctx.globalCompositeOperation = "source-over"
-        } else {
-          this.renderBackgroundLayerToContext(ctx, 0)
-        }
+        // Render background with canvas effects only
+        this.renderBackgroundLayerToContext(ctx, 0)
       }
 
       renderBackgroundLayer(parallaxOffset = 0, tint: string | null = null) {
@@ -1569,33 +1541,65 @@ const Game = forwardRef<GameRef>((props, ref) => {
         const wobbleActive = isCanvasEffectEnabled("wobble")
         const meltingActive = isCanvasEffectEnabled("melting")
         
-        // Get wobble settings
+        // Get effect settings
         const wobbleSettings = this.activeCustomEffects?.wobble || { amplitude: 5, frequency: 0.05, speed: 0.002 }
         const wobbleAmplitude = wobbleSettings.amplitude || 5
         const wobbleFrequency = wobbleSettings.frequency || 0.05
         const wobbleSpeed = wobbleSettings.speed || 0.002
+        
+        const meltingSettings = this.activeCustomEffects?.melting || { intensity: 1, speed: 0.01 }
+        const meltingIntensity = meltingSettings.intensity || 1
+        const meltingSpeed = meltingSettings.speed || 0.01
 
         // Draw platforms with canvas effects
         this.platforms.forEach((p) => {
-          const yOffset = wobbleActive
-            ? Math.sin(p.x * wobbleFrequency + now * wobbleSpeed) * wobbleAmplitude
-            : 0
+          let yOffset = 0
+          let width = p.width
+          let height = p.height
+          
+          // Apply wobble effect to platforms
+          if (wobbleActive) {
+            yOffset = Math.sin(p.x * wobbleFrequency + now * wobbleSpeed) * wobbleAmplitude
+          }
+          
+          // Apply melting effect to platforms
+          if (meltingActive) {
+            const meltOffset = Math.sin(p.x * 0.02 + now * meltingSpeed) * meltingIntensity * 2
+            yOffset += meltOffset
+            height += Math.abs(meltOffset) * 0.5
+            width += Math.abs(meltOffset) * 0.3
+          }
           
           ctx.fillStyle = p.color
-          ctx.fillRect(p.x, p.y + yOffset, p.width, p.height)
+          ctx.fillRect(p.x, p.y + yOffset, width, height)
         })
 
         // Draw enemies with canvas effects
-        const drawWobbled = (obj: any) => {
-          const yOffset = wobbleActive
-            ? Math.sin(obj.x * wobbleFrequency + now * wobbleSpeed) * wobbleAmplitude
-            : 0
-          ctx.fillRect(obj.x, obj.y + yOffset, obj.width, obj.height)
+        const drawWithEffects = (obj: any) => {
+          let yOffset = 0
+          let xOffset = 0
+          let width = obj.width
+          let height = obj.height
+          
+          // Apply wobble effect
+          if (wobbleActive) {
+            yOffset = Math.sin(obj.x * wobbleFrequency + now * wobbleSpeed) * wobbleAmplitude
+          }
+          
+          // Apply melting effect
+          if (meltingActive) {
+            const meltOffset = Math.sin(obj.x * 0.02 + now * meltingSpeed) * meltingIntensity * 2
+            yOffset += meltOffset
+            height += Math.abs(meltOffset) * 0.5
+            width += Math.abs(meltOffset) * 0.3
+          }
+          
+          ctx.fillRect(obj.x + xOffset, obj.y + yOffset, width, height)
         }
 
         this.enemies.forEach((e) => {
           ctx.fillStyle = e.color
-          drawWobbled(e)
+          drawWithEffects(e)
         })
         
         // Draw collectibles with canvas effects
@@ -1618,15 +1622,24 @@ const Game = forwardRef<GameRef>((props, ref) => {
         // Draw player trail with canvas effects
         this.player.trail.forEach((point, index) => {
           ctx.fillStyle = `rgba(0, 255, 255, ${index * 0.05})`
-          const yOffset = wobbleActive
-            ? Math.sin(point.x * 0.05 + now * 0.002) * 5
-            : 0
-          ctx.fillRect(
-            point.x,
-            point.y + yOffset,
-            this.player.width,
-            this.player.height
-          )
+          let yOffset = 0
+          let width = this.player.width
+          let height = this.player.height
+          
+          // Apply wobble effect to trail
+          if (wobbleActive) {
+            yOffset = Math.sin(point.x * wobbleFrequency + now * wobbleSpeed) * wobbleAmplitude
+          }
+          
+          // Apply melting effect to trail
+          if (meltingActive) {
+            const meltOffset = Math.sin(point.x * 0.02 + now * meltingSpeed) * meltingIntensity * 2
+            yOffset += meltOffset
+            height += Math.abs(meltOffset) * 0.5
+            width += Math.abs(meltOffset) * 0.3
+          }
+          
+          ctx.fillRect(point.x, point.y + yOffset, width, height)
         })
 
         // Draw player with canvas effects
@@ -1634,7 +1647,7 @@ const Game = forwardRef<GameRef>((props, ref) => {
           (this.player.invulnerable > 0 || this.levelStartInvincibility > 0) && Math.floor(now / 100) % 2 === 0
             ? "white"
             : this.player.color
-        drawWobbled(this.player)
+        drawWithEffects(this.player)
       }
 
       // renderScanlines methods removed - visual effects will be handled by VFX wrapper
