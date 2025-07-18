@@ -399,4 +399,218 @@ body {
 #soundToggle:hover {
   background: rgba(255, 255, 0, 0.2);
   transform: translateX(-50%) scale(1.05);
+}
+
+/* Effects Lab Panel Styles */
+#effectsLabPanel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(20px);
+  padding: 30px;
+  border-radius: 15px;
+  border: 2px solid #00ffff;
+  box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+  color: #00ffff;
+  font-family: "Orbitron", monospace;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+  z-index: 200;
+}
+
+.effects-lab-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+  padding-bottom: 10px;
+}
+
+.effects-lab-header h3 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+}
+
+.close-button {
+  background: none !important;
+  border: none !important;
+  color: #00ffff !important;
+  font-size: 24px !important;
+  cursor: pointer !important;
+  padding: 5px 10px !important;
+  border-radius: 5px !important;
+  transition: all 0.3s ease !important;
+}
+
+.close-button:hover {
+  background: rgba(0, 255, 255, 0.2) !important;
+  transform: scale(1.1) !important;
+}
+
+.effects-controls {
+  margin-bottom: 20px;
+}
+
+.effect-control {
+  margin-bottom: 15px;
+  padding: 10px;
+  background: rgba(0, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+.effect-control label {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.effect-control input[type="checkbox"] {
+  margin-right: 10px;
+  width: 16px;
+  height: 16px;
+  accent-color: #00ffff;
+}
+
+.effect-control input[type="range"] {
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 255, 255, 0.2);
+  border-radius: 3px;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.effect-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  background: #00ffff;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+.slider-group {
+  margin-top: 10px;
+}
+
+.slider-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 12px;
+  color: #00ffff;
+  font-weight: 500;
+}
+
+.slider-group input[type="range"] {
+  margin-bottom: 10px;
+}
+
+.preset-management {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: rgba(255, 255, 0, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 0, 0.2);
+}
+
+.preset-management h4 {
+  margin: 0 0 15px 0;
+  color: #ffff00;
+  font-size: 18px;
+  font-weight: 700;
+  text-shadow: 0 0 8px rgba(255, 255, 0, 0.8);
+}
+
+.preset-controls {
+  margin-bottom: 15px;
+}
+
+.preset-controls input[type="text"] {
+  width: 60%;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 0, 0.3);
+  border-radius: 5px;
+  color: #ffff00;
+  font-family: "Orbitron", monospace;
+  margin-right: 10px;
+}
+
+.preset-controls input[type="text"]::placeholder {
+  color: rgba(255, 255, 0, 0.5);
+}
+
+.preset-loading select {
+  width: 60%;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 0, 0.3);
+  border-radius: 5px;
+  color: #ffff00;
+  font-family: "Orbitron", monospace;
+  margin-right: 10px;
+  margin-bottom: 10px;
+}
+
+.effects-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.effects-buttons button {
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  background: linear-gradient(45deg, #00ffff, #ff00ff);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: "Orbitron", monospace;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+.effects-buttons button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+}
+
+.preset-controls button,
+.preset-loading button {
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: linear-gradient(45deg, #ffff00, #ffaa00);
+  color: black;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: "Orbitron", monospace;
+  margin-bottom: 5px;
+}
+
+.preset-controls button:hover,
+.preset-loading button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(255, 255, 0, 0.6);
+}
+
+.preset-loading button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 } 

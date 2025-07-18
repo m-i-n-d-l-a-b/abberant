@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { saveToStorage, getFromStorage } from '../lib/utils/storage'
 
 interface GameState {
   gameState: string
@@ -27,7 +28,6 @@ interface Player {
   invulnerable: number
   color: string
   trail: Array<{ x: number; y: number }>
-  dripTrail: Array<{ x: number; y: number; opacity: number }>
 }
 
 interface Platform {
@@ -37,9 +37,6 @@ interface Platform {
   height: number
   color: string
   type: string
-  dripTrail: Array<{ x: number; y: number; opacity: number }>
-  liquidPixels: Array<{ x: number; y: number; velX: number; velY: number; opacity: number; size: number }>
-  distortionOffset: number
 }
 
 interface Enemy {
@@ -50,7 +47,6 @@ interface Enemy {
   velX: number
   speed: number
   color: string
-  dripTrail: Array<{ x: number; y: number; opacity: number }>
 }
 
 interface Collectible {
@@ -61,7 +57,6 @@ interface Collectible {
   color: string
   collected: boolean
   value: number
-  dripTrail: Array<{ x: number; y: number; opacity: number }>
 }
 
 interface BackgroundStar {
@@ -81,7 +76,6 @@ interface DataBleedEffect {
 
 interface Effects {
   glitchOffset: { x: number; y: number }
-  meltingFactor: number
   colorShift: number
   pulseFactor: number
 }
@@ -115,6 +109,49 @@ interface TouchInput {
 export default function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const gameRef = useRef<any>(null)
+  const [isEffectsLabOpen, setIsEffectsLabOpen] = useState(false)
+  const [effectsLabSettings, setEffectsLabSettings] = useState({
+    glitch: { 
+      enabled: false, 
+      intensity: 5,
+      frequency: 0.1,
+      xOffset: 10,
+      yOffset: 10
+    },
+
+    chromatic: { 
+      enabled: false, 
+      intensity: 1,
+      speed: 0.01,
+      saturation: 100,
+      brightness: 50
+    },
+    pulsing: { 
+      enabled: false, 
+      intensity: 0.3,
+      speed: 0.005,
+      minAlpha: 0.7,
+      maxAlpha: 1.0
+    },
+    wobble: { 
+      enabled: false,
+      amplitude: 5,
+      frequency: 0.05,
+      speed: 0.002
+    },
+    scanlines: { 
+      enabled: false,
+      spacing: 4,
+      opacity: 0.25,
+      speed: 0.001
+    },
+    upsideDown: { enabled: false },
+    invert: { enabled: false },
+    backwards: { enabled: false }
+  })
+  const [effectsLabPresets, setEffectsLabPresets] = useState<Array<{ name: string; settings: any }>>([])
+  const [selectedPresetName, setSelectedPresetName] = useState('')
+  const [isGameReady, setIsGameReady] = useState(false)
 
   useEffect(() => {
     if (!canvasRef.current) return
@@ -174,12 +211,62 @@ export default function Game() {
       transitionPhase!: 'none' | 'zoomIn' | 'transition' | 'zoomOut';
       transitionProgress!: number;
       levelStartInvincibility!: number;
+      isEffectsLabUnlocked!: boolean;
+      activeCustomEffects!: any;
+      // Development toggle - set to true for testing, false for production
+      private readonly DEV_MODE = true;
+      effectsLabSettings!: {
+        glitch: { 
+          enabled: boolean; 
+          intensity: number;
+          frequency: number;
+          xOffset: number;
+          yOffset: number;
+        };
+
+        chromatic: { 
+          enabled: boolean; 
+          intensity: number;
+          speed: number;
+          saturation: number;
+          brightness: number;
+        };
+        pulsing: { 
+          enabled: boolean; 
+          intensity: number;
+          speed: number;
+          minAlpha: number;
+          maxAlpha: number;
+        };
+        wobble: { 
+          enabled: boolean;
+          amplitude: number;
+          frequency: number;
+          speed: number;
+        };
+        scanlines: { 
+          enabled: boolean;
+          spacing: number;
+          opacity: number;
+          speed: number;
+        };
+        upsideDown: { enabled: boolean };
+        invert: { enabled: boolean };
+        backwards: { enabled: boolean };
+      };
+      effectsLabPresets!: Array<{ name: string; settings: any }>;
+      selectedPresetName!: string;
+      
+
 
       constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas
         this.ctx = canvas.getContext('2d')!
         this.width = 800
         this.height = 600
+        
+
+        
         this.setupAudio()
         this.init()
       }
@@ -197,6 +284,63 @@ export default function Game() {
         this.transitionPhase = 'none'
         this.transitionProgress = 0
         this.levelStartInvincibility = 0
+        
+        // Initialize Effects Lab state from localStorage
+        this.isEffectsLabUnlocked = this.DEV_MODE || getFromStorage('effectsLabUnlocked') || false
+        this.activeCustomEffects = getFromStorage('activeCustomEffects') || null
+        
+        // Initialize Effects Lab settings
+        this.effectsLabSettings = {
+          glitch: { 
+            enabled: false, 
+            intensity: 5,
+            frequency: 0.1,
+            xOffset: 10,
+            yOffset: 10
+          },
+          
+          chromatic: { 
+            enabled: false, 
+            intensity: 1,
+            speed: 0.01,
+            saturation: 100,
+            brightness: 50
+          },
+          pulsing: { 
+            enabled: false, 
+            intensity: 0.3,
+            speed: 0.005,
+            minAlpha: 0.7,
+            maxAlpha: 1.0
+          },
+          wobble: { 
+            enabled: false,
+            amplitude: 5,
+            frequency: 0.05,
+            speed: 0.002
+          },
+          scanlines: { 
+            enabled: false,
+            spacing: 4,
+            opacity: 0.25,
+            speed: 0.001
+          },
+          upsideDown: { enabled: false },
+          invert: { enabled: false },
+          backwards: { enabled: false }
+        }
+        
+        // Initialize Effects Lab presets from localStorage
+        this.effectsLabPresets = getFromStorage('effectsLabPresets') || []
+        this.selectedPresetName = ''
+        
+        // Sync React state with game state
+        if (gameRef.current === this) {
+          setEffectsLabSettings({...this.effectsLabSettings})
+          setEffectsLabPresets([...this.effectsLabPresets])
+          setSelectedPresetName(this.selectedPresetName)
+          setIsGameReady(true)
+        }
 
         this.player = {
           x: 100,
@@ -213,7 +357,6 @@ export default function Game() {
           invulnerable: 0,
           color: "#00ffff",
           trail: [],
-          dripTrail: [],
         }
         this.camera = { x: 0, y: 0, targetX: 0, targetY: 0, smoothing: 0.1 }
         this.keys = {}
@@ -240,7 +383,6 @@ export default function Game() {
 
         this.effects = {
           glitchOffset: { x: 0, y: 0 },
-          meltingFactor: 0,
           colorShift: 0,
           pulseFactor: 1,
         }
@@ -597,7 +739,12 @@ export default function Game() {
         this.levelTarget = levelWidth
         this.generateBackground()
 
-        this.player.x = 100
+        // Set player starting position based on backwards mode
+        if (this.isReversed) {
+          this.player.x = this.levelTarget - 100 // Start near the end for backwards mode
+        } else {
+          this.player.x = 100 // Normal starting position
+        }
         this.player.y = 400 // Always normal starting position
 
         const platformCount = 15 + this.currentLevel * 3
@@ -606,11 +753,8 @@ export default function Game() {
           y: 550,
           width: 200,
           height: 50,
-          color: "#ff00ff",
-          type: "normal",
-          dripTrail: [],
-          liquidPixels: [],
-          distortionOffset: 0,
+                      color: "#ff00ff",
+            type: "normal",
         })
         for (let i = 1; i < platformCount; i++) {
           const x =
@@ -622,11 +766,8 @@ export default function Game() {
             y,
             width,
             height: 20,
-            color: `hsl(${(i * 30) % 360}, 70%, 50%)`,
-            type: "normal",
-            dripTrail: [],
-            liquidPixels: [],
-            distortionOffset: 0,
+                          color: `hsl(${(i * 30) % 360}, 70%, 50%)`,
+              type: "normal",
           })
         }
         for (let i = 0; i < 5 + this.currentLevel; i++) {
@@ -640,7 +781,6 @@ export default function Game() {
             velX: Math.random() < 0.5 ? 1 : -1,
             speed: 1 + Math.random(),
             color: `hsl(${Math.random() * 360}, 100%, 50%)`,
-            dripTrail: [],
           })
         }
         for (let i = 0; i < 8 + this.currentLevel; i++) {
@@ -656,7 +796,6 @@ export default function Game() {
             color,
             collected: false,
             value: 100,
-            dripTrail: [],
           })
         }
       }
@@ -705,10 +844,72 @@ export default function Game() {
       }
 
       nextLevel() {
+        // Prevent infinite transition loop
+        if (this.gameState === "transition") {
+          console.warn("Preventing infinite transition loop")
+          return
+        }
+        
         this.gameState = "transition"
         this.transitionPhase = 'zoomIn'
         this.transitionProgress = 0
         this.stopBGM()
+        
+        // Check if player has reached level 101 to unlock Effects Lab
+        if (this.currentLevel >= 101) {
+          saveToStorage('effectsLabUnlocked', true)
+        }
+      }
+
+      resetEffectsLabToLevelDefault() {
+        // Reset all effects to disabled
+        Object.keys(this.effectsLabSettings).forEach(key => {
+          const effectKey = key as keyof typeof this.effectsLabSettings
+          if (this.effectsLabSettings[effectKey] && typeof this.effectsLabSettings[effectKey] === 'object' && 'enabled' in this.effectsLabSettings[effectKey]) {
+            (this.effectsLabSettings[effectKey] as any).enabled = this.levelEffects.includes(key)
+          }
+        })
+      }
+
+      saveEffectsLabPreset(presetName: string) {
+        // Deep copy the current settings
+        const settingsCopy = JSON.parse(JSON.stringify(this.effectsLabSettings))
+        
+        // Check if preset already exists
+        const existingIndex = this.effectsLabPresets.findIndex(preset => preset.name === presetName)
+        
+        if (existingIndex >= 0) {
+          // Update existing preset
+          this.effectsLabPresets[existingIndex].settings = settingsCopy
+        } else {
+          // Add new preset
+          this.effectsLabPresets.push({
+            name: presetName,
+            settings: settingsCopy
+          })
+        }
+        
+        // Save to localStorage
+        saveToStorage('effectsLabPresets', this.effectsLabPresets)
+      }
+
+      loadEffectsLabPreset(presetName: string) {
+        const preset = this.effectsLabPresets.find(p => p.name === presetName)
+        if (preset) {
+          // Deep copy the preset settings
+          this.effectsLabSettings = JSON.parse(JSON.stringify(preset.settings))
+          this.selectedPresetName = presetName
+        }
+      }
+
+      deleteEffectsLabPreset(presetName: string) {
+        this.effectsLabPresets = this.effectsLabPresets.filter(preset => preset.name !== presetName)
+        saveToStorage('effectsLabPresets', this.effectsLabPresets)
+        
+        // Clear selection if the deleted preset was selected
+        if (this.selectedPresetName === presetName) {
+          this.selectedPresetName = ''
+        }
       }
 
 
@@ -778,7 +979,6 @@ export default function Game() {
         this.updatePlayer()
         this.updateEnemies()
         this.updateEffects()
-        this.updateDripping()
         this.updateDataBleed()
         this.updateCamera()
         this.checkCollisions()
@@ -787,7 +987,7 @@ export default function Game() {
         if (this.isReversed) {
           this.levelProgress =
             ((this.levelTarget - this.player.x) / this.levelTarget) * 100
-          if (this.player.x <= 100) this.nextLevel()
+          if (this.player.x <= 0) this.nextLevel()
         } else {
           this.levelProgress = (this.player.x / this.levelTarget) * 100
           if (this.levelProgress >= 100) this.nextLevel()
@@ -879,109 +1079,80 @@ export default function Game() {
       }
 
       updateEffects() {
-        if (!this.levelEffects.includes("glitch"))
-          this.effects.glitchOffset = { x: 0, y: 0 }
-        if (!this.levelEffects.includes("melting"))
-          this.effects.meltingFactor = 0
-        if (!this.levelEffects.includes("chromatic"))
-          this.effects.colorShift = 0
-        if (!this.levelEffects.includes("pulsing"))
-          this.effects.pulseFactor = 1
-
-        if (this.levelEffects.includes("glitch"))
-          this.effects.glitchOffset = {
-            x: (Math.random() - 0.5) * 10,
-            y: (Math.random() - 0.5) * 10,
+        // Determine which effects to use: custom effects if available, otherwise level effects
+        const activeEffects = this.activeCustomEffects || this.levelEffects
+        
+        // Helper function to check if an effect is enabled
+        const isEffectEnabled = (effectName: string) => {
+          if (this.activeCustomEffects) {
+            // Check custom effects settings
+            const effect = this.activeCustomEffects[effectName as keyof typeof this.activeCustomEffects]
+            return effect && typeof effect === 'object' && 'enabled' in effect && (effect as any).enabled
+          } else {
+            // Check level effects
+            return this.levelEffects.includes(effectName)
           }
-        if (this.levelEffects.includes("melting"))
-          this.effects.meltingFactor = Math.sin(Date.now() * 0.01) * 0.1
-        if (this.levelEffects.includes("chromatic"))
-          this.effects.colorShift = (Date.now() * 0.01) % (Math.PI * 2)
-        if (this.levelEffects.includes("pulsing"))
-          this.effects.pulseFactor = 0.7 + Math.sin(Date.now() * 0.005) * 0.3
+        }
+        
+        // Helper function to get effect intensity
+        const getEffectIntensity = (effectName: string, defaultValue: number) => {
+          if (this.activeCustomEffects) {
+            const effect = this.activeCustomEffects[effectName as keyof typeof this.activeCustomEffects]
+            return effect && typeof effect === 'object' && 'intensity' in effect ? (effect as any).intensity : defaultValue
+          }
+          return defaultValue
+        }
+
+        // Reset effects to defaults
+        this.effects.glitchOffset = { x: 0, y: 0 }
+        this.effects.colorShift = 0
+        this.effects.pulseFactor = 1
+
+        // Apply glitch effect
+        if (isEffectEnabled("glitch")) {
+          const glitchSettings = this.activeCustomEffects?.glitch || { intensity: 10, frequency: 0.1, xOffset: 10, yOffset: 10 }
+          const intensity = glitchSettings.intensity || 10
+          const frequency = glitchSettings.frequency || 0.1
+          const xOffset = glitchSettings.xOffset || 10
+          const yOffset = glitchSettings.yOffset || 10
+          
+          // Only apply glitch based on frequency
+          if (Math.random() < frequency) {
+            this.effects.glitchOffset = {
+              x: (Math.random() - 0.5) * xOffset,
+              y: (Math.random() - 0.5) * yOffset,
+            }
+          } else {
+            this.effects.glitchOffset = { x: 0, y: 0 }
+          }
+        }
+        
+
+        
+        // Apply chromatic effect
+        if (isEffectEnabled("chromatic")) {
+          const chromaticSettings = this.activeCustomEffects?.chromatic || { intensity: 1, speed: 0.01, saturation: 100, brightness: 50 }
+          const intensity = chromaticSettings.intensity || 1
+          const speed = chromaticSettings.speed || 0.01
+          this.effects.colorShift = (Date.now() * speed * intensity) % (Math.PI * 2)
+        }
+        
+        // Apply pulsing effect
+        if (isEffectEnabled("pulsing")) {
+          const pulsingSettings = this.activeCustomEffects?.pulsing || { intensity: 0.3, speed: 0.005, minAlpha: 0.7, maxAlpha: 1.0 }
+          const intensity = pulsingSettings.intensity || 0.3
+          const speed = pulsingSettings.speed || 0.005
+          const minAlpha = pulsingSettings.minAlpha || 0.7
+          const maxAlpha = pulsingSettings.maxAlpha || 1.0
+          const range = maxAlpha - minAlpha
+          this.effects.pulseFactor = minAlpha + (Math.sin(Date.now() * speed) * 0.5 + 0.5) * range * intensity
+        }
+        
+        // Set the reversed flag based on active effects
+        this.isReversed = isEffectEnabled("backwards")
       }
 
-      updateDripping() {
-        if (!this.levelEffects.includes("melting")) return
-
-        // Update platform liquid distortion and pixel cascade
-        this.platforms.forEach(platform => {
-          // Update distortion offset for liquid-like warping
-          platform.distortionOffset = Math.sin(Date.now() * 0.3 + platform.x * 0.01) * 3
-
-          // Generate cascading pixels from platform edges
-          if (Math.random() < 0.3) { // 30% chance per frame
-            const edgeX = platform.x + Math.random() * platform.width
-            const edgeY = platform.y + platform.height
-            platform.liquidPixels.push({
-              x: edgeX,
-              y: edgeY,
-              velX: (Math.random() - 0.5) * 2, // Random horizontal movement
-              velY: Math.random() * 3 + 1, // Fall downward (always down, regardless of backwards)
-              opacity: 0.8,
-              size: Math.random() * 3 + 1
-            })
-          }
-
-          // Update existing liquid pixels
-          platform.liquidPixels.forEach(pixel => {
-            pixel.x += pixel.velX
-            pixel.y += pixel.velY
-            pixel.velY += 0.1 // Gravity (always down, regardless of backwards)
-            pixel.opacity *= 0.98 // Fade out
-            pixel.size *= 0.99 // Shrink slightly
-          })
-
-          // Remove old pixels
-          platform.liquidPixels = platform.liquidPixels.filter(pixel => 
-            pixel.opacity > 0.1 && pixel.size > 0.5
-          )
-        })
-
-        // Update player dripping (keep simple for player)
-        this.player.dripTrail.push({
-          x: this.player.x + this.player.width / 2,
-          y: this.player.y + this.player.height,
-          opacity: 0.8
-        })
-        if (this.player.dripTrail.length > 15) this.player.dripTrail.shift()
-
-        // Update enemy dripping (keep simple for enemies)
-        this.enemies.forEach(enemy => {
-          enemy.dripTrail.push({
-            x: enemy.x + enemy.width / 2,
-            y: enemy.y + enemy.height,
-            opacity: 0.7
-          })
-          if (enemy.dripTrail.length > 12) enemy.dripTrail.shift()
-        })
-
-        // Update collectible dripping (keep simple for collectibles)
-        this.collectibles.forEach(collectible => {
-          if (!collectible.collected) {
-            collectible.dripTrail.push({
-              x: collectible.x + collectible.width * 3,
-              y: collectible.y + collectible.height,
-              opacity: 0.8
-            })
-            if (collectible.dripTrail.length > 10) collectible.dripTrail.shift()
-          }
-        })
-
-        // Update all drip trails (make them fall down - always down regardless of backwards)
-        const allDripTrails = [
-          this.player.dripTrail,
-          ...this.enemies.map(e => e.dripTrail),
-          ...this.collectibles.map(c => c.dripTrail)
-        ]
-
-        allDripTrails.forEach(trail => {
-          trail.forEach(drip => {
-            drip.y += 2 // Drip falls down (always down, regardless of backwards)
-            drip.opacity *= 0.95 // Fade out
-          })
-        })
-      }
+      
 
       updateDataBleed() {
         this.dataBleedEffects = this.dataBleedEffects.filter((effect) => {
@@ -1085,7 +1256,7 @@ export default function Game() {
           this.player.y = 400 // Always normal respawn position
           this.player.velX = 0
           this.player.velY = 0
-          this.player.invulnerable = 120
+          this.player.invulnerable = 180
         }
       }
 
@@ -1095,7 +1266,10 @@ export default function Game() {
           this.lives = 3
           this.combo = 0
           this.currentLevel = 1
-          this.isReversed = false
+          // Don't reset isReversed if it's set by custom effects
+          if (!this.activeCustomEffects?.backwards?.enabled) {
+            this.isReversed = false
+          }
         }
         this.player.velX = 0
         this.player.velY = 0
@@ -1121,7 +1295,12 @@ export default function Game() {
       renderBackground() {
         this.ctx.fillStyle = "#0a0a0a"
         this.ctx.fillRect(0, 0, this.width, this.height)
-        const isChromatic = this.levelEffects.includes("chromatic")
+        
+        // Check if chromatic effect is enabled (custom or level)
+        const isChromatic = this.activeCustomEffects ? 
+          this.activeCustomEffects.chromatic?.enabled : 
+          this.levelEffects.includes("chromatic")
+        
         if (isChromatic) {
           this.ctx.globalCompositeOperation = "lighter"
           this.renderBackgroundLayer(0.06, "red")
@@ -1130,6 +1309,26 @@ export default function Game() {
           this.ctx.globalCompositeOperation = "source-over"
         } else {
           this.renderBackgroundLayer(0)
+        }
+      }
+
+      renderBackgroundToContext(ctx: CanvasRenderingContext2D) {
+        ctx.fillStyle = "#0a0a0a"
+        ctx.fillRect(0, 0, this.width, this.height)
+        
+        // Check if chromatic effect is enabled (custom or level)
+        const isChromatic = this.activeCustomEffects ? 
+          this.activeCustomEffects.chromatic?.enabled : 
+          this.levelEffects.includes("chromatic")
+        
+        if (isChromatic) {
+          ctx.globalCompositeOperation = "lighter"
+          this.renderBackgroundLayerToContext(ctx, 0.06, "red")
+          this.renderBackgroundLayerToContext(ctx, 0.0, "lime")
+          this.renderBackgroundLayerToContext(ctx, -0.06, "blue")
+          ctx.globalCompositeOperation = "source-over"
+        } else {
+          this.renderBackgroundLayerToContext(ctx, 0)
         }
       }
 
@@ -1143,143 +1342,153 @@ export default function Game() {
         })
       }
 
+      renderBackgroundLayerToContext(ctx: CanvasRenderingContext2D, parallaxOffset = 0, tint: string | null = null) {
+        const camX = this.camera.x * (1 + parallaxOffset)
+        this.backgroundStars.forEach((star) => {
+          const drawX = (star.x - camX * star.parallax) % this.width
+          const wrappedX = drawX < 0 ? drawX + this.width : drawX
+          ctx.fillStyle = tint || `hsl(${star.hue}, 80%, 70%)`
+          ctx.fillRect(wrappedX, star.y, star.size, star.size)
+        })
+      }
+
+      // Screen-space melting effect methods
+
+
       render() {
         if (this.gameState === "transition") {
           this.renderTransition()
           return
         }
+
+        // Helper function to check if an effect is enabled
+        const isEffectEnabled = (effectName: string) => {
+          if (this.activeCustomEffects) {
+            const effect = this.activeCustomEffects[effectName as keyof typeof this.activeCustomEffects]
+            return effect && typeof effect === 'object' && 'enabled' in effect && (effect as any).enabled
+          } else {
+            return this.levelEffects.includes(effectName)
+          }
+        }
+
+        // Normal rendering
         this.ctx.save()
 
-        if (this.levelEffects.includes("upsideDown")) {
+        if (isEffectEnabled("upsideDown")) {
           this.ctx.translate(0, this.height)
           this.ctx.scale(1, -1)
         }
-        if (this.levelEffects.includes("backwards")) {
+        if (isEffectEnabled("backwards")) {
           this.ctx.translate(this.width, 0)
           this.ctx.scale(-1, 1)
         }
-        if (this.levelEffects.includes("glitch"))
+        if (isEffectEnabled("glitch")) {
           this.ctx.translate(
             this.effects.glitchOffset.x,
             this.effects.glitchOffset.y
           )
-        if (this.levelEffects.includes("invert"))
+        }
+        if (isEffectEnabled("invert")) {
           this.ctx.filter = "invert(1) hue-rotate(180deg)"
-        // Removed old melting transform that was causing gravity issues with backwards movement
+        }
 
-        this.renderBackground()
-        this.renderDataBleed()
+        this.renderToContext(this.ctx)
+        
+        this.ctx.restore()
 
-        this.ctx.translate(-this.camera.x, -this.camera.y)
+        // Render overlays last
+        this.ctx.save()
+        if (isEffectEnabled("scanlines")) this.renderScanlinesToContext(this.ctx)
+        this.ctx.restore()
+      }
+
+      renderToContext(ctx: CanvasRenderingContext2D) {
+        this.renderBackgroundToContext(ctx)
+        this.renderDataBleedToContext(ctx)
+
+        ctx.translate(-this.camera.x, -this.camera.y)
 
         const now = Date.now()
-        const wobbleActive = this.levelEffects.includes("wobble")
-        const pulsingActive = this.levelEffects.includes("pulsing")
+        const wobbleActive = this.activeCustomEffects ? 
+          this.activeCustomEffects.wobble?.enabled : 
+          this.levelEffects.includes("wobble")
+        const pulsingActive = this.activeCustomEffects ? 
+          this.activeCustomEffects.pulsing?.enabled : 
+          this.levelEffects.includes("pulsing")
+        const meltingActive = this.activeCustomEffects ? 
+          this.activeCustomEffects.melting?.enabled : 
+          this.levelEffects.includes("melting")
+        
+        // Get wobble settings
+        const wobbleSettings = this.activeCustomEffects?.wobble || { amplitude: 5, frequency: 0.05, speed: 0.002 }
+        const wobbleAmplitude = wobbleSettings.amplitude || 5
+        const wobbleFrequency = wobbleSettings.frequency || 0.05
+        const wobbleSpeed = wobbleSettings.speed || 0.002
 
         // Draw platforms
         this.platforms.forEach((p) => {
           const yOffset = wobbleActive
-            ? Math.sin(p.x * 0.05 + now * 0.002) * 5
+            ? Math.sin(p.x * wobbleFrequency + now * wobbleSpeed) * wobbleAmplitude
             : 0
           
-          // Add liquid distortion for melting effect
-          const liquidDistortion = this.levelEffects.includes("melting") ? p.distortionOffset : 0
+
           
           if (pulsingActive) {
-            this.ctx.save()
-            this.ctx.globalAlpha = this.effects.pulseFactor
+            ctx.save()
+            ctx.globalAlpha = this.effects.pulseFactor
           }
-          this.ctx.fillStyle = this.levelEffects.includes("chromatic")
+          ctx.fillStyle = this.activeCustomEffects?.chromatic?.enabled || this.levelEffects.includes("chromatic")
             ? `hsl(${
                 ((this.effects.colorShift * 180) / Math.PI) % 360
               }, 100%, 50%)`
             : p.color
           
-          // Draw warped platform for liquid effect
-          if (this.levelEffects.includes("melting")) {
-            this.ctx.beginPath()
-            this.ctx.moveTo(p.x, p.y + yOffset + liquidDistortion)
-            this.ctx.lineTo(p.x + p.width, p.y + yOffset + liquidDistortion)
-            this.ctx.lineTo(p.x + p.width, p.y + p.height + yOffset)
-            this.ctx.lineTo(p.x, p.y + p.height + yOffset)
-            this.ctx.closePath()
-            this.ctx.fill()
-          } else {
-            this.ctx.fillRect(p.x, p.y + yOffset, p.width, p.height)
-          }
+          ctx.fillRect(p.x, p.y + yOffset, p.width, p.height)
           
           if (pulsingActive) {
-            this.ctx.restore()
-          }
-
-          // Draw cascading liquid pixels
-          if (this.levelEffects.includes("melting")) {
-            p.liquidPixels.forEach(pixel => {
-              this.ctx.save()
-              this.ctx.globalAlpha = pixel.opacity
-              this.ctx.fillStyle = p.color
-              this.ctx.fillRect(pixel.x, pixel.y, pixel.size, pixel.size)
-              this.ctx.restore()
-            })
+            ctx.restore()
           }
         })
 
         // Draw enemies, collectibles, and player with wobble
         const drawWobbled = (obj: any) => {
           const yOffset = wobbleActive
-            ? Math.sin(obj.x * 0.05 + now * 0.002) * 5
+            ? Math.sin(obj.x * wobbleFrequency + now * wobbleSpeed) * wobbleAmplitude
             : 0
-          this.ctx.fillRect(obj.x, obj.y + yOffset, obj.width, obj.height)
+          ctx.fillRect(obj.x, obj.y + yOffset, obj.width, obj.height)
         }
 
         this.enemies.forEach((e) => {
-          this.ctx.fillStyle = e.color
+          ctx.fillStyle = e.color
           drawWobbled(e)
 
-          // Draw enemy dripping
-          if (this.levelEffects.includes("melting")) {
-            e.dripTrail.forEach((drip, index) => {
-              this.ctx.save()
-              this.ctx.globalAlpha = drip.opacity * (index / e.dripTrail.length)
-              this.ctx.fillStyle = e.color
-              this.ctx.fillRect(drip.x - 1, drip.y, 2, 3 + index)
-              this.ctx.restore()
-            })
-          }
+
         })
+        
         this.collectibles.forEach((c) => {
           if (!c.collected) {
-            this.ctx.fillStyle = c.color
+            ctx.fillStyle = c.color
             // Draw triangle centered at (c.x + c.width/2, c.y + c.height/2)
             const cx = c.x + c.width / 2
             const cy = c.y + c.height / 2
             const size = c.width
-            this.ctx.beginPath()
-            this.ctx.moveTo(cx, cy - size / 2)
-            this.ctx.lineTo(cx - size / 2, cy + size / 2)
-            this.ctx.lineTo(cx + size / 2, cy + size / 2)
-            this.ctx.closePath()
-            this.ctx.fill()
+            ctx.beginPath()
+            ctx.moveTo(cx, cy - size / 2)
+            ctx.lineTo(cx - size / 2, cy + size / 2)
+            ctx.lineTo(cx + size / 2, cy + size / 2)
+            ctx.closePath()
+            ctx.fill()
 
-            // Draw collectible dripping
-            if (this.levelEffects.includes("melting")) {
-              c.dripTrail.forEach((drip, index) => {
-                this.ctx.save()
-                this.ctx.globalAlpha = drip.opacity * (index / c.dripTrail.length)
-                this.ctx.fillStyle = c.color
-                this.ctx.fillRect(drip.x - 1, drip.y, 2, 2 + index)
-                this.ctx.restore()
-              })
-            }
+
           }
         })
 
         this.player.trail.forEach((point, index) => {
-          this.ctx.fillStyle = `rgba(0, 255, 255, ${index * 0.05})`
+          ctx.fillStyle = `rgba(0, 255, 255, ${index * 0.05})`
           const yOffset = wobbleActive
             ? Math.sin(point.x * 0.05 + now * 0.002) * 5
             : 0
-          this.ctx.fillRect(
+          ctx.fillRect(
             point.x,
             point.y + yOffset,
             this.player.width,
@@ -1287,38 +1496,30 @@ export default function Game() {
           )
         })
 
-        this.ctx.fillStyle =
+        ctx.fillStyle =
           (this.player.invulnerable > 0 || this.levelStartInvincibility > 0) && Math.floor(now / 100) % 2 === 0
             ? "white"
             : this.player.color
         if (this.levelEffects.includes("chromatic"))
-          this.ctx.fillStyle = `hsl(${
+          ctx.fillStyle = `hsl(${
             ((this.effects.colorShift * 180) / Math.PI + 180) % 360
           }, 100%, 50%)`
         drawWobbled(this.player)
 
-        // Draw player dripping
-        if (this.levelEffects.includes("melting")) {
-          this.player.dripTrail.forEach((drip, index) => {
-            this.ctx.save()
-            this.ctx.globalAlpha = drip.opacity * (index / this.player.dripTrail.length)
-            this.ctx.fillStyle = this.player.color
-            this.ctx.fillRect(drip.x - 1, drip.y, 2, 5 + index)
-            this.ctx.restore()
-          })
-        }
-        
-        // Render overlays last, before restoring main context
-        this.ctx.restore() // Restore from world transforms
-        this.ctx.save() // New save for overlays
-        if (this.levelEffects.includes("scanlines")) this.renderScanlines()
-        this.ctx.restore() // Final restore
+
       }
 
       renderScanlines() {
         this.ctx.fillStyle = "rgba(0,0,0,0.25)"
         for (let y = 0; y < this.height; y += 4) {
           this.ctx.fillRect(0, y, this.width, 2)
+        }
+      }
+
+      renderScanlinesToContext(ctx: CanvasRenderingContext2D) {
+        ctx.fillStyle = "rgba(0,0,0,0.25)"
+        for (let y = 0; y < this.height; y += 4) {
+          ctx.fillRect(0, y, this.width, 2)
         }
       }
 
@@ -1354,10 +1555,52 @@ export default function Game() {
         })
       }
 
+      renderDataBleedToContext(ctx: CanvasRenderingContext2D) {
+        if (this.dataBleedEffects.length === 0) return
+        this.dataBleedEffects.forEach((effect) => {
+          const screenX = effect.x - this.camera.x
+          const screenY = effect.y - this.camera.y
+          if (
+            screenX > -effect.size &&
+            screenX < this.width &&
+            screenY > -effect.size &&
+            screenY < this.height
+          ) {
+            const sx = Math.random() * (this.width - effect.size)
+            const sy = Math.random() * (this.height - effect.size)
+            const opacity = effect.duration / (this.combo >= 5 ? 60 : 20)
+            ctx.save()
+            ctx.globalAlpha = opacity * 0.8
+            ctx.drawImage(
+              this.canvas,
+              sx,
+              sy,
+              effect.size,
+              effect.size,
+              screenX,
+              screenY,
+              effect.size,
+              effect.size
+            )
+            ctx.restore()
+          }
+        })
+      }
+
       renderTransition() {
         // During transition, apply zoom and screen rotation
         let zoom = this.cameraZoom
         let rotation = 0
+        
+        // Helper function to check if an effect is enabled
+        const isEffectEnabled = (effectName: string) => {
+          if (this.activeCustomEffects) {
+            const effect = this.activeCustomEffects[effectName as keyof typeof this.activeCustomEffects]
+            return effect && typeof effect === 'object' && 'enabled' in effect && (effect as any).enabled
+          } else {
+            return this.levelEffects.includes(effectName)
+          }
+        }
         
         if (this.transitionPhase === 'zoomIn') {
           const t = Math.min(1, this.transitionProgress / 60)
@@ -1371,159 +1614,22 @@ export default function Game() {
           zoom = 2.5 - 1.5 * t
         }
         
-        // Apply zoom and rotation transformation
+        // Normal rendering
         this.ctx.save()
+        
+        // Apply zoom and rotation transformation
         this.ctx.translate(this.width / 2, this.height / 2)
         this.ctx.scale(zoom, zoom)
         this.ctx.rotate(rotation)
         
         // Apply backwards flip if needed
-        if (this.levelEffects.includes("backwards")) {
+        if (isEffectEnabled("backwards")) {
           this.ctx.scale(-1, 1)
         }
         
         this.ctx.translate(-this.player.x - this.player.width / 2, -this.player.y - this.player.height / 2)
         
-        // Render the game world with zoom and rotation
-        this.renderBackground()
-        this.renderDataBleed()
-        this.ctx.translate(-this.camera.x, -this.camera.y)
-        
-        const now = Date.now()
-        const wobbleActive = this.levelEffects.includes("wobble")
-        const pulsingActive = this.levelEffects.includes("pulsing")
-
-        // Draw platforms
-        this.platforms.forEach((p) => {
-          const yOffset = wobbleActive
-            ? Math.sin(p.x * 0.05 + now * 0.002) * 5
-            : 0
-          
-          // Add liquid distortion for melting effect
-          const liquidDistortion = this.levelEffects.includes("melting") ? p.distortionOffset : 0
-          
-          if (pulsingActive) {
-            this.ctx.save()
-            this.ctx.globalAlpha = this.effects.pulseFactor
-          }
-          this.ctx.fillStyle = this.levelEffects.includes("chromatic")
-            ? `hsl(${
-                ((this.effects.colorShift * 180) / Math.PI) % 360
-              }, 100%, 50%)`
-            : p.color
-          
-          // Draw warped platform for liquid effect
-          if (this.levelEffects.includes("melting")) {
-            this.ctx.beginPath()
-            this.ctx.moveTo(p.x, p.y + yOffset + liquidDistortion)
-            this.ctx.lineTo(p.x + p.width, p.y + yOffset + liquidDistortion)
-            this.ctx.lineTo(p.x + p.width, p.y + p.height + yOffset)
-            this.ctx.lineTo(p.x, p.y + p.height + yOffset)
-            this.ctx.closePath()
-            this.ctx.fill()
-          } else {
-            this.ctx.fillRect(p.x, p.y + yOffset, p.width, p.height)
-          }
-          
-          if (pulsingActive) {
-            this.ctx.restore()
-          }
-
-          // Draw cascading liquid pixels
-          if (this.levelEffects.includes("melting")) {
-            p.liquidPixels.forEach(pixel => {
-              this.ctx.save()
-              this.ctx.globalAlpha = pixel.opacity
-              this.ctx.fillStyle = p.color
-              this.ctx.fillRect(pixel.x, pixel.y, pixel.size, pixel.size)
-              this.ctx.restore()
-            })
-          }
-        })
-
-        // Draw enemies, collectibles, and player with wobble
-        const drawWobbled = (obj: any) => {
-          const yOffset = wobbleActive
-            ? Math.sin(obj.x * 0.05 + now * 0.002) * 5
-            : 0
-          this.ctx.fillRect(obj.x, obj.y + yOffset, obj.width, obj.height)
-        }
-
-        this.enemies.forEach((e) => {
-          this.ctx.fillStyle = e.color
-          drawWobbled(e)
-
-          // Draw enemy dripping
-          if (this.levelEffects.includes("melting")) {
-            e.dripTrail.forEach((drip, index) => {
-              this.ctx.save()
-              this.ctx.globalAlpha = drip.opacity * (index / e.dripTrail.length)
-              this.ctx.fillStyle = e.color
-              this.ctx.fillRect(drip.x - 1, drip.y, 2, 3 + index)
-              this.ctx.restore()
-            })
-          }
-        })
-        this.collectibles.forEach((c) => {
-          if (!c.collected) {
-            this.ctx.fillStyle = c.color
-            // Draw triangle centered at (c.x + c.width/2, c.y + c.height/2)
-            const cx = c.x + c.width / 2
-            const cy = c.y + c.height / 2
-            const size = c.width
-            this.ctx.beginPath()
-            this.ctx.moveTo(cx, cy - size / 2)
-            this.ctx.lineTo(cx - size / 2, cy + size / 2)
-            this.ctx.lineTo(cx + size / 2, cy + size / 2)
-            this.ctx.closePath()
-            this.ctx.fill()
-
-            // Draw collectible dripping
-            if (this.levelEffects.includes("melting")) {
-              c.dripTrail.forEach((drip, index) => {
-                this.ctx.save()
-                this.ctx.globalAlpha = drip.opacity * (index / c.dripTrail.length)
-                this.ctx.fillStyle = c.color
-                this.ctx.fillRect(drip.x - 1, drip.y, 2, 2 + index)
-                this.ctx.restore()
-              })
-            }
-          }
-        })
-
-        this.player.trail.forEach((point, index) => {
-          this.ctx.fillStyle = `rgba(0, 255, 255, ${index * 0.05})`
-          const yOffset = wobbleActive
-            ? Math.sin(point.x * 0.05 + now * 0.002) * 5
-            : 0
-          this.ctx.fillRect(
-            point.x,
-            point.y + yOffset,
-            this.player.width,
-            this.player.height
-          )
-        })
-
-        this.ctx.fillStyle =
-          (this.player.invulnerable > 0 || this.levelStartInvincibility > 0) && Math.floor(now / 100) % 2 === 0
-            ? "white"
-            : this.player.color
-        if (this.levelEffects.includes("chromatic"))
-          this.ctx.fillStyle = `hsl(${
-            ((this.effects.colorShift * 180) / Math.PI + 180) % 360
-          }, 100%, 50%)`
-        drawWobbled(this.player)
-
-        // Draw player dripping
-        if (this.levelEffects.includes("melting")) {
-          this.player.dripTrail.forEach((drip, index) => {
-            this.ctx.save()
-            this.ctx.globalAlpha = drip.opacity * (index / this.player.dripTrail.length)
-            this.ctx.fillStyle = this.player.color
-            this.ctx.fillRect(drip.x - 1, drip.y, 2, 5 + index)
-            this.ctx.restore()
-          })
-        }
+        this.renderToContext(this.ctx)
         
         this.ctx.restore()
       }
@@ -1533,18 +1639,12 @@ export default function Game() {
         const score = document.getElementById("score")
         const level = document.getElementById("level")
         const combo = document.getElementById("combo")
-        const progressFill = document.getElementById("progressFill")
         
         if (lives) lives.textContent = this.lives.toString()
         if (score) score.textContent = this.score.toString()
         if (level) level.textContent = this.currentLevel.toString()
         if (combo) combo.textContent = this.combo.toString()
-        if (progressFill) {
-          progressFill.style.width = `${Math.min(
-            100,
-            Math.max(0, this.levelProgress)
-          )}%`
-        }
+        
       }
 
       gameLoop() {
@@ -1592,6 +1692,12 @@ export default function Game() {
 
     // Initialize the game
     gameRef.current = new PolishedTrippySideScroller(canvasRef.current)
+    
+    // Sync initial state
+    setEffectsLabSettings({...gameRef.current.effectsLabSettings})
+    setEffectsLabPresets([...gameRef.current.effectsLabPresets])
+    setSelectedPresetName(gameRef.current.selectedPresetName)
+    setIsGameReady(true)
 
     // Cleanup function
     return () => {
@@ -1623,9 +1729,7 @@ export default function Game() {
 
       <button id="soundToggle">🔊 Sound: ON</button>
 
-      <div id="progressBar">
-        <div id="progressFill"></div>
-      </div>
+      
 
       <div id="startScreen">
         <h1>Abberant</h1>
@@ -1645,6 +1749,574 @@ export default function Game() {
       <div id="pauseScreen">
         <h2>Paused</h2>
         <p>Press P to continue</p>
+        <button id="effectsLabButton" onClick={() => setIsEffectsLabOpen(true)}>
+          Effects Lab
+        </button>
+        
+        {isEffectsLabOpen && isGameReady && (
+          <div id="effectsLabPanel">
+            <div className="effects-lab-header">
+              <h3>Effects Lab</h3>
+              <button 
+                className="close-button" 
+                onClick={() => setIsEffectsLabOpen(false)}
+                style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}
+              >
+                ×
+              </button>
+            </div>
+            <div className="effects-controls">
+              {/* Glitch Effect */}
+              <div className="effect-control">
+                <label>
+                  <input 
+                    type="checkbox" 
+                    checked={effectsLabSettings.glitch.enabled}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.glitch.enabled = e.target.checked
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.glitch.enabled = e.target.checked
+                      }
+                    }}
+                  />
+                  Glitch
+                </label>
+                <div className="slider-group">
+                  <label>Intensity: {effectsLabSettings.glitch.intensity}</label>
+                  <input 
+                    type="range" 
+                    min="1" max="50" step="1" 
+                    value={effectsLabSettings.glitch.intensity}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.glitch.intensity = parseInt(e.target.value)
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.glitch.intensity = parseInt(e.target.value)
+                      }
+                    }}
+                    disabled={!effectsLabSettings.glitch.enabled}
+                  />
+                  
+                  <label>Frequency: {(effectsLabSettings.glitch.frequency * 100).toFixed(0)}%</label>
+                  <input 
+                    type="range" 
+                    min="0.01" max="1" step="0.01" 
+                    value={effectsLabSettings.glitch.frequency}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.glitch.frequency = parseFloat(e.target.value)
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.glitch.frequency = parseFloat(e.target.value)
+                      }
+                    }}
+                    disabled={!effectsLabSettings.glitch.enabled}
+                  />
+                  
+                  <label>X Offset: {effectsLabSettings.glitch.xOffset}</label>
+                  <input 
+                    type="range" 
+                    min="0" max="50" step="1" 
+                    value={effectsLabSettings.glitch.xOffset}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.glitch.xOffset = parseInt(e.target.value)
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.glitch.xOffset = parseInt(e.target.value)
+                      }
+                    }}
+                    disabled={!effectsLabSettings.glitch.enabled}
+                  />
+                  
+                  <label>Y Offset: {effectsLabSettings.glitch.yOffset}</label>
+                  <input 
+                    type="range" 
+                    min="0" max="50" step="1" 
+                    value={effectsLabSettings.glitch.yOffset}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.glitch.yOffset = parseInt(e.target.value)
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.glitch.yOffset = parseInt(e.target.value)
+                      }
+                    }}
+                    disabled={!effectsLabSettings.glitch.enabled}
+                  />
+                </div>
+              </div>
+
+
+
+              {/* Chromatic Effect */}
+              <div className="effect-control">
+                <label>
+                  <input 
+                    type="checkbox" 
+                    checked={effectsLabSettings.chromatic.enabled}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.chromatic.enabled = e.target.checked
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.chromatic.enabled = e.target.checked
+                      }
+                    }}
+                  />
+                  Chromatic
+                </label>
+                <div className="slider-group">
+                  <label>Intensity: {effectsLabSettings.chromatic.intensity}</label>
+                  <input 
+                    type="range" 
+                    min="0.1" max="10" step="0.1" 
+                    value={effectsLabSettings.chromatic.intensity}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.chromatic.intensity = parseFloat(e.target.value)
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.chromatic.intensity = parseFloat(e.target.value)
+                      }
+                    }}
+                    disabled={!effectsLabSettings.chromatic.enabled}
+                  />
+                  <label>Speed: {effectsLabSettings.chromatic.speed}</label>
+                  <input 
+                    type="range" 
+                    min="0.001" max="0.1" step="0.001" 
+                    value={effectsLabSettings.chromatic.speed}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.chromatic.speed = parseFloat(e.target.value)
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.chromatic.speed = parseFloat(e.target.value)
+                      }
+                    }}
+                    disabled={!effectsLabSettings.chromatic.enabled}
+                  />
+                  <label>Saturation: {effectsLabSettings.chromatic.saturation}</label>
+                  <input 
+                    type="range" 
+                    min="0" max="200" step="1" 
+                    value={effectsLabSettings.chromatic.saturation}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.chromatic.saturation = parseInt(e.target.value)
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.chromatic.saturation = parseInt(e.target.value)
+                      }
+                    }}
+                    disabled={!effectsLabSettings.chromatic.enabled}
+                  />
+                  <label>Brightness: {effectsLabSettings.chromatic.brightness}</label>
+                  <input 
+                    type="range" 
+                    min="0" max="100" step="1" 
+                    value={effectsLabSettings.chromatic.brightness}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.chromatic.brightness = parseInt(e.target.value)
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.chromatic.brightness = parseInt(e.target.value)
+                      }
+                    }}
+                    disabled={!effectsLabSettings.chromatic.enabled}
+                  />
+                </div>
+              </div>
+
+              {/* Pulsing Effect */}
+              <div className="effect-control">
+                <label>
+                  <input 
+                    type="checkbox" 
+                    checked={effectsLabSettings.pulsing.enabled}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.pulsing.enabled = e.target.checked
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.pulsing.enabled = e.target.checked
+                      }
+                    }}
+                  />
+                  Pulsing
+                </label>
+                <div className="slider-group">
+                  <label>Intensity: {effectsLabSettings.pulsing.intensity}</label>
+                  <input 
+                    type="range" 
+                    min="0.1" max="3" step="0.1" 
+                    value={effectsLabSettings.pulsing.intensity}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.pulsing.intensity = parseFloat(e.target.value)
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.pulsing.intensity = parseFloat(e.target.value)
+                      }
+                    }}
+                    disabled={!effectsLabSettings.pulsing.enabled}
+                  />
+                  <label>Speed: {effectsLabSettings.pulsing.speed}</label>
+                  <input 
+                    type="range" 
+                    min="0.001" max="0.05" step="0.001" 
+                    value={effectsLabSettings.pulsing.speed}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.pulsing.speed = parseFloat(e.target.value)
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.pulsing.speed = parseFloat(e.target.value)
+                      }
+                    }}
+                    disabled={!effectsLabSettings.pulsing.enabled}
+                  />
+                  <label>Min Alpha: {effectsLabSettings.pulsing.minAlpha}</label>
+                  <input 
+                    type="range" 
+                    min="0" max="1" step="0.01" 
+                    value={effectsLabSettings.pulsing.minAlpha}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.pulsing.minAlpha = parseFloat(e.target.value)
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.pulsing.minAlpha = parseFloat(e.target.value)
+                      }
+                    }}
+                    disabled={!effectsLabSettings.pulsing.enabled}
+                  />
+                  <label>Max Alpha: {effectsLabSettings.pulsing.maxAlpha}</label>
+                  <input 
+                    type="range" 
+                    min="0" max="1" step="0.01" 
+                    value={effectsLabSettings.pulsing.maxAlpha}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.pulsing.maxAlpha = parseFloat(e.target.value)
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.pulsing.maxAlpha = parseFloat(e.target.value)
+                      }
+                    }}
+                    disabled={!effectsLabSettings.pulsing.enabled}
+                  />
+                </div>
+              </div>
+
+              {/* Wobble Effect */}
+              <div className="effect-control">
+                <label>
+                  <input 
+                    type="checkbox" 
+                    checked={effectsLabSettings.wobble.enabled}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.wobble.enabled = e.target.checked
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.wobble.enabled = e.target.checked
+                      }
+                    }}
+                  />
+                  Wobble
+                </label>
+                <div className="slider-group">
+                  <label>Amplitude: {effectsLabSettings.wobble.amplitude}</label>
+                  <input 
+                    type="range" 
+                    min="1" max="20" step="1" 
+                    value={effectsLabSettings.wobble.amplitude}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.wobble.amplitude = parseInt(e.target.value)
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.wobble.amplitude = parseInt(e.target.value)
+                      }
+                    }}
+                    disabled={!effectsLabSettings.wobble.enabled}
+                  />
+                  <label>Frequency: {effectsLabSettings.wobble.frequency}</label>
+                  <input 
+                    type="range" 
+                    min="0.01" max="0.2" step="0.01" 
+                    value={effectsLabSettings.wobble.frequency}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.wobble.frequency = parseFloat(e.target.value)
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.wobble.frequency = parseFloat(e.target.value)
+                      }
+                    }}
+                    disabled={!effectsLabSettings.wobble.enabled}
+                  />
+                  <label>Speed: {effectsLabSettings.wobble.speed}</label>
+                  <input 
+                    type="range" 
+                    min="0.001" max="0.01" step="0.001" 
+                    value={effectsLabSettings.wobble.speed}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.wobble.speed = parseFloat(e.target.value)
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.wobble.speed = parseFloat(e.target.value)
+                      }
+                    }}
+                    disabled={!effectsLabSettings.wobble.enabled}
+                  />
+                </div>
+              </div>
+
+              {/* Scanlines Effect */}
+              <div className="effect-control">
+                <label>
+                  <input 
+                    type="checkbox" 
+                    checked={effectsLabSettings.scanlines.enabled}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.scanlines.enabled = e.target.checked
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.scanlines.enabled = e.target.checked
+                      }
+                    }}
+                  />
+                  Scanlines
+                </label>
+                <div className="slider-group">
+                  <label>Spacing: {effectsLabSettings.scanlines.spacing}</label>
+                  <input 
+                    type="range" 
+                    min="2" max="20" step="1" 
+                    value={effectsLabSettings.scanlines.spacing}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.scanlines.spacing = parseInt(e.target.value)
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.scanlines.spacing = parseInt(e.target.value)
+                      }
+                    }}
+                    disabled={!effectsLabSettings.scanlines.enabled}
+                  />
+                  <label>Opacity: {effectsLabSettings.scanlines.opacity}</label>
+                  <input 
+                    type="range" 
+                    min="0.01" max="1" step="0.01" 
+                    value={effectsLabSettings.scanlines.opacity}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.scanlines.opacity = parseFloat(e.target.value)
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.scanlines.opacity = parseFloat(e.target.value)
+                      }
+                    }}
+                    disabled={!effectsLabSettings.scanlines.enabled}
+                  />
+                  <label>Speed: {effectsLabSettings.scanlines.speed}</label>
+                  <input 
+                    type="range" 
+                    min="0.001" max="0.01" step="0.001" 
+                    value={effectsLabSettings.scanlines.speed}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.scanlines.speed = parseFloat(e.target.value)
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.scanlines.speed = parseFloat(e.target.value)
+                      }
+                    }}
+                    disabled={!effectsLabSettings.scanlines.enabled}
+                  />
+                </div>
+              </div>
+
+              {/* Upside Down Effect */}
+              <div className="effect-control">
+                <label>
+                  <input 
+                    type="checkbox" 
+                    checked={effectsLabSettings.upsideDown.enabled}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.upsideDown.enabled = e.target.checked
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.upsideDown.enabled = e.target.checked
+                      }
+                    }}
+                  />
+                  Upside Down
+                </label>
+              </div>
+
+              {/* Invert Effect */}
+              <div className="effect-control">
+                <label>
+                  <input 
+                    type="checkbox" 
+                    checked={effectsLabSettings.invert.enabled}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.invert.enabled = e.target.checked
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.invert.enabled = e.target.checked
+                      }
+                    }}
+                  />
+                  Invert
+                </label>
+              </div>
+
+              {/* Backwards Effect */}
+              <div className="effect-control">
+                <label>
+                  <input 
+                    type="checkbox" 
+                    checked={effectsLabSettings.backwards.enabled}
+                    onChange={(e) => {
+                      const newSettings = {...effectsLabSettings}
+                      newSettings.backwards.enabled = e.target.checked
+                      setEffectsLabSettings(newSettings)
+                      if (gameRef.current) {
+                        gameRef.current.effectsLabSettings.backwards.enabled = e.target.checked
+                      }
+                    }}
+                  />
+                  Backwards
+                </label>
+              </div>
+            </div>
+            
+            {/* Preset Management */}
+            <div className="preset-management">
+              <h4>Presets</h4>
+              <div className="preset-controls">
+                <input 
+                  type="text" 
+                  id="presetNameInput"
+                  placeholder="Preset name"
+                  defaultValue=""
+                />
+                <button onClick={() => {
+                  const input = document.getElementById('presetNameInput') as HTMLInputElement
+                  if (input && input.value.trim()) {
+                    if (gameRef.current) {
+                      gameRef.current.saveEffectsLabPreset(input.value.trim())
+                      setEffectsLabPresets([...gameRef.current.effectsLabPresets])
+                    }
+                    input.value = ''
+                  }
+                }}>
+                  Save Preset
+                </button>
+              </div>
+              
+              <div className="preset-loading">
+                <select 
+                  value={selectedPresetName}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      if (gameRef.current) {
+                        gameRef.current.loadEffectsLabPreset(e.target.value)
+                        setEffectsLabSettings({...gameRef.current.effectsLabSettings})
+                        setSelectedPresetName(e.target.value)
+                      }
+                    }
+                  }}
+                >
+                  <option value="">Select a preset...</option>
+                  {effectsLabPresets.map((preset: any) => (
+                    <option key={preset.name} value={preset.name}>
+                      {preset.name}
+                    </option>
+                  ))}
+                </select>
+                <button 
+                  onClick={() => {
+                    if (selectedPresetName && gameRef.current) {
+                      gameRef.current.loadEffectsLabPreset(selectedPresetName)
+                      setEffectsLabSettings({...gameRef.current.effectsLabSettings})
+                      setIsEffectsLabOpen(false)
+                    }
+                  }}
+                  disabled={!selectedPresetName}
+                >
+                  Load Preset
+                </button>
+                <button 
+                  onClick={() => {
+                    if (selectedPresetName && gameRef.current) {
+                      gameRef.current.deleteEffectsLabPreset(selectedPresetName)
+                      setEffectsLabPresets([...gameRef.current.effectsLabPresets])
+                      setSelectedPresetName('')
+                    }
+                  }}
+                  disabled={!selectedPresetName}
+                >
+                  Delete Preset
+                </button>
+              </div>
+            </div>
+            
+            <div className="effects-buttons">
+              <button onClick={() => {
+                if (gameRef.current) {
+                  // Save current settings to activeCustomEffects
+                  gameRef.current.activeCustomEffects = JSON.parse(JSON.stringify(effectsLabSettings))
+                  saveToStorage('activeCustomEffects', gameRef.current.activeCustomEffects)
+                  setIsEffectsLabOpen(false)
+                }
+              }}>
+                Apply & Close
+              </button>
+              <button onClick={() => {
+                if (gameRef.current) {
+                  gameRef.current.resetEffectsLabToLevelDefault()
+                  setEffectsLabSettings({...gameRef.current.effectsLabSettings})
+                }
+              }}>
+                Reset to Level Default
+              </button>
+              <button onClick={() => {
+                if (gameRef.current) {
+                  // Clear all custom effects
+                  gameRef.current.activeCustomEffects = null
+                  saveToStorage('activeCustomEffects', null)
+                  // Reset all settings to disabled
+                  const newSettings = {...effectsLabSettings}
+                  Object.keys(newSettings).forEach(key => {
+                    const effectKey = key as keyof typeof newSettings
+                    if (newSettings[effectKey] && typeof newSettings[effectKey] === 'object' && 'enabled' in newSettings[effectKey]) {
+                      (newSettings[effectKey] as any).enabled = false
+                    }
+                  })
+                  setEffectsLabSettings(newSettings)
+                  gameRef.current.effectsLabSettings = newSettings
+                  setIsEffectsLabOpen(false)
+                }
+              }}>
+                Clear All Effects
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div id="mobileControls">
