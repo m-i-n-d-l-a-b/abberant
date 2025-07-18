@@ -1,0 +1,37 @@
+{
+  "name": "Abberant",
+  "version": "1.0.0",
+  "description": "A trippy side-scrolling game built with Next.js",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aliendabz/abberant.git"
+  },
+  "keywords": ["game", "nextjs", "react", "side-scroller"],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/aliendabz/abberant/issues"
+  },
+  "homepage": "https://github.com/aliendabz/abberant#readme",
+  "dependencies": {
+    "next": "^15.4.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "eslint": "^8.0.0",
+    "eslint-config-next": "^15.4.1",
+    "typescript": "^5.0.0"
+  }
+}
