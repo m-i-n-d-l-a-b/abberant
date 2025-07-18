@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react'
 import { saveToStorage, getFromStorage } from '../lib/utils/storage'
 
 interface GameState {
@@ -106,7 +106,13 @@ interface TouchInput {
   dash: boolean
 }
 
-export default function Game() {
+export interface GameRef {
+  setActiveCustomEffects: (effects: any) => void
+  getActiveCustomEffects: () => any
+  updateEffects: () => void
+}
+
+const Game = forwardRef<GameRef>((props, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const gameRef = useRef<any>(null)
   const [isEffectsLabOpen, setIsEffectsLabOpen] = useState(false)
@@ -152,6 +158,24 @@ export default function Game() {
   const [effectsLabPresets, setEffectsLabPresets] = useState<Array<{ name: string; settings: any }>>([])
   const [selectedPresetName, setSelectedPresetName] = useState('')
   const [isGameReady, setIsGameReady] = useState(false)
+
+  // Expose game methods to parent components
+  useImperativeHandle(ref, () => ({
+    setActiveCustomEffects: (effects: any) => {
+      if (gameRef.current) {
+        gameRef.current.activeCustomEffects = effects
+      }
+    },
+    getActiveCustomEffects: () => {
+      return gameRef.current?.activeCustomEffects || null
+    },
+    updateEffects: () => {
+      if (gameRef.current) {
+        // Force effects update
+        gameRef.current.updateEffects()
+      }
+    }
+  }), [])
 
   useEffect(() => {
     if (!canvasRef.current) return
@@ -1693,6 +1717,9 @@ export default function Game() {
     // Initialize the game
     gameRef.current = new PolishedTrippySideScroller(canvasRef.current)
     
+    // Expose game instance globally for debugging
+    ;(window as any).gameInstance = gameRef.current
+    
     // Sync initial state
     setEffectsLabSettings({...gameRef.current.effectsLabSettings})
     setEffectsLabPresets([...gameRef.current.effectsLabPresets])
@@ -1713,6 +1740,8 @@ export default function Game() {
         // Clean up event listeners
         gameRef.current.cleanup()
       }
+      // Remove global reference
+      delete (window as any).gameInstance
     }
   }, [])
 
@@ -2336,4 +2365,6 @@ export default function Game() {
       </div>
     </div>
   )
-} 
+})
+
+export default Game 

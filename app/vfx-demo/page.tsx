@@ -5,9 +5,10 @@ import Game from '../../components/Game'
 import GameWithVFX from '../../components/GameWithVFX'
 import AdvancedVFXIntegration from '../../components/AdvancedVFXIntegration'
 import SimpleVFXExample from '../../components/SimpleVFXExample'
+import OptimizedGameWithVFX from '../../components/OptimizedGameWithVFX'
 
 export default function VFXDemoPage() {
-  const [demoMode, setDemoMode] = useState<'original' | 'simple' | 'advanced' | 'examples'>('original')
+  const [demoMode, setDemoMode] = useState<'original' | 'simple' | 'advanced' | 'examples' | 'optimized'>('original')
 
   return (
     <div style={{ 
@@ -81,6 +82,19 @@ export default function VFXDemoPage() {
           >
             VFX Examples
           </button>
+          <button
+            onClick={() => setDemoMode('optimized')}
+            style={{
+              padding: '10px 20px',
+              background: demoMode === 'optimized' ? '#00ffff' : '#333',
+              color: demoMode === 'optimized' ? '#000' : '#fff',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer'
+            }}
+          >
+            Optimized VFX
+          </button>
         </div>
 
         <div style={{ 
@@ -121,6 +135,19 @@ export default function VFXDemoPage() {
                 React-VFX Examples
               </h3>
               <SimpleVFXExample />
+            </div>
+          )}
+
+          {demoMode === 'optimized' && (
+            <div>
+              <h3 style={{ textAlign: 'center', marginBottom: '10px' }}>
+                Optimized VFX Integration (Performance & Polish)
+              </h3>
+              <OptimizedGameWithVFX 
+                initialVFXEnabled={true}
+                onVFXError={(error) => console.warn('VFX Error:', error)}
+                onVFXLoad={() => console.log('VFX Loaded successfully')}
+              />
             </div>
           )}
         </div>

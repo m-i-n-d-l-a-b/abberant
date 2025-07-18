@@ -38,12 +38,18 @@ describe('GameWithVFX', () => {
   it('starts with glitch effect selected by default', () => {
     render(<GameWithVFX />)
     
+    const vfxCheckbox = screen.getByRole('checkbox')
+    fireEvent.click(vfxCheckbox)
+    
     const effectSelect = screen.getByRole('combobox')
     expect(effectSelect).toHaveValue('glitch')
   })
 
   it('starts with intensity at 1.0 by default', () => {
     render(<GameWithVFX />)
+    
+    const vfxCheckbox = screen.getByRole('checkbox')
+    fireEvent.click(vfxCheckbox)
     
     const intensityLabel = screen.getByText('Intensity: 1.00')
     expect(intensityLabel).toBeInTheDocument()
@@ -124,23 +130,23 @@ describe('GameWithVFX', () => {
     // Test chromatic effect
     fireEvent.change(effectSelect, { target: { value: 'chromatic' } })
     vfxDiv = screen.getByTestId('vfx-div')
-    expect(vfxDiv.getAttribute('data-shader')).toContain('chromatic')
+    expect(vfxDiv.getAttribute('data-shader')).toContain('Chromatic aberration')
     
     // Test scanlines effect
     fireEvent.change(effectSelect, { target: { value: 'scanlines' } })
     vfxDiv = screen.getByTestId('vfx-div')
-    expect(vfxDiv.getAttribute('data-shader')).toContain('scanlines')
+    expect(vfxDiv.getAttribute('data-shader')).toContain('Scanlines effect')
     
     // Test pulse effect
     fireEvent.change(effectSelect, { target: { value: 'pulse' } })
     vfxDiv = screen.getByTestId('vfx-div')
-    expect(vfxDiv.getAttribute('data-shader')).toContain('pulse')
+    expect(vfxDiv.getAttribute('data-shader')).toContain('Pulsing effect')
   })
 
   it('has correct container styling', () => {
     render(<GameWithVFX />)
     
-    const container = screen.getByTestId('game-component').parentElement
+    const container = screen.getByTestId('game-component').parentElement?.parentElement
     expect(container).toHaveStyle({
       position: 'relative',
       width: '800px',

@@ -58,7 +58,7 @@ describe('VFXOverlay', () => {
     )
     
     const vfxDiv = screen.getByTestId('vfx-div')
-    expect(vfxDiv.getAttribute('data-shader')).toContain('chromatic')
+    expect(vfxDiv.getAttribute('data-shader')).toContain('Chromatic aberration')
   })
 
   it('applies scanlines shader when effectType is scanlines', () => {
@@ -71,7 +71,7 @@ describe('VFXOverlay', () => {
     )
     
     const vfxDiv = screen.getByTestId('vfx-div')
-    expect(vfxDiv.getAttribute('data-shader')).toContain('scanlines')
+    expect(vfxDiv.getAttribute('data-shader')).toContain('Scanlines effect')
   })
 
   it('applies pulse shader when effectType is pulse', () => {
@@ -84,7 +84,7 @@ describe('VFXOverlay', () => {
     )
     
     const vfxDiv = screen.getByTestId('vfx-div')
-    expect(vfxDiv.getAttribute('data-shader')).toContain('pulse')
+    expect(vfxDiv.getAttribute('data-shader')).toContain('Pulsing effect')
   })
 
   it('uses default intensity of 1.0 when not provided', () => {

@@ -36,11 +36,15 @@
     "react-vfx": "^0.13.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.23.0",
+    "@babel/preset-env": "^7.23.0",
+    "@babel/preset-react": "^7.23.0",
+    "@babel/preset-typescript": "^7.23.0",
     "@types/node": "^20.0.0",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
     "@testing-library/jest-dom": "^6.1.0",
-    "@testing-library/react": "^15.0.0",
+    "@testing-library/react": "^16.0.0",
     "@testing-library/user-event": "^14.5.0",
     "eslint": "^8.0.0",
     "eslint-config-next": "^15.4.1",
@@ -51,18 +55,25 @@
   "jest": {
     "testEnvironment": "jsdom",
     "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"],
-    "moduleNameMapping": {
+    "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/$1"
     },
     "testMatch": [
       "**/__tests__/**/*.(ts|tsx|js)",
       "**/*.(test|spec).(ts|tsx|js)"
     ],
+    "testPathIgnorePatterns": [
+      "<rootDir>/node_modules/",
+      "<rootDir>/babel.config.test.js"
+    ],
     "collectCoverageFrom": [
       "components/**/*.{ts,tsx}",
       "app/**/*.{ts,tsx}",
       "!**/*.d.ts",
       "!**/node_modules/**"
-    ]
+    ],
+    "transform": {
+      "^.+\\.(ts|tsx|js|jsx)$": ["babel-jest", { "configFile": "./babel.config.test.js" }]
+    }
   }
 }

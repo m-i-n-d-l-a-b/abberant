@@ -1,0 +1,166 @@
+# Task List: Unified VFX Architecture Implementation
+
+## Relevant Files
+
+- `components/Game.tsx` - Main game component containing canvas effects and game logic
+- `components/Game.test.tsx` - Unit tests for Game component
+- `components/VFXWrapper.tsx` - VFX wrapper component for visual effects
+- `components/VFXWrapper.test.tsx` - Unit tests for VFX wrapper component
+- `components/UnifiedVFXControl.tsx` - Unified control panel for all effects
+- `components/UnifiedVFXControl.test.tsx` - Unit tests for unified control panel
+- `components/EffectsLab.tsx` - Enhanced effects lab for canvas effects only
+- `components/EffectsLab.test.tsx` - Unit tests for effects lab
+- `lib/utils/effectUtils.ts` - Utility functions for effect management
+- `lib/utils/effectUtils.test.ts` - Unit tests for effect utilities
+- `lib/utils/performanceUtils.ts` - Performance monitoring and optimization utilities
+- `lib/utils/performanceUtils.test.ts` - Unit tests for performance utilities
+- `types/effects.d.ts` - TypeScript definitions for effect interfaces
+- `types/gameRef.d.ts` - TypeScript definitions for game reference interface
+- `docs/effect-classification.md` - Effect categorization and classification documentation
+- `docs/architecture-design.md` - Unified VFX architecture design documentation
+- `docs/architecture-diagrams.md` - Architecture diagrams and visual representations
+
+### Notes
+
+- Unit tests should typically be placed alongside the code files they are testing (e.g., `Game.tsx` and `Game.test.tsx` in the same directory).
+- Use `npx jest [optional/path/to/test/file]` to run tests. Running without a path executes all tests found by the Jest configuration.
+
+## Tasks
+
+- [x] 1.0 System Analysis & Separation
+  - [x] 1.1 Effect Classification
+    - [x] 1.1.1 Analyze current canvas effects (wobble, backwards, upsideDown, invert, melting, dataBleed)
+    - [x] 1.1.2 Analyze current VFX wrapper effects (glitch, chromatic, pulsing, scanlines)
+    - [x] 1.1.3 Create effect categorization documentation
+    - [x] 1.1.4 Define effect boundaries and responsibilities
+  - [x] 1.2 Architecture Redesign
+    - [x] 1.2.1 Design Game Component architecture (pure game logic + canvas effects)
+    - [x] 1.2.2 Design VFX Wrapper architecture (visual effects + unified control panel)
+    - [x] 1.2.3 Design communication interface between components
+    - [x] 1.2.4 Create architecture diagrams and documentation
+
+- [ ] 2.0 Game Component Refactoring
+  - [ ] 2.1 Remove Visual Effects from Game
+    - [ ] 2.1.1 Remove glitch, chromatic, pulsing, scanlines from game's effect pool
+    - [ ] 2.1.2 Keep only logic-based effects in levelEffects
+    - [ ] 2.1.3 Simplify updateEffects() to handle only canvas-specific effects
+    - [ ] 2.1.4 Remove visual effect rendering from render() method
+    - [ ] 2.1.5 Update Game component tests to reflect changes
+  - [ ] 2.2 Enhance Game Effects Lab
+    - [ ] 2.2.1 Focus Effects Lab on canvas effects only
+    - [ ] 2.2.2 Improve UI for remaining effects (wobble, backwards, etc.)
+    - [ ] 2.2.3 Add better presets for canvas effect combinations
+    - [ ] 2.2.4 Remove visual effect controls from Effects Lab
+    - [ ] 2.2.5 Update Effects Lab tests
+  - [ ] 2.3 Game Communication Interface
+    - [ ] 2.3.1 Expand GameRef interface to expose canvas effect settings
+    - [ ] 2.3.2 Add Effect Lab state to GameRef interface
+    - [ ] 2.3.3 Add game state information to GameRef interface
+    - [ ] 2.3.4 Add performance metrics to GameRef interface
+    - [ ] 2.3.5 Create TypeScript definitions for GameRef interface
+
+- [ ] 3.0 VFX Wrapper Enhancement
+  - [ ] 3.1 Unified Control Panel Design
+    - [ ] 3.1.1 Design primary controls for visual effects (glitch, chromatic, etc.)
+    - [ ] 3.1.2 Design secondary controls for canvas effects (via game ref)
+    - [ ] 3.1.3 Design combined presets system (mix of visual + canvas effects)
+    - [ ] 3.1.4 Design performance settings (quality controls for both systems)
+    - [ ] 3.1.5 Create UI mockups and wireframes
+  - [ ] 3.2 Visual Effects Implementation
+    - [ ] 3.2.1 Implement glitch effect using react-vfx shaders
+    - [ ] 3.2.2 Implement chromatic effect using react-vfx shaders
+    - [ ] 3.2.3 Implement pulsing effect using react-vfx shaders
+    - [ ] 3.2.4 Implement scanlines effect using react-vfx shaders
+    - [ ] 3.2.5 Create custom shaders for each effect type
+    - [ ] 3.2.6 Add intensity and quality controls for each effect
+    - [ ] 3.2.7 Implement effect combinations and layering
+    - [ ] 3.2.8 Create unit tests for visual effects
+  - [ ] 3.3 Canvas Effects Control
+    - [ ] 3.3.1 Create UI controls for canvas effects
+    - [ ] 3.3.2 Implement communication with game via ref interface
+    - [ ] 3.3.3 Sync canvas effect state with wrapper state
+    - [ ] 3.3.4 Provide real-time feedback on canvas effect changes
+    - [ ] 3.3.5 Create unit tests for canvas effects control
+
+- [ ] 4.0 Integration & Communication
+  - [ ] 4.1 State Management
+    - [ ] 4.1.1 Implement wrapper state management for all effect settings
+    - [ ] 4.1.2 Implement game state reception of effect commands via ref
+    - [ ] 4.1.3 Implement synchronization between both systems
+    - [ ] 4.1.4 Implement persistence for save/load unified effect presets
+    - [ ] 4.1.5 Create state management tests
+  - [ ] 4.2 Effect Priority System
+    - [ ] 4.2.1 Implement visual effects as overlays (highest priority)
+    - [ ] 4.2.2 Implement canvas effects applied to game objects (medium priority)
+    - [ ] 4.2.3 Maintain game logic as core gameplay (lowest priority)
+    - [ ] 4.2.4 Implement conflict resolution rules for effect interactions
+    - [ ] 4.2.5 Create priority system tests
+  - [ ] 4.3 Performance Optimization
+    - [ ] 4.3.1 Implement quality settings for both visual and canvas effects
+    - [ ] 4.3.2 Implement effect culling based on performance
+    - [ ] 4.3.3 Implement LOD system to reduce effect complexity on slower devices
+    - [ ] 4.3.4 Implement efficient memory management
+    - [ ] 4.3.5 Create performance monitoring utilities
+    - [ ] 4.3.6 Create performance optimization tests
+
+- [ ] 5.0 User Experience Design
+  - [ ] 5.1 Unified Control Interface
+    - [ ] 5.1.1 Implement single panel for all effects
+    - [ ] 5.1.2 Create effect categories (Visual vs Canvas tabs/sections)
+    - [ ] 5.1.3 Implement quick presets for pre-configured effect combinations
+    - [ ] 5.1.4 Implement real-time preview functionality
+    - [ ] 5.1.5 Create responsive design for different screen sizes
+  - [ ] 5.2 Effect Presets System
+    - [ ] 5.2.1 Implement visual presets (Glitch, Chromatic, etc.)
+    - [ ] 5.2.2 Implement canvas presets (Wobble, Backwards, etc.)
+    - [ ] 5.2.3 Implement combined presets (mix of both systems)
+    - [ ] 5.2.4 Implement custom presets (user-created combinations)
+    - [ ] 5.2.5 Create preset management interface
+    - [ ] 5.2.6 Create preset system tests
+  - [ ] 5.3 Accessibility & Usability
+    - [ ] 5.3.1 Implement effect intensity warnings to prevent disorienting combinations
+    - [ ] 5.3.2 Implement performance indicators showing impact on frame rate
+    - [ ] 5.3.3 Implement reset options for easy return to defaults
+    - [ ] 5.3.4 Implement help system explaining what each effect does
+    - [ ] 5.3.5 Implement keyboard navigation and screen reader support
+    - [ ] 5.3.6 Create accessibility tests
+
+- [ ] 6.0 Testing & Validation
+  - [ ] 6.1 Effect Isolation Testing
+    - [ ] 6.1.1 Test visual effects independently
+    - [ ] 6.1.2 Test canvas effects independently
+    - [ ] 6.1.3 Verify no conflicts between systems
+    - [ ] 6.1.4 Conduct performance testing on different devices
+    - [ ] 6.1.5 Create automated isolation tests
+  - [ ] 6.2 Integration Testing
+    - [ ] 6.2.1 Test combined effect presets
+    - [ ] 6.2.2 Verify state synchronization between components
+    - [ ] 6.2.3 Test effect persistence across sessions
+    - [ ] 6.2.4 Validate performance under load conditions
+    - [ ] 6.2.5 Create integration test suite
+  - [ ] 6.3 User Experience Testing
+    - [ ] 6.3.1 Test control panel usability
+    - [ ] 6.3.2 Verify effect combinations work as expected
+    - [ ] 6.3.3 Test accessibility features
+    - [ ] 6.3.4 Conduct performance impact assessment
+    - [ ] 6.3.5 Create user acceptance test scenarios
+
+- [ ] 7.0 Documentation & Cleanup
+  - [ ] 7.1 Code Organization
+    - [ ] 7.1.1 Remove duplicate effect implementations
+    - [ ] 7.1.2 Clean up unused VFX components
+    - [ ] 7.1.3 Organize effect definitions clearly
+    - [ ] 7.1.4 Update component documentation
+    - [ ] 7.1.5 Refactor code for better maintainability
+  - [ ] 7.2 User Documentation
+    - [ ] 7.2.1 Create effect guide explaining each effect
+    - [ ] 7.2.2 Document preset system usage
+    - [ ] 7.2.3 Create performance optimization guide
+    - [ ] 7.2.4 Create troubleshooting section
+    - [ ] 7.2.5 Create user manual with screenshots
+  - [ ] 7.3 Architecture Documentation
+    - [ ] 7.3.1 Document the new unified system architecture
+    - [ ] 7.3.2 Explain effect categorization rationale
+    - [ ] 7.3.3 Document communication patterns between components
+    - [ ] 7.3.4 Document performance considerations and best practices
+    - [ ] 7.3.5 Create system architecture diagrams 
