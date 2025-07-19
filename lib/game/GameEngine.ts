@@ -11,6 +11,7 @@ import { RenderingOptimizer } from './RenderingOptimizer'
 import { AudioManager } from './AudioManager'
 import { GameStateManager, GameStateType, GameStateCallbacks } from './GameStateManager'
 import { PlayerManager, PlayerInput, PlayerUpdateResult } from './PlayerManager'
+import { EnemyManager, EnemySpawnConfig, EnemyUpdateResult } from './EnemyManager'
 import {
   GameState,
   Player,
@@ -164,6 +165,7 @@ export class GameEngine {
   audioManager!: AudioManager; // Optimized audio management system
   stateManager!: GameStateManager; // Game state management system
   playerManager!: PlayerManager; // Player management system
+  enemyManager!: EnemyManager; // Enemy management system
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -261,6 +263,13 @@ export class GameEngine {
       this.player,
       this.collisionSystem,
       this.camera,
+      this.width,
+      this.height
+    )
+
+    // Initialize enemy manager
+    this.enemyManager = new EnemyManager(
+      this.collisionSystem,
       this.width,
       this.height
     )
@@ -500,8 +509,18 @@ export class GameEngine {
 
   // Placeholder methods that will be implemented in subsequent phases
   generateLevel() {
-    // TODO: Implement in Phase 3
-    console.log('generateLevel called - to be implemented in Phase 3')
+    // TODO: Implement platform generation in Phase 3 Task 3.3
+    console.log('generateLevel called - platform generation to be implemented in Phase 3 Task 3.3')
+    
+    // Generate enemies using enemy manager
+    const spawnConfig: EnemySpawnConfig = {
+      level: this.stateManager.getCurrentLevel(),
+      levelWidth: this.stateManager.getLevelTarget(),
+      platforms: this.platforms,
+      playerX: this.player.x
+    }
+    
+    this.enemies = this.enemyManager.generateEnemies(spawnConfig)
   }
 
   populateCollisionSystem() {
@@ -552,7 +571,9 @@ export class GameEngine {
     // Handle input and update player
     this.handleInput()
     
-    // TODO: Implement enemy updates in Phase 3 Task 3.2
+    // Update enemies
+    this.updateEnemies()
+    
     // TODO: Implement effects updates in Phase 4
     // TODO: Implement remaining game logic in Phase 3
     console.log('updateGame called - remaining logic to be implemented in Phase 3')
@@ -598,8 +619,19 @@ export class GameEngine {
   }
 
   updateEnemies() {
-    // TODO: Implement in Phase 3
-    console.log('updateEnemies called - to be implemented in Phase 3')
+    const updateResult = this.enemyManager.updateEnemies()
+    
+    // Update enemies list
+    this.enemies = updateResult.enemies
+    
+    // Add particles from enemy effects
+    this.particles.push(...updateResult.particles)
+    
+    // Handle defeated enemies
+    for (const defeatedEnemy of updateResult.defeatedEnemies) {
+      this.stateManager.addScore(ENEMY_SCORE_VALUE)
+      // TODO: Add defeat sound effect in Phase 6
+    }
   }
 
   updateEffects() {
@@ -811,8 +843,11 @@ export class GameEngine {
     // Handle enemy stomps
     if (collisionResult.enemiesHit.length > 0) {
       for (const enemy of collisionResult.enemiesHit) {
-        // TODO: Handle enemy defeat in Phase 3 Task 3.2
-        this.stateManager.addScore(100) // Temporary score for stomping
+        // Defeat enemy using enemy manager
+        const defeatParticles = this.enemyManager.defeatEnemy(enemy)
+        this.particles.push(...defeatParticles)
+        this.stateManager.addScore(ENEMY_SCORE_VALUE)
+        // TODO: Add stomp sound effect in Phase 6
       }
     }
 

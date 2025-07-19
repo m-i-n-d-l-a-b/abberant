@@ -9,6 +9,7 @@ Break down the monolithic Game.tsx file (2,592 lines) into modular, maintainable
 - `lib/game/GameEngine.ts` - Core game engine class extracted from Game.tsx with placeholder methods for future phases
 - `lib/game/GameStateManager.ts` - Game state management system extracted from GameEngine
 - `lib/game/PlayerManager.ts` - Player management system extracted from GameEngine
+- `lib/game/EnemyManager.ts` - Enemy management system extracted from GameEngine
 - `components/Game.tsx` - Simplified to use the new GameEngine class, reduced from 2,462 lines to ~300 lines
 
 ## Phase 1: Type Definitions and Interfaces (Priority: High)
@@ -77,14 +78,14 @@ Break down the monolithic Game.tsx file (2,592 lines) into modular, maintainable
 - [x] **Estimated Time**: 3 hours
 
 ### Task 3.2: Create Enemy Manager
-- **File**: `lib/game/EnemyManager.ts`
-- **Content**: Extract enemy-specific logic
-  - Enemy movement patterns
-  - AI behavior
-  - Enemy state updates
-  - Stomp zone detection
-- **Dependencies**: Task 1.1, Task 2.1
-- **Estimated Time**: 2 hours
+- [x] **File**: `lib/game/EnemyManager.ts`
+- [x] **Content**: Extract enemy-specific logic
+  - [x] Enemy movement patterns
+  - [x] AI behavior
+  - [x] Enemy state updates
+  - [x] Stomp zone detection
+- [x] **Dependencies**: Task 1.1, Task 2.1
+- [x] **Estimated Time**: 2 hours
 
 ### Task 3.3: Create Level Generator
 - **File**: `lib/game/LevelGenerator.ts`
