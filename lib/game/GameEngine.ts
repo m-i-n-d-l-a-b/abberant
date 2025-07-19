@@ -14,6 +14,7 @@ import { PlayerManager, PlayerInput, PlayerUpdateResult } from './PlayerManager'
 import { EnemyManager, EnemySpawnConfig, EnemyUpdateResult } from './EnemyManager'
 import { LevelGenerator, LevelConfig, LevelData } from './LevelGenerator'
 import { Renderer, RenderConfig, RenderState } from './Renderer'
+import { InputManager, InputCallbacks } from './InputManager'
 import {
   GameState,
   Player,
@@ -132,8 +133,6 @@ export class GameEngine {
 
   player!: Player
   camera!: Camera
-  keys!: Keys
-  touchInput!: TouchInput
   effects!: Effects
   platforms!: Platform[]
   enemies!: Enemy[]
@@ -154,11 +153,7 @@ export class GameEngine {
   masterGain!: GainNode | null
   inputSetupDone!: boolean
   animationFrameId!: number | null
-  startButtonHandler!: () => void
-  keydownHandler!: (e: KeyboardEvent) => void
-  keyupHandler!: (e: KeyboardEvent) => void
-  mobileHandlers!: Array<{ button: Element; handleStart: (e: Event) => void; handleEnd: (e: Event) => void }>
-  soundToggleHandler!: () => void
+  inputManager!: InputManager
   particles!: Particle[]; // Canvas-based particles
   collisionSystem!: CollisionSystem; // Spatial partitioning collision system
   particlePool!: ParticlePool; // Object pool for particles
@@ -215,18 +210,10 @@ export class GameEngine {
     this.camera = this.stateManager.getCameraInitialState()
     this.effects = this.stateManager.getEffectsInitialState()
     
-    this.keys = {}
-    this.touchInput = {
-      left: false,
-      right: false,
-      jump: false,
-      dash: false,
-    }
+
 
     if (!this.inputSetupDone) {
       this.setupInput()
-      this.setupMobileControls()
-      this.setupSoundToggle()
       this.inputSetupDone = true
     }
 
@@ -397,141 +384,52 @@ export class GameEngine {
   }
 
   setupInput() {
-    const startButton = document.getElementById("startButton")
-    if (startButton) {
-      this.startButtonHandler = () => this.startGame()
-      startButton.addEventListener("click", this.startButtonHandler)
-    }
-    
-    this.keydownHandler = (e: KeyboardEvent) => {
-      // Ensure audio context is resumed on any user interaction
-      if (!this.audioInitialized) {
-        this.initAudioContext()
-      } else {
-        this.audioManager.ensureAudioContextRunning()
-      }
-
-      if (this.gameState === "start" && e.key === "Enter") {
-        this.startGame()
-        return
-      }
-      this.keys[e.key.toLowerCase()] = true
-      if (
-        e.key === " " ||
-        e.key === "ArrowUp" ||
-        e.key.toLowerCase() === "w"
-      ) {
-        this.jump()
-        e.preventDefault()
-      }
-      if (e.key.toLowerCase() === "shift") {
-        this.dash()
-        e.preventDefault()
-      }
-      if (e.key.toLowerCase() === "p") {
-        this.togglePause()
-        e.preventDefault()
-      }
-      if (e.key.toLowerCase() === "r") {
-        this.restart()
-      }
-      if (e.key.toLowerCase() === "c") {
-        // Toggle collision system debug mode
+    const inputCallbacks: InputCallbacks = {
+      onStartGame: () => this.startGame(),
+      onJump: () => this.jump(),
+      onDash: () => this.dash(),
+      onPause: () => this.togglePause(),
+      onRestart: () => this.restart(),
+      onToggleCollisionDebug: () => {
         const currentDebugMode = this.collisionSystem['debugMode']
         this.collisionSystem.setDebugMode(!currentDebugMode)
         console.log(`Collision debug mode: ${!currentDebugMode ? 'enabled' : 'disabled'}`)
-        e.preventDefault()
-      }
-      if (e.key.toLowerCase() === "v") {
-        // Validate collision system state
+      },
+      onValidateCollisionSystem: () => {
         const validation = this.collisionSystem.validateSystemState()
         console.log('Collision system validation:', validation)
         if (!validation.isValid) {
           console.warn('Issues found:', validation.issues)
         }
-        e.preventDefault()
-      }
-    }
-    
-    this.keyupHandler = (e: KeyboardEvent) => {
-      this.keys[e.key.toLowerCase()] = false
-    }
-    
-    document.addEventListener("keydown", this.keydownHandler)
-    document.addEventListener("keyup", this.keyupHandler)
-  }
-
-  setupMobileControls() {
-    this.mobileHandlers = []
-    const mobileButtons = document.querySelectorAll(".mobile-button")
-    mobileButtons.forEach((button) => {
-      const action = button.getAttribute("data-action")
-      const handleStart = (e: Event) => {
-        e.preventDefault()
-        this.handleMobileInput(action!, true)
-      }
-      const handleEnd = (e: Event) => {
-        e.preventDefault()
-        this.handleMobileInput(action!, false)
-      }
-      button.addEventListener("touchstart", handleStart)
-      button.addEventListener("touchend", handleEnd)
-      this.mobileHandlers.push({ button, handleStart, handleEnd })
-    })
-  }
-
-  handleMobileInput(action: string, pressed: boolean) {
-    // Ensure audio context is resumed on any user interaction
-    if (!this.audioInitialized) {
-      this.initAudioContext()
-    } else {
-      this.audioManager.ensureAudioContextRunning()
-    }
-
-    if (this.gameState === "start") {
-      this.startGame()
-      return
-    }
-    if (this.gameState !== "playing") return
-    switch (action) {
-      case "left":
-        this.touchInput.left = pressed
-        break
-      case "right":
-        this.touchInput.right = pressed
-        break
-      case "jump":
-        if (pressed) this.jump()
-        break
-      case "dash":
-        if (pressed) this.dash()
-        break
-      case "pause":
-        if (pressed) this.togglePause()
-        break
-    }
-  }
-
-  setupSoundToggle() {
-    const soundToggle = document.getElementById("soundToggle")
-    if (soundToggle) {
-      this.soundToggleHandler = () => {
-        if (this.gameState === "start") this.startGame()
-        if (!this.audioInitialized) this.initAudioContext()
+      },
+      onAudioContextResume: () => {
+        if (!this.audioInitialized) {
+          this.initAudioContext()
+        } else {
+          this.audioManager.ensureAudioContextRunning()
+        }
+      },
+      onSoundToggle: () => {
         this.soundEnabled = !this.soundEnabled
         this.audioManager.setSoundEnabled(this.soundEnabled)
-        soundToggle.textContent = this.soundEnabled
-          ? "🔊 Sound: ON"
-          : "🔇 Sound: OFF"
+        const soundToggle = document.getElementById("soundToggle")
+        if (soundToggle) {
+          soundToggle.textContent = this.soundEnabled
+            ? "🔊 SOUND: ON"
+            : "🔇 SOUND: OFF"
+        }
         if (this.soundEnabled) {
           this.startBGM()
         } else {
           this.stopBGM()
         }
       }
-      soundToggle.addEventListener("click", this.soundToggleHandler)
     }
+
+    this.inputManager = new InputManager(inputCallbacks)
   }
+
+
 
   // Placeholder methods that will be implemented in subsequent phases
   generateLevel() {
@@ -690,12 +588,12 @@ export class GameEngine {
   }
 
   handleInput() {
-    const input: PlayerInput = {
-      left: this.keys['a'] || this.keys['A'] || this.keys['ArrowLeft'] || this.touchInput.left,
-      right: this.keys['d'] || this.keys['D'] || this.keys['ArrowRight'] || this.touchInput.right,
-      jump: this.keys['w'] || this.keys['W'] || this.keys['ArrowUp'] || this.keys[' '] || this.touchInput.jump,
-      dash: this.keys['Shift'] || this.touchInput.dash
-    }
+    // Update input manager state
+    this.inputManager.setGameState(this.gameState)
+    this.inputManager.setAudioInitialized(this.audioInitialized)
+    
+    // Get input from input manager
+    const input = this.inputManager.getPlayerInput()
 
     // Update player using player manager
     const updateResult = this.playerManager.updatePlayer(input)
@@ -832,45 +730,8 @@ export class GameEngine {
     console.log('renderBackgroundOptimized called - to be implemented in Phase 4')
   }
 
-  renderDataBleedOptimized() {
-    // TODO: Implement in Phase 4
-    console.log('renderDataBleedOptimized called - to be implemented in Phase 4')
-  }
-
-  renderParticlesOptimized() {
-    // TODO: Implement in Phase 4
-    console.log('renderParticlesOptimized called - to be implemented in Phase 4')
-  }
-
-  renderNoise() {
-    // TODO: Implement in Phase 4
-    console.log('renderNoise called - to be implemented in Phase 4')
-  }
-
-  renderPixelBleed() {
-    // TODO: Implement in Phase 4
-    console.log('renderPixelBleed called - to be implemented in Phase 4')
-  }
-
-  renderOverlays() {
-    // TODO: Implement in Phase 4
-    console.log('renderOverlays called - to be implemented in Phase 4')
-  }
-
-  renderScanlines() {
-    // TODO: Implement in Phase 4
-    console.log('renderScanlines called - to be implemented in Phase 4')
-  }
-
-  renderDataBleed() {
-    // TODO: Implement in Phase 4
-    console.log('renderDataBleed called - to be implemented in Phase 4')
-  }
-
-  renderTransition() {
-    // TODO: Implement in Phase 4
-    console.log('renderTransition called - to be implemented in Phase 4')
-  }
+  // Effects rendering is now handled by EffectsRenderer
+  // These methods have been moved to lib/game/EffectsRenderer.ts
 
   updateUI() {
     // TODO: Implement in Phase 7
@@ -890,6 +751,9 @@ export class GameEngine {
     // Set entities for rendering
     this.renderer.setEntities(this.player, this.enemies, this.platforms, this.collectibles)
 
+    // Set effects for rendering
+    this.renderer.setEffects(this.dataBleedEffects, this.particles)
+
     // Render frame
     this.renderer.render()
 
@@ -907,51 +771,17 @@ export class GameEngine {
       this.animationFrameId = null
     }
     
-    // Clean up input handlers
-    if (this.keydownHandler) {
-      document.removeEventListener("keydown", this.keydownHandler)
+    // Clean up input manager
+    if (this.inputManager) {
+      this.inputManager.cleanup()
     }
-    if (this.keyupHandler) {
-      document.removeEventListener("keyup", this.keyupHandler)
-    }
-    
-    // Clean up mobile handlers
-    for (const handler of this.mobileHandlers) {
-      handler.button.removeEventListener("touchstart", handler.handleStart)
-      handler.button.removeEventListener("touchend", handler.handleEnd)
-    }
-    
-    // Clean up other handlers
-    if (this.startButtonHandler) {
-      const startButton = document.getElementById("startButton")
-      if (startButton) {
-        startButton.removeEventListener("click", this.startButtonHandler)
-      }
-    }
-    if (this.soundToggleHandler) {
-      const soundToggle = document.getElementById("soundToggle")
-      if (soundToggle) {
-        soundToggle.removeEventListener("click", this.soundToggleHandler)
-      }
-    }
+
     
     console.log('GameEngine cleanup completed')
   }
 
-  createParticleExplosion(x: number, y: number, color: string, count: number = 20) {
-    // TODO: Implement in Phase 4
-    console.log('createParticleExplosion called - to be implemented in Phase 4')
-  }
-
-  updateParticles() {
-    // TODO: Implement in Phase 4
-    console.log('updateParticles called - to be implemented in Phase 4')
-  }
-
-  renderParticles() {
-    // TODO: Implement in Phase 4
-    console.log('renderParticles called - to be implemented in Phase 4')
-  }
+  // Particle effects are now handled by EffectsRenderer
+  // These methods have been moved to lib/game/EffectsRenderer.ts
 
   getAudioStats() {
     // TODO: Implement in Phase 6

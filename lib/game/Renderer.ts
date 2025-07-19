@@ -11,10 +11,11 @@
  */
 
 
-import { Camera, Player, Platform, Enemy, Collectible, BackgroundStar, Effects, Particle } from '../../types/game'
+import { Camera, Player, Platform, Enemy, Collectible, BackgroundStar, Effects, Particle, DataBleedEffect } from '../../types/game'
 import { RenderingOptimizer } from './RenderingOptimizer'
 import { BackgroundRenderer, BackgroundRenderContext } from './BackgroundRenderer'
 import { EntityRenderer, EntityRenderContext } from './EntityRenderer'
+import { EffectsRenderer, EffectsRenderContext } from './EffectsRenderer'
 import {
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
@@ -62,6 +63,7 @@ export class Renderer {
   private optimizer: RenderingOptimizer
   private backgroundRenderer: BackgroundRenderer
   private entityRenderer: EntityRenderer
+  private effectsRenderer: EffectsRenderer
   private layers: Map<string, RenderLayer>
   private isRendering: boolean
   private animationFrameId: number | null
@@ -73,6 +75,7 @@ export class Renderer {
     this.optimizer = new RenderingOptimizer(this.ctx)
     this.backgroundRenderer = new BackgroundRenderer(this.config.width, this.config.height)
     this.entityRenderer = new EntityRenderer(this.config.width, this.config.height)
+    this.effectsRenderer = new EffectsRenderer(this.config.width, this.config.height)
     this.layers = new Map()
     this.isRendering = false
     this.animationFrameId = null
@@ -126,8 +129,13 @@ export class Renderer {
       this.renderParticles(context)
     })
 
+    // Effects layer (post-processing)
+    this.addLayer('effects', 4, true, (context) => {
+      this.renderEffects(context)
+    })
+
     // UI layer (highest priority)
-    this.addLayer('ui', 4, true, (context) => {
+    this.addLayer('ui', 5, true, (context) => {
       this.renderUI(context)
     })
   }
@@ -369,6 +377,26 @@ export class Renderer {
   }
 
   /**
+   * Render effects using EffectsRenderer
+   */
+  private renderEffects(context: RenderContext): void {
+    // Create effects render context
+    const effectsContext: EffectsRenderContext = {
+      ctx: context.ctx,
+      width: context.width,
+      height: context.height,
+      camera: context.camera,
+      effects: context.effects,
+      frameCount: context.frameCount,
+      deltaTime: context.deltaTime,
+      now: performance.now()
+    }
+
+    // Render effects
+    this.effectsRenderer.render(effectsContext)
+  }
+
+  /**
    * Apply melting effect
    */
   private applyMeltingEffect(context: RenderContext): void {
@@ -573,10 +601,24 @@ export class Renderer {
   }
 
   /**
+   * Set effects for rendering
+   */
+  setEffects(dataBleedEffects: DataBleedEffect[], particles: Particle[]): void {
+    this.effectsRenderer.setEffects(dataBleedEffects, particles)
+  }
+
+  /**
    * Get entity renderer
    */
   getEntityRenderer(): EntityRenderer {
     return this.entityRenderer
+  }
+
+  /**
+   * Get effects renderer
+   */
+  getEffectsRenderer(): EffectsRenderer {
+    return this.effectsRenderer
   }
 
   /**

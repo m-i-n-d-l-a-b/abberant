@@ -14,6 +14,8 @@ Break down the monolithic Game.tsx file (2,592 lines) into modular, maintainable
 - `lib/game/Renderer.ts` - Rendering system extracted from GameEngine
 - `lib/game/BackgroundRenderer.ts` - Background rendering system extracted from GameEngine
 - `lib/game/EntityRenderer.ts` - Entity rendering system extracted from GameEngine
+- `lib/game/EffectsRenderer.ts` - Effects rendering system extracted from GameEngine
+- `lib/game/InputManager.ts` - Input handling system extracted from GameEngine
 - `components/Game.tsx` - Simplified to use the new GameEngine class, reduced from 2,462 lines to ~300 lines
 
 ## Phase 1: Type Definitions and Interfaces (Priority: High)
@@ -134,26 +136,26 @@ Break down the monolithic Game.tsx file (2,592 lines) into modular, maintainable
 - [x] **Estimated Time**: 2 hours
 
 ### Task 4.4: Create Effects Renderer
-- **File**: `lib/game/EffectsRenderer.ts`
-- **Content**: Extract visual effects rendering
-  - Data bleed effects
-  - Particle effects
-  - Glitch effects
-  - Post-processing effects
-- **Dependencies**: Task 1.1, Task 4.1
-- **Estimated Time**: 3 hours
+- [x] **File**: `lib/game/EffectsRenderer.ts`
+- [x] **Content**: Extract visual effects rendering
+  - [x] Data bleed effects
+  - [x] Particle effects
+  - [x] Glitch effects
+  - [x] Post-processing effects
+- [x] **Dependencies**: Task 1.1, Task 4.1
+- [x] **Estimated Time**: 3 hours
 
 ## Phase 5: Input System (Priority: Medium)
 
 ### Task 5.1: Create Input Manager
-- **File**: `lib/game/InputManager.ts`
-- **Content**: Extract input handling
-  - Keyboard input
-  - Touch input
-  - Mobile controls
-  - Input state management
-- **Dependencies**: Task 1.1, Task 2.1
-- **Estimated Time**: 2 hours
+- [x] **File**: `lib/game/InputManager.ts`
+- [x] **Content**: Extract input handling
+  - [x] Keyboard input
+  - [x] Touch input
+  - [x] Mobile controls
+  - [x] Input state management
+- [x] **Dependencies**: Task 1.1, Task 2.1
+- [x] **Estimated Time**: 2 hours
 
 ### Task 5.2: Create Mobile Controls Component
 - **File**: `components/MobileControls.tsx`

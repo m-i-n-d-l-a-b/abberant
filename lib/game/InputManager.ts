@@ -1,0 +1,329 @@
+/**
+ * Input Manager
+ * 
+ * This module handles all input processing for the game, including keyboard and mobile/touch input.
+ * Extracted from GameEngine to provide clean separation of concerns and better testability.
+ */
+
+import { Keys, TouchInput } from '../../types/game'
+
+/**
+ * Callback functions for game actions triggered by input
+ */
+export interface InputCallbacks {
+  onStartGame: () => void
+  onJump: () => void
+  onDash: () => void
+  onPause: () => void
+  onRestart: () => void
+  onToggleCollisionDebug: () => void
+  onValidateCollisionSystem: () => void
+  onAudioContextResume: () => void
+  onSoundToggle?: () => void
+}
+
+/**
+ * Input state for player movement
+ */
+export interface PlayerInput {
+  left: boolean
+  right: boolean
+  jump: boolean
+  dash: boolean
+}
+
+/**
+ * Mobile button handler configuration
+ */
+interface MobileHandler {
+  button: Element
+  handleStart: (e: Event) => void
+  handleEnd: (e: Event) => void
+}
+
+/**
+ * Input Manager Class
+ * 
+ * Handles all input processing including keyboard and mobile/touch input.
+ * Provides clean separation of input logic from game engine.
+ */
+export class InputManager {
+  private keys: Keys = {}
+  private touchInput: TouchInput = {
+    left: false,
+    right: false,
+    jump: false,
+    dash: false
+  }
+
+  private callbacks: InputCallbacks
+  private gameState: string = 'start'
+  private audioInitialized: boolean = false
+
+  // Event handlers
+  private keydownHandler!: (e: KeyboardEvent) => void
+  private keyupHandler!: (e: KeyboardEvent) => void
+  private mobileHandlers: MobileHandler[] = []
+  private startButtonHandler: (() => void) | null = null
+  private soundToggleHandler: (() => void) | null = null
+
+  constructor(callbacks: InputCallbacks) {
+    this.callbacks = callbacks
+    this.setupEventHandlers()
+  }
+
+  /**
+   * Set the current game state for input processing
+   */
+  setGameState(gameState: string): void {
+    this.gameState = gameState
+  }
+
+  /**
+   * Set audio initialization status
+   */
+  setAudioInitialized(initialized: boolean): void {
+    this.audioInitialized = initialized
+  }
+
+  /**
+   * Setup all event handlers for keyboard and mobile input
+   */
+  private setupEventHandlers(): void {
+    this.setupKeyboardHandlers()
+    this.setupMobileControls()
+    this.setupStartButton()
+    this.setupSoundToggle()
+  }
+
+  /**
+   * Setup keyboard event handlers
+   */
+  private setupKeyboardHandlers(): void {
+    this.keydownHandler = (e: KeyboardEvent) => {
+      // Ensure audio context is resumed on any user interaction
+      if (!this.audioInitialized) {
+        this.callbacks.onAudioContextResume()
+      }
+
+      if (this.gameState === "start" && e.key === "Enter") {
+        this.callbacks.onStartGame()
+        return
+      }
+
+      this.keys[e.key.toLowerCase()] = true
+
+      // Handle specific key actions
+      if (e.key === " " || e.key === "ArrowUp" || e.key.toLowerCase() === "w") {
+        this.callbacks.onJump()
+        e.preventDefault()
+      }
+
+      if (e.key.toLowerCase() === "shift") {
+        this.callbacks.onDash()
+        e.preventDefault()
+      }
+
+      if (e.key.toLowerCase() === "p") {
+        this.callbacks.onPause()
+        e.preventDefault()
+      }
+
+      if (e.key.toLowerCase() === "r") {
+        this.callbacks.onRestart()
+      }
+
+      if (e.key.toLowerCase() === "c") {
+        this.callbacks.onToggleCollisionDebug()
+        e.preventDefault()
+      }
+
+      if (e.key.toLowerCase() === "v") {
+        this.callbacks.onValidateCollisionSystem()
+        e.preventDefault()
+      }
+    }
+
+    this.keyupHandler = (e: KeyboardEvent) => {
+      this.keys[e.key.toLowerCase()] = false
+    }
+
+    // Add event listeners
+    document.addEventListener("keydown", this.keydownHandler)
+    document.addEventListener("keyup", this.keyupHandler)
+  }
+
+  /**
+   * Setup mobile/touch controls
+   */
+  private setupMobileControls(): void {
+    this.mobileHandlers = []
+    const mobileButtons = document.querySelectorAll(".mobile-button")
+    
+    mobileButtons.forEach((button) => {
+      const action = button.getAttribute("data-action")
+      if (!action) return
+
+      const handleStart = (e: Event) => {
+        e.preventDefault()
+        this.handleMobileInput(action, true)
+      }
+
+      const handleEnd = (e: Event) => {
+        e.preventDefault()
+        this.handleMobileInput(action, false)
+      }
+
+      button.addEventListener("touchstart", handleStart)
+      button.addEventListener("touchend", handleEnd)
+      
+      this.mobileHandlers.push({ button, handleStart, handleEnd })
+    })
+  }
+
+  /**
+   * Handle mobile input actions
+   */
+  private handleMobileInput(action: string, pressed: boolean): void {
+    // Ensure audio context is resumed on any user interaction
+    if (!this.audioInitialized) {
+      this.callbacks.onAudioContextResume()
+    }
+
+    if (this.gameState === "start") {
+      this.callbacks.onStartGame()
+      return
+    }
+
+    if (this.gameState !== "playing") return
+
+    switch (action) {
+      case "left":
+        this.touchInput.left = pressed
+        break
+      case "right":
+        this.touchInput.right = pressed
+        break
+      case "jump":
+        if (pressed) this.callbacks.onJump()
+        break
+      case "dash":
+        if (pressed) this.callbacks.onDash()
+        break
+      case "pause":
+        if (pressed) this.callbacks.onPause()
+        break
+    }
+  }
+
+  /**
+   * Setup start button handler
+   */
+  private setupStartButton(): void {
+    const startButton = document.getElementById("startButton")
+    if (startButton) {
+      this.startButtonHandler = () => this.callbacks.onStartGame()
+      startButton.addEventListener("click", this.startButtonHandler)
+    }
+  }
+
+  /**
+   * Setup sound toggle handler
+   */
+  private setupSoundToggle(): void {
+    const soundToggle = document.getElementById("soundToggle")
+    if (soundToggle) {
+      this.soundToggleHandler = () => {
+        if (this.gameState === "start") this.callbacks.onStartGame()
+        if (!this.audioInitialized) this.callbacks.onAudioContextResume()
+        if (this.callbacks.onSoundToggle) {
+          this.callbacks.onSoundToggle()
+        }
+      }
+      soundToggle.addEventListener("click", this.soundToggleHandler)
+    }
+  }
+
+  /**
+   * Get current input state for player movement
+   */
+  getPlayerInput(): PlayerInput {
+    return {
+      left: this.keys['a'] || this.keys['A'] || this.keys['ArrowLeft'] || this.touchInput.left,
+      right: this.keys['d'] || this.keys['D'] || this.keys['ArrowRight'] || this.touchInput.right,
+      jump: this.keys['w'] || this.keys['W'] || this.keys['ArrowUp'] || this.keys[' '] || this.touchInput.jump,
+      dash: this.keys['Shift'] || this.touchInput.dash
+    }
+  }
+
+  /**
+   * Get current keyboard state
+   */
+  getKeys(): Keys {
+    return { ...this.keys }
+  }
+
+  /**
+   * Get current touch input state
+   */
+  getTouchInput(): TouchInput {
+    return { ...this.touchInput }
+  }
+
+  /**
+   * Reset all input state
+   */
+  resetInput(): void {
+    this.keys = {}
+    this.touchInput = {
+      left: false,
+      right: false,
+      jump: false,
+      dash: false
+    }
+  }
+
+  /**
+   * Clean up all event listeners
+   */
+  cleanup(): void {
+    // Remove keyboard handlers
+    if (this.keydownHandler) {
+      document.removeEventListener("keydown", this.keydownHandler)
+    }
+    if (this.keyupHandler) {
+      document.removeEventListener("keyup", this.keyupHandler)
+    }
+
+    // Remove mobile handlers
+    for (const handler of this.mobileHandlers) {
+      handler.button.removeEventListener("touchstart", handler.handleStart)
+      handler.button.removeEventListener("touchend", handler.handleEnd)
+    }
+
+    // Remove button handlers
+    if (this.startButtonHandler) {
+      const startButton = document.getElementById("startButton")
+      if (startButton) {
+        startButton.removeEventListener("click", this.startButtonHandler)
+      }
+    }
+
+    if (this.soundToggleHandler) {
+      const soundToggle = document.getElementById("soundToggle")
+      if (soundToggle) {
+        soundToggle.removeEventListener("click", this.soundToggleHandler)
+      }
+    }
+
+    // Clear arrays
+    this.mobileHandlers = []
+  }
+
+  /**
+   * Update callbacks (useful for dynamic callback changes)
+   */
+  updateCallbacks(callbacks: Partial<InputCallbacks>): void {
+    this.callbacks = { ...this.callbacks, ...callbacks }
+  }
+} 
