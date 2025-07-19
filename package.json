@@ -14,7 +14,12 @@
     "type": "git",
     "url": "git+https://github.com/aliendabz/abberant.git"
   },
-  "keywords": ["game", "nextjs", "react", "side-scroller"],
+  "keywords": [
+    "game",
+    "nextjs",
+    "react",
+    "side-scroller"
+  ],
   "author": "",
   "license": "ISC",
   "bugs": {
