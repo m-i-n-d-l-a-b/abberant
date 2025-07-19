@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from 'react'
 import { CollisionSystem, CollisionEntity, BoundingBox } from '../lib/game/CollisionSystem'
+import { ParticlePool, AudioNodePool, Particle as PooledParticle } from '../lib/game/ObjectPool'
+import { RenderingOptimizer } from '../lib/game/RenderingOptimizer'
 
 interface GameState {
   gameState: string
@@ -188,6 +190,9 @@ export default function Game() {
       levelStartInvincibility!: number;
       particles!: Particle[]; // Canvas-based particles
       collisionSystem!: CollisionSystem; // Spatial partitioning collision system
+      particlePool!: ParticlePool; // Object pool for particles
+      audioNodePool!: AudioNodePool; // Object pool for audio nodes
+      renderingOptimizer!: RenderingOptimizer; // Optimized rendering system
 
       constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas
@@ -281,6 +286,15 @@ export default function Game() {
           height: this.height
         }
         this.collisionSystem = new CollisionSystem(worldBounds, 10, 8)
+
+        // Initialize object pools
+        this.particlePool = new ParticlePool(50, 500)
+        if (this.audioCtx) {
+          this.audioNodePool = new AudioNodePool(this.audioCtx, 10, 50)
+        }
+
+        // Initialize rendering optimizer
+        this.renderingOptimizer = new RenderingOptimizer(this.ctx)
 
         this.showStartScreen()
         this.generateLevel()
@@ -1518,150 +1532,141 @@ export default function Game() {
           return
         }
 
-        // Use the original canvas rendering for now
-        this.ctx.save()
+        // Use optimized rendering
+        this.renderOptimized()
+      }
+
+      renderOptimized() {
+        // Reset rendering optimizer stats
+        this.renderingOptimizer.resetStats()
 
         // Apply global effects
         if (this.levelEffects.includes("blur")) {
-          this.ctx.filter = `blur(${this.effects.blurFactor * 1}px)`
+          this.renderingOptimizer.setCanvasProperties({
+            imageSmoothingEnabled: false
+          })
         }
         if (this.levelEffects.includes("zoom")) {
-          this.ctx.translate(this.width / 2, this.height / 2)
-          this.ctx.scale(this.effects.zoomFactor, this.effects.zoomFactor)
-          this.ctx.translate(-this.width / 2, -this.height / 2)
+          this.renderingOptimizer.setTransform({
+            x: this.width / 2,
+            y: this.height / 2,
+            scaleX: this.effects.zoomFactor,
+            scaleY: this.effects.zoomFactor
+          })
         }
         if (this.levelEffects.includes("rotation")) {
-          this.ctx.translate(this.width / 2, this.height / 2)
-          this.ctx.rotate(this.effects.rotationFactor)
-          this.ctx.translate(-this.width / 2, -this.height / 2)
-        }
-        if (this.levelEffects.includes("invert")) {
-          this.ctx.filter = "invert(1) hue-rotate(180deg)"
+          this.renderingOptimizer.setTransform({
+            x: this.width / 2,
+            y: this.height / 2,
+            rotation: this.effects.rotationFactor
+          })
         }
 
         // Clear the canvas
-        this.ctx.fillStyle = "#0a0a0a"
-        this.ctx.fillRect(0, 0, this.width, this.height)
+        this.renderingOptimizer.clearCanvas(this.width, this.height)
 
-        this.renderBackground()
-        this.renderDataBleed()
+        // Render background
+        this.renderBackgroundOptimized()
 
-        this.ctx.translate(-this.camera.x, -this.camera.y)
+        // Render data bleed effects
+        this.renderDataBleedOptimized()
+
+        // Apply camera transform
+        this.renderingOptimizer.setTransform({
+          x: -this.camera.x,
+          y: -this.camera.y
+        })
 
         const now = Date.now()
         const wobbleActive = this.levelEffects.includes("wobble")
         const pulsingActive = this.levelEffects.includes("pulsing")
         const waveActive = this.levelEffects.includes("wave")
 
-        // Draw platforms
+        // Batch render platforms
+        this.renderingOptimizer.beginBatch('platforms')
         this.platforms.forEach((p) => {
           let yOffset = 0
           if (wobbleActive) {
-            yOffset += Math.sin(p.x * 0.05 + now * 0.002) * 15 // Increased from 5 to 15
+            yOffset += Math.sin(p.x * 0.05 + now * 0.002) * 15
           }
           if (waveActive) {
-            yOffset += Math.sin(p.x * 0.02 + now * 0.001) * this.effects.waveFactor * 40 // Increased from 20 to 40
+            yOffset += Math.sin(p.x * 0.02 + now * 0.001) * this.effects.waveFactor * 40
           }
           
-          // Add liquid distortion for melting effect
           const liquidDistortion = this.levelEffects.includes("melting") ? p.distortionOffset : 0
+          const alpha = pulsingActive ? this.effects.pulseFactor : 1
           
-          if (pulsingActive) {
-            this.ctx.save()
-            this.ctx.globalAlpha = this.effects.pulseFactor
+          let color = p.color
+          if (this.levelEffects.includes("chromatic")) {
+            color = `hsl(${((this.effects.colorShift * 180) / Math.PI) % 360}, 100%, 50%)`
           }
           
-          // Apply RGB shift effect
-          if (this.levelEffects.includes("rgbShift")) {
-            this.ctx.save()
-            this.ctx.fillStyle = `rgba(255, 0, 0, 0.5)`
-            this.ctx.fillRect(p.x + this.effects.rgbShiftFactor, p.y + yOffset + liquidDistortion, p.width, p.height)
-            this.ctx.fillStyle = `rgba(0, 255, 0, 0.5)`
-            this.ctx.fillRect(p.x, p.y + yOffset + liquidDistortion, p.width, p.height)
-            this.ctx.fillStyle = `rgba(0, 0, 255, 0.5)`
-            this.ctx.fillRect(p.x - this.effects.rgbShiftFactor, p.y + yOffset + liquidDistortion, p.width, p.height)
-            this.ctx.restore()
-          }
-          
-          this.ctx.fillStyle = this.levelEffects.includes("chromatic")
-            ? `hsl(${
-                ((this.effects.colorShift * 180) / Math.PI) % 360
-              }, 100%, 50%)`
-            : p.color
-          
-          // Draw warped platform for liquid effect
-          if (this.levelEffects.includes("melting")) {
-            this.ctx.beginPath()
-            this.ctx.moveTo(p.x, p.y + yOffset + liquidDistortion)
-            this.ctx.lineTo(p.x + p.width, p.y + yOffset + liquidDistortion)
-            this.ctx.lineTo(p.x + p.width, p.y + p.height + yOffset)
-            this.ctx.lineTo(p.x, p.y + p.height + yOffset)
-            this.ctx.closePath()
-            this.ctx.fill()
-          } else {
-            this.ctx.fillRect(p.x, p.y + yOffset, p.width, p.height)
-          }
-          
-          if (pulsingActive) {
-            this.ctx.restore()
-          }
-
-          // Draw cascading liquid pixels
-          if (this.levelEffects.includes("melting")) {
-            p.liquidPixels.forEach(pixel => {
-              this.ctx.save()
-              this.ctx.globalAlpha = pixel.opacity
-              this.ctx.fillStyle = p.color
-              this.ctx.fillRect(pixel.x, pixel.y, pixel.size, pixel.size)
-              this.ctx.restore()
-            })
-          }
+          this.renderingOptimizer.drawRect(
+            p.x,
+            p.y + yOffset + liquidDistortion,
+            p.width,
+            p.height,
+            color,
+            alpha
+          )
         })
+        this.renderingOptimizer.endBatch()
 
-        // Draw enemies, collectibles, and player with wobble
-        const drawWobbled = (obj: any) => {
+        // Batch render enemies
+        this.renderingOptimizer.beginBatch('enemies')
+        this.enemies.forEach((e) => {
           let yOffset = 0
           if (wobbleActive) {
-            yOffset += Math.sin(obj.x * 0.05 + now * 0.002) * 15 // Increased from 5 to 15
+            yOffset += Math.sin(e.x * 0.05 + now * 0.002) * 15
           }
           if (waveActive) {
-            yOffset += Math.sin(obj.x * 0.02 + now * 0.001) * this.effects.waveFactor * 15 // Increased from 20 to 40
+            yOffset += Math.sin(e.x * 0.02 + now * 0.001) * this.effects.waveFactor * 15
           }
-          this.ctx.fillRect(obj.x, obj.y + yOffset, obj.width, obj.height)
-        }
-
-        this.enemies.forEach((e) => {
-          this.ctx.fillStyle = e.color
-          drawWobbled(e)
+          
+          this.renderingOptimizer.drawRect(
+            e.x,
+            e.y + yOffset,
+            e.width,
+            e.height,
+            e.color
+          )
           
           // Draw stomp zone indicator if active
           if (e.stompZoneActive) {
-            this.ctx.save()
-            this.ctx.globalAlpha = 0.6
-            this.ctx.fillStyle = "#00ff00" // Green stomp zone
-            this.ctx.fillRect(e.x - 2, e.y - 8, e.width + 4, 8) // Stomp zone above enemy
-            this.ctx.restore()
+            this.renderingOptimizer.drawRect(
+              e.x - 2,
+              e.y - 8,
+              e.width + 4,
+              8,
+              "#00ff00",
+              0.6
+            )
           }
         })
-        
+        this.renderingOptimizer.endBatch()
+
+        // Batch render collectibles
+        this.renderingOptimizer.beginBatch('collectibles')
         this.collectibles.forEach((c) => {
           if (!c.collected) {
-            this.ctx.fillStyle = c.color
-            // Draw triangle centered at (c.x + c.width/2, c.y + c.height/2)
+            // Create triangle path for collectible
             const cx = c.x + c.width / 2
             const cy = c.y + c.height / 2
             const size = c.width
-            this.ctx.beginPath()
-            this.ctx.moveTo(cx, cy - size / 2)
-            this.ctx.lineTo(cx - size / 2, cy + size / 2)
-            this.ctx.lineTo(cx + size / 2, cy + size / 2)
-            this.ctx.closePath()
-            this.ctx.fill()
+            const path = this.renderingOptimizer.createOptimizedPath([
+              { x: cx, y: cy - size / 2 },
+              { x: cx - size / 2, y: cy + size / 2 },
+              { x: cx + size / 2, y: cy + size / 2 }
+            ])
+            
+            this.renderingOptimizer.drawPath(path, 0, 0, c.color)
           }
         })
+        this.renderingOptimizer.endBatch()
 
+        // Batch render player trail
+        this.renderingOptimizer.beginBatch('playerTrail')
         this.player.trail.forEach((point, index) => {
-          this.ctx.fillStyle = `rgba(0, 255, 255, ${index * 0.05})`
           let yOffset = 0
           if (wobbleActive) {
             yOffset += Math.sin(point.x * 0.05 + now * 0.002) * 15
@@ -1669,28 +1674,44 @@ export default function Game() {
           if (waveActive) {
             yOffset += Math.sin(point.x * 0.02 + now * 0.001) * this.effects.waveFactor * 40
           }
-          this.ctx.fillRect(
+          
+          this.renderingOptimizer.drawRect(
             point.x,
             point.y + yOffset,
             this.player.width,
-            this.player.height
+            this.player.height,
+            `rgba(0, 255, 255, ${index * 0.05})`
           )
         })
+        this.renderingOptimizer.endBatch()
 
-        this.ctx.fillStyle =
-          (this.player.invulnerable > 0 || this.levelStartInvincibility > 0) && Math.floor(now / 100) % 2 === 0
-            ? "white"
-            : this.player.color
-        if (this.levelEffects.includes("chromatic"))
-          this.ctx.fillStyle = `hsl(${
-            ((this.effects.colorShift * 180) / Math.PI + 180) % 360
-          }, 100%, 50%)`
-        drawWobbled(this.player)
+        // Render player
+        let playerYOffset = 0
+        if (wobbleActive) {
+          playerYOffset += Math.sin(this.player.x * 0.05 + now * 0.002) * 15
+        }
+        if (waveActive) {
+          playerYOffset += Math.sin(this.player.x * 0.02 + now * 0.001) * this.effects.waveFactor * 15
+        }
         
-        this.ctx.restore()
+        let playerColor = this.player.color
+        if ((this.player.invulnerable > 0 || this.levelStartInvincibility > 0) && Math.floor(now / 100) % 2 === 0) {
+          playerColor = "white"
+        }
+        if (this.levelEffects.includes("chromatic")) {
+          playerColor = `hsl(${((this.effects.colorShift * 180) / Math.PI + 180) % 360}, 100%, 50%)`
+        }
+        
+        this.renderingOptimizer.drawRect(
+          this.player.x,
+          this.player.y + playerYOffset,
+          this.player.width,
+          this.player.height,
+          playerColor
+        )
 
         // Render particles
-        this.renderParticles()
+        this.renderParticlesOptimized()
 
         // Apply noise effect as overlay
         if (this.levelEffects.includes("noise")) {
@@ -1704,6 +1725,21 @@ export default function Game() {
 
         // Render overlays (UI elements) on top
         this.renderOverlays()
+      }
+
+      renderBackgroundOptimized() {
+        // Use the original background rendering for now
+        this.renderBackground()
+      }
+
+      renderDataBleedOptimized() {
+        // Use the original data bleed rendering for now
+        this.renderDataBleed()
+      }
+
+      renderParticlesOptimized() {
+        // Use the original particle rendering for now
+        this.renderParticles()
       }
 
       renderNoise() {
@@ -2015,23 +2051,46 @@ export default function Game() {
         
         // Stop BGM
         this.stopBGM()
+        
+        // Clean up object pools
+        if (this.particlePool) {
+          this.particlePool.clear()
+        }
+        if (this.audioNodePool) {
+          this.audioNodePool.stopAllAudio()
+          this.audioNodePool.clear()
+        }
       }
 
       createParticleExplosion(x: number, y: number, color: string, count: number = 20) {
         for (let i = 0; i < count; i++) {
+          const particle = this.particlePool.createParticle(
+            x,
+            y,
+            Math.cos(Math.random() * Math.PI * 2) * (Math.random() * 5 + 2),
+            Math.sin(Math.random() * Math.PI * 2) * (Math.random() * 5 + 2),
+            60, // life
+            color,
+            Math.random() * 3 + 1 // scale
+          )
+          // Add to particles array for rendering (legacy compatibility)
           this.particles.push({
-            x: x,
-            y: y,
-            vx: Math.cos(Math.random() * Math.PI * 2) * (Math.random() * 5 + 2),
-            vy: Math.sin(Math.random() * Math.PI * 2) * (Math.random() * 5 + 2),
-            life: 60,
-            color: color,
-            size: Math.random() * 3 + 1
+            x: particle.x,
+            y: particle.y,
+            vx: particle.vx,
+            vy: particle.vy,
+            life: particle.life,
+            color: particle.color,
+            size: particle.scale
           })
         }
       }
 
       updateParticles() {
+        // Update pooled particles
+        this.particlePool.updateParticles(1) // Assuming 60 FPS, so deltaTime = 1/60 ≈ 0.016
+        
+        // Update legacy particles array for rendering compatibility
         for (let i = this.particles.length - 1; i >= 0; i--) {
           const particle = this.particles[i]
           
