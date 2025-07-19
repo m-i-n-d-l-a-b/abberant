@@ -887,6 +887,9 @@ export class GameEngine {
     // Update renderer state
     this.renderer.updateState(this.camera, this.effects, this.frameCount)
 
+    // Set entities for rendering
+    this.renderer.setEntities(this.player, this.enemies, this.platforms, this.collectibles)
+
     // Render frame
     this.renderer.render()
 

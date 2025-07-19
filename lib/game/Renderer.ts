@@ -14,6 +14,7 @@
 import { Camera, Player, Platform, Enemy, Collectible, BackgroundStar, Effects, Particle } from '../../types/game'
 import { RenderingOptimizer } from './RenderingOptimizer'
 import { BackgroundRenderer, BackgroundRenderContext } from './BackgroundRenderer'
+import { EntityRenderer, EntityRenderContext } from './EntityRenderer'
 import {
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
@@ -60,6 +61,7 @@ export class Renderer {
   private state: RenderState
   private optimizer: RenderingOptimizer
   private backgroundRenderer: BackgroundRenderer
+  private entityRenderer: EntityRenderer
   private layers: Map<string, RenderLayer>
   private isRendering: boolean
   private animationFrameId: number | null
@@ -70,6 +72,7 @@ export class Renderer {
     this.config = config
     this.optimizer = new RenderingOptimizer(this.ctx)
     this.backgroundRenderer = new BackgroundRenderer(this.config.width, this.config.height)
+    this.entityRenderer = new EntityRenderer(this.config.width, this.config.height)
     this.layers = new Map()
     this.isRendering = false
     this.animationFrameId = null
@@ -335,7 +338,20 @@ export class Renderer {
    * Render game world layer
    */
   private renderGameWorld(context: RenderContext): void {
-    // This will be implemented with entities from the EntityRenderer in Phase 4 Task 4.3
+    // Create entity render context
+    const entityContext: EntityRenderContext = {
+      ctx: context.ctx,
+      width: context.width,
+      height: context.height,
+      camera: context.camera,
+      effects: context.effects,
+      frameCount: context.frameCount,
+      deltaTime: context.deltaTime,
+      now: performance.now()
+    }
+
+    // Render entities using entity renderer
+    this.entityRenderer.render(entityContext)
   }
 
   /**
@@ -550,11 +566,26 @@ export class Renderer {
   }
 
   /**
+   * Set entities for rendering
+   */
+  setEntities(player: Player | null, enemies: Enemy[], platforms: Platform[], collectibles: Collectible[]): void {
+    this.entityRenderer.setEntities(player, enemies, platforms, collectibles)
+  }
+
+  /**
+   * Get entity renderer
+   */
+  getEntityRenderer(): EntityRenderer {
+    return this.entityRenderer
+  }
+
+  /**
    * Get render summary for debugging
    */
   getRenderSummary(): string {
     const stats = this.getRenderStats()
     const backgroundStats = this.backgroundRenderer.getRenderStats()
-    return `Renderer: ${stats.isActive ? 'Active' : 'Inactive'}, FPS: ${stats.fps.toFixed(1)}, Layers: ${stats.visibleLayers}/${stats.layerCount}, Frame: ${stats.frameCount} | ${backgroundStats.visibleLayers}/${backgroundStats.layerCount} bg layers`
+    const entityStats = this.entityRenderer.getRenderStats()
+    return `Renderer: ${stats.isActive ? 'Active' : 'Inactive'}, FPS: ${stats.fps.toFixed(1)}, Layers: ${stats.visibleLayers}/${stats.layerCount}, Frame: ${stats.frameCount} | ${backgroundStats.visibleLayers}/${backgroundStats.layerCount} bg layers | ${entityStats.visibleLayers}/${entityStats.layerCount} entity layers`
   }
 } 
