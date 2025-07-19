@@ -4,6 +4,8 @@
  * Configures the test environment for DOM testing.
  */
 
+require('@testing-library/jest-dom')
+
 // Mock Path2D and DOMMatrix for tests that need them
 global.Path2D = class Path2D {
   constructor() {}

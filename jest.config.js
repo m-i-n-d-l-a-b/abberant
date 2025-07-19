@@ -4,7 +4,11 @@ module.exports = {
   roots: ['<rootDir>/lib', '<rootDir>/components'],
   testMatch: ['**/*.test.ts', '**/*.test.tsx'],
   transform: {
-    '^.+\\.tsx?$': 'ts-jest',
+    '^.+\\.tsx?$': ['ts-jest', {
+      tsconfig: {
+        jsx: 'react-jsx'
+      }
+    }],
   },
   collectCoverageFrom: [
     'lib/**/*.{ts,tsx}',
@@ -12,4 +16,7 @@ module.exports = {
     '!**/*.d.ts',
   ],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/$1'
+  }
 }; 
