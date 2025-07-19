@@ -76,10 +76,10 @@ export class RenderingOptimizer {
   }
 
   /**
-   * Flush all batches
+   * Flush all batches to canvas
    */
   flushAllBatches(): void {
-    for (const [batchKey] of this.batches) {
+    for (const [batchKey] of Array.from(this.batches.entries())) {
       this.flushBatch(batchKey)
     }
   }
@@ -176,7 +176,8 @@ export class RenderingOptimizer {
       height,
       alpha,
       rotation,
-      image
+      image,
+      color: '#ffffff' // Default color for images (not used for rendering)
     })
   }
 
@@ -414,7 +415,7 @@ export class RenderingOptimizer {
     averageBatchSize: number
   } {
     let totalBatchedItems = 0
-    for (const batch of this.batches.values()) {
+    for (const batch of Array.from(this.batches.values())) {
       totalBatchedItems += batch.length
     }
     
@@ -475,7 +476,7 @@ export class RenderingOptimizer {
       }
 
       // Render each group
-      for (const group of groups.values()) {
+      for (const group of Array.from(groups.values())) {
         this.renderOperationGroup(group, renderFn)
       }
     } else {

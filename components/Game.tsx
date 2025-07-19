@@ -4,133 +4,116 @@ import { useEffect, useRef } from 'react'
 import { CollisionSystem, CollisionEntity, BoundingBox } from '../lib/game/CollisionSystem'
 import { ParticlePool, AudioNodePool, Particle as PooledParticle } from '../lib/game/ObjectPool'
 import { RenderingOptimizer } from '../lib/game/RenderingOptimizer'
-
-interface GameState {
-  gameState: string
-  currentLevel: number
-  lives: number
-  score: number
-  paused: boolean
-}
-
-interface Player {
-  x: number
-  y: number
-  width: number
-  height: number
-  velX: number
-  velY: number
-  speed: number
-  jumpPower: number
-  grounded: boolean
-  doubleJump: boolean
-  dashCooldown: number
-  invulnerable: number
-  color: string
-  trail: Array<{ x: number; y: number }>
-  respawning: boolean
-}
-
-interface Platform {
-  x: number
-  y: number
-  width: number
-  height: number
-  color: string
-  type: string
-  liquidPixels: Array<{ x: number; y: number; velX: number; velY: number; opacity: number; size: number }>
-  distortionOffset: number
-}
-
-interface Enemy {
-  x: number
-  y: number
-  width: number
-  height: number
-  velX: number
-  velY: number
-  speed: number
-  color: string
-  movementType: 'horizontal' | 'vertical'
-  startY: number
-  moveRange: number
-  stompZoneActive: boolean
-}
-
-interface Collectible {
-  x: number
-  y: number
-  width: number
-  height: number
-  color: string
-  collected: boolean
-  value: number
-}
-
-interface BackgroundStar {
-  x: number
-  y: number
-  size: number
-  parallax: number
-  hue: number
-  pulseSpeed: number
-  pulsePhase: number
-  twinkleSpeed: number
-  twinklePhase: number
-  shape: 'circle' | 'diamond' | 'triangle'
-  brightness: number
-  glowRadius: number
-}
-
-interface DataBleedEffect {
-  x: number
-  y: number
-  duration: number
-  size: number
-}
-
-interface Effects {
-  glitchOffset: { x: number; y: number }
-  meltingFactor: number
-  colorShift: number
-  pulseFactor: number
-  blurFactor: number
-  noiseFactor: number
-  rgbShiftFactor: number
-  waveFactor: number
-  zoomFactor: number
-  rotationFactor: number
-  pixelBleedFactor: number
-}
-
-interface Camera {
-  x: number
-  y: number
-  targetX: number
-  targetY: number
-  smoothing: number
-}
-
-interface Keys {
-  [key: string]: boolean
-}
-
-interface TouchInput {
-  left: boolean
-  right: boolean
-  jump: boolean
-  dash: boolean
-}
-
-interface Particle {
-  x: number
-  y: number
-  vx: number
-  vy: number
-  life: number
-  color: string
-  size: number
-}
+import { AudioManager } from '../lib/game/AudioManager'
+import {
+  GameState,
+  Player,
+  Platform,
+  Enemy,
+  Collectible,
+  BackgroundStar,
+  DataBleedEffect,
+  Effects,
+  Camera,
+  Keys,
+  TouchInput,
+  Particle
+} from '../types/game'
+import {
+  CANVAS_WIDTH,
+  CANVAS_HEIGHT,
+  FPS,
+  INITIAL_LIVES,
+  INITIAL_LEVEL,
+  INITIAL_SCORE,
+  LEVEL_TARGET,
+  LEVEL_START_INVINCIBILITY,
+  PLAYER_START_X,
+  PLAYER_START_Y,
+  PLAYER_WIDTH,
+  PLAYER_HEIGHT,
+  PLAYER_SPEED,
+  PLAYER_JUMP_POWER,
+  PLAYER_DASH_POWER,
+  PLAYER_DASH_COOLDOWN,
+  PLAYER_INVULNERABLE_TIME,
+  PLAYER_COLOR,
+  PLAYER_FRICTION,
+  PLAYER_GRAVITY,
+  CAMERA_SMOOTHING,
+  CAMERA_ZOOM_MIN,
+  CAMERA_ZOOM_MAX,
+  CAMERA_ZOOM_TRANSITION_DURATION,
+  BASE_LEVEL_WIDTH,
+  LEVEL_WIDTH_INCREMENT,
+  BASE_PLATFORM_COUNT,
+  PLATFORM_COUNT_INCREMENT,
+  BASE_ENEMY_COUNT,
+  ENEMY_COUNT_INCREMENT,
+  BASE_COLLECTIBLE_COUNT,
+  COLLECTIBLE_COUNT_INCREMENT,
+  PLATFORM_MIN_WIDTH,
+  PLATFORM_WIDTH_VARIATION,
+  PLATFORM_BASE_Y,
+  PLATFORM_Y_VARIATION,
+  PLATFORM_X_VARIATION,
+  ENEMY_WIDTH,
+  ENEMY_HEIGHT,
+  ENEMY_SPEED_MIN,
+  ENEMY_SPEED_VARIATION,
+  ENEMY_MOVE_RANGE_MIN,
+  ENEMY_MOVE_RANGE_VARIATION,
+  ENEMY_STOMP_ZONE_HEIGHT,
+  ENEMY_SCORE_VALUE,
+  COLLECTIBLE_WIDTH,
+  COLLECTIBLE_HEIGHT,
+  COLLECTIBLE_VALUE,
+  STAR_COUNT,
+  DREAM_PARTICLES_COUNT,
+  DREAM_WAVES_COUNT,
+  DREAM_LAYERS_COUNT,
+  STAR_TYPE_PROBABILITIES,
+  STAR_PROPERTIES,
+  BGM_TEMPO,
+  BGM_PITCH_MOD,
+  BGM_TEMPO_VARIATION,
+  BGM_PITCH_VARIATION,
+  EFFECTS_UPDATE_INTERVAL,
+  EFFECTS_MAJOR_UPDATE_INTERVAL,
+  DATA_BLEED_DURATION,
+  DATA_BLEED_SIZE_MIN,
+  DATA_BLEED_SIZE_VARIATION,
+  PARTICLE_EXPLOSION_COUNT,
+  PARTICLE_VELOCITY_MIN,
+  PARTICLE_VELOCITY_MAX,
+  PARTICLE_SIZE_MIN,
+  PARTICLE_SIZE_MAX,
+  DREAM_LAYER_ALPHA_BASE,
+  DREAM_LAYER_ALPHA_DECREMENT,
+  DREAM_LAYER_SCALE_BASE,
+  DREAM_LAYER_SCALE_INCREMENT,
+  DREAM_WAVE_AMPLITUDE_BASE,
+  DREAM_WAVE_AMPLITUDE_VARIATION,
+  DREAM_WAVE_FREQUENCY_BASE,
+  DREAM_WAVE_FREQUENCY_INCREMENT,
+  DREAM_WAVE_ALPHA,
+  LEVEL_EFFECTS,
+  TRANSITION_DURATION,
+  TRANSITION_ZOOM_IN_DURATION,
+  TRANSITION_ZOOM_OUT_DURATION,
+  LEVEL_COMPLETION_SCORE_MULTIPLIER,
+  COLLISION_WORLD_BUFFER,
+  COLLISION_GRID_SIZE,
+  COLLISION_MAX_ENTITIES,
+  PARTICLE_POOL_SIZE,
+  PARTICLE_POOL_MAX,
+  AUDIO_NODE_POOL_SIZE,
+  AUDIO_NODE_POOL_MAX,
+  MOBILE_BUTTON_SIZE,
+  MOBILE_BUTTON_MARGIN,
+  SOUND_TOGGLE_SIZE,
+  SOUND_TOGGLE_MARGIN
+} from '../constants/game'
 
 export default function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -193,47 +176,48 @@ export default function Game() {
       particlePool!: ParticlePool; // Object pool for particles
       audioNodePool!: AudioNodePool; // Object pool for audio nodes
       renderingOptimizer!: RenderingOptimizer; // Optimized rendering system
+      audioManager!: AudioManager; // Optimized audio management system
 
       constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas
         this.ctx = canvas.getContext('2d')!
-        this.width = 800
-        this.height = 600
+        this.width = CANVAS_WIDTH
+        this.height = CANVAS_HEIGHT
         this.setupAudio()
         this.init()
       }
 
       init() {
         this.gameState = "start"
-        this.currentLevel = 1
-        this.lives = 3
-        this.score = 0
+        this.currentLevel = INITIAL_LEVEL
+        this.lives = INITIAL_LIVES
+        this.score = INITIAL_SCORE
         this.paused = false
         this.isReversed = false
-        this.cameraZoom = 1
+        this.cameraZoom = CAMERA_ZOOM_MIN
         this.transitionPhase = 'none'
         this.transitionProgress = 0
-        this.levelStartInvincibility = 2
+        this.levelStartInvincibility = LEVEL_START_INVINCIBILITY
         this.particles = []
 
         this.player = {
-          x: 100,
-          y: 400,
-          width: 20,
-          height: 20,
+          x: PLAYER_START_X,
+          y: PLAYER_START_Y,
+          width: PLAYER_WIDTH,
+          height: PLAYER_HEIGHT,
           velX: 0,
           velY: 0,
-          speed: 6,
-          jumpPower: 16,
+          speed: PLAYER_SPEED,
+          jumpPower: PLAYER_JUMP_POWER,
           grounded: false,
           doubleJump: false,
           dashCooldown: 0,
           invulnerable: 0,
-          color: "#00ffff",
+          color: PLAYER_COLOR,
           trail: [],
           respawning: false,
         }
-        this.camera = { x: 0, y: 0, targetX: 0, targetY: 0, smoothing: 0.1 }
+        this.camera = { x: 0, y: 0, targetX: 0, targetY: 0, smoothing: CAMERA_SMOOTHING }
         this.keys = {}
         this.touchInput = {
           left: false,
@@ -263,7 +247,7 @@ export default function Game() {
           pixelBleedFactor: 0,
         }
         this.levelProgress = 0
-        this.levelTarget = 1800
+        this.levelTarget = LEVEL_TARGET
 
         this.platforms = []
         this.enemies = []
@@ -276,28 +260,33 @@ export default function Game() {
 
         this.frameCount = 0
         this.lastTime = performance.now()
-        this.fps = 60
+        this.fps = FPS
 
         // Initialize collision system with world bounds
         const worldBounds: BoundingBox = {
-          x: 0,
-          y: 0,
-          width: 3000 + this.currentLevel * 500, // Level width
-          height: this.height
+          x: -COLLISION_WORLD_BUFFER, // Allow some buffer for entities that might be slightly off-screen
+          y: -COLLISION_WORLD_BUFFER,
+          width: BASE_LEVEL_WIDTH + this.currentLevel * LEVEL_WIDTH_INCREMENT + COLLISION_WORLD_BUFFER * 2, // Level width + buffer
+          height: this.height + COLLISION_WORLD_BUFFER * 2 // Height + buffer
         }
-        this.collisionSystem = new CollisionSystem(worldBounds, 10, 8)
+        this.collisionSystem = new CollisionSystem(worldBounds, COLLISION_GRID_SIZE, COLLISION_MAX_ENTITIES)
 
         // Initialize object pools
-        this.particlePool = new ParticlePool(50, 500)
+        this.particlePool = new ParticlePool(PARTICLE_POOL_SIZE, PARTICLE_POOL_MAX)
         if (this.audioCtx) {
-          this.audioNodePool = new AudioNodePool(this.audioCtx, 10, 50)
+          this.audioNodePool = new AudioNodePool(this.audioCtx, AUDIO_NODE_POOL_SIZE, AUDIO_NODE_POOL_MAX)
         }
 
         // Initialize rendering optimizer
         this.renderingOptimizer = new RenderingOptimizer(this.ctx)
 
+        // Initialize audio manager
+        this.audioManager = new AudioManager()
+
         this.showStartScreen()
         this.generateLevel()
+        // Populate collision system with initial level entities
+        this.populateCollisionSystem()
 
         if (!this.animationFrameId) {
           this.gameLoop()
@@ -391,8 +380,12 @@ export default function Game() {
         if (!this.soundEnabled || this.paused) return
         const time = Date.now() / 2000
         const modulation = Math.sin(time)
-        this.bgmTempo = 500 + modulation * 200
-        this.bgmPitchMod = 1.0 + Math.sin(time * 4) * 0.05
+        const tempo = 500 + modulation * 200
+        const pitchMod = 1.0 + Math.sin(time * 4) * 0.05
+        
+        // Update audio manager BGM parameters
+        this.audioManager.setBGMTempo(tempo)
+        this.audioManager.setBGMPitchMod(pitchMod)
       }
 
       restart() {
@@ -413,108 +406,53 @@ export default function Game() {
 
       initAudioContext() {
         if (this.audioInitialized) return
-        if (!this.audioCtx) {
-          this.audioCtx = new ((window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext)()
+        
+        // Initialize audio manager context
+        const success = this.audioManager.initAudioContext()
+        if (success) {
+          this.audioCtx = this.audioManager['audioContext'] // Access private property for compatibility
+          this.audioInitialized = true
+          this.startBGM()
         }
-        if (this.audioCtx.state === "suspended") this.audioCtx.resume()
-        this.masterGain = this.audioCtx.createGain()
-        this.delayNode = this.audioCtx.createDelay(1.0)
-        this.feedbackGain = this.audioCtx.createGain()
-        this.delayNode.delayTime.value = 0.25
-        this.feedbackGain.gain.value = 0.4
-        this.masterGain.connect(this.delayNode)
-        this.masterGain.connect(this.audioCtx.destination)
-        this.delayNode.connect(this.audioCtx.destination)
-        this.delayNode.connect(this.feedbackGain)
-        this.feedbackGain.connect(this.delayNode)
-        this.audioInitialized = true
-        this.startBGM()
       }
 
       playSound(type: string) {
-        if (!this.soundEnabled || !this.audioCtx) return
-        const now = this.audioCtx.currentTime
-        const gainNode = this.audioCtx.createGain()
-        gainNode.connect(this.audioCtx.destination)
-        const oscillator = this.audioCtx.createOscillator()
-        oscillator.connect(gainNode)
-        switch (type) {
-          case "jump":
-            gainNode.gain.setValueAtTime(0.2, now)
-            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.2)
-            oscillator.frequency.setValueAtTime(440, now)
-            oscillator.frequency.exponentialRampToValueAtTime(880, now + 0.2)
-            break
-          case "dash":
-            gainNode.gain.setValueAtTime(0.3, now)
-            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.4)
-            oscillator.type = "sawtooth"
-            oscillator.frequency.setValueAtTime(100, now)
-            oscillator.frequency.exponentialRampToValueAtTime(
-              1200,
-              now + 0.4
-            )
-            break
-          case "collect":
-            gainNode.gain.setValueAtTime(0.2, now)
-            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.15)
-            oscillator.frequency.setValueAtTime(880, now)
-            oscillator.frequency.exponentialRampToValueAtTime(
-              1760,
-              now + 0.15
-            )
-            break
-          case "stomp":
-            gainNode.gain.setValueAtTime(0.4, now)
-            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3)
-            oscillator.type = "square"
-            oscillator.frequency.setValueAtTime(400, now)
-            oscillator.frequency.exponentialRampToValueAtTime(200, now + 0.3)
-            break
-          case "hit":
-            gainNode.gain.setValueAtTime(0.5, now)
-            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5)
-            oscillator.type = "sawtooth"
-            oscillator.frequency.setValueAtTime(200, now)
-            oscillator.frequency.exponentialRampToValueAtTime(50, now + 0.5)
-            break
+        if (!this.soundEnabled || !this.audioInitialized) {
+          console.log('Audio not ready, skipping sound:', type)
+          return
         }
-        oscillator.start(now)
-        oscillator.stop(now + 1)
-      }
-
-      scheduleNextNote() {
-        if (!this.soundEnabled || !this.audioCtx || this.paused) return
-        const now = this.audioCtx.currentTime
-        const notes = [220.0, 261.63, 329.63, 392.0]
-        const note = notes[Math.floor(Math.random() * notes.length)]
-        const gainNode = this.audioCtx.createGain()
-        gainNode.connect(this.masterGain!)
-        gainNode.gain.setValueAtTime(0.08, now)
-        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5)
-        const oscillator = this.audioCtx.createOscillator()
-        oscillator.connect(gainNode)
-        oscillator.type = "square"
-        oscillator.frequency.setValueAtTime(note * this.bgmPitchMod, now)
-        oscillator.start(now)
-        oscillator.stop(now + 0.5)
-        this.bgmTimeoutId = setTimeout(
-          () => this.scheduleNextNote(),
-          this.bgmTempo
-        )
+        
+        // Ensure audio context is running before playing sounds
+        if (!this.audioManager.ensureAudioContextRunning()) {
+          console.warn('Audio context not ready, cannot play sound:', type)
+          return
+        }
+        
+        console.log('Playing sound:', type, 'Audio context state:', this.audioManager.getAudioContextState())
+        this.audioManager.playSound(type, 1.0)
       }
 
       startBGM() {
-        this.stopBGM()
-        if (this.soundEnabled && this.audioInitialized && !this.paused)
-          this.scheduleNextNote()
+        console.log('Game: Starting BGM, audio context state:', this.audioManager.getAudioContextState())
+        if (this.soundEnabled && this.audioInitialized && !this.paused) {
+          // Ensure audio context is running before starting BGM
+          if (this.audioManager.ensureAudioContextRunning()) {
+            this.audioManager.startBGM()
+          } else {
+            console.warn('Cannot start BGM: audio context not ready')
+          }
+        } else {
+          console.log('BGM start conditions not met:', {
+            soundEnabled: this.soundEnabled,
+            audioInitialized: this.audioInitialized,
+            paused: this.paused
+          })
+        }
       }
 
       stopBGM() {
-        if (this.bgmTimeoutId) {
-          clearTimeout(this.bgmTimeoutId)
-          this.bgmTimeoutId = null
-        }
+        console.log('Game: Stopping BGM')
+        this.audioManager.stopBGM()
       }
 
       setupInput() {
@@ -525,6 +463,13 @@ export default function Game() {
         }
         
         this.keydownHandler = (e: KeyboardEvent) => {
+          // Ensure audio context is resumed on any user interaction
+          if (!this.audioInitialized) {
+            this.initAudioContext()
+          } else {
+            this.audioManager.ensureAudioContextRunning()
+          }
+
           if (this.gameState === "start" && e.key === "Enter") {
             this.startGame()
             return
@@ -548,6 +493,22 @@ export default function Game() {
           }
           if (e.key.toLowerCase() === "r") {
             this.restart()
+          }
+          if (e.key.toLowerCase() === "c") {
+            // Toggle collision system debug mode
+            const currentDebugMode = this.collisionSystem['debugMode']
+            this.collisionSystem.setDebugMode(!currentDebugMode)
+            console.log(`Collision debug mode: ${!currentDebugMode ? 'enabled' : 'disabled'}`)
+            e.preventDefault()
+          }
+          if (e.key.toLowerCase() === "v") {
+            // Validate collision system state
+            const validation = this.collisionSystem.validateSystemState()
+            console.log('Collision system validation:', validation)
+            if (!validation.isValid) {
+              console.warn('Issues found:', validation.issues)
+            }
+            e.preventDefault()
           }
         }
         
@@ -579,6 +540,13 @@ export default function Game() {
       }
 
       handleMobileInput(action: string, pressed: boolean) {
+        // Ensure audio context is resumed on any user interaction
+        if (!this.audioInitialized) {
+          this.initAudioContext()
+        } else {
+          this.audioManager.ensureAudioContextRunning()
+        }
+
         if (this.gameState === "start") {
           this.startGame()
           return
@@ -610,6 +578,7 @@ export default function Game() {
             if (this.gameState === "start") this.startGame()
             if (!this.audioInitialized) this.initAudioContext()
             this.soundEnabled = !this.soundEnabled
+            this.audioManager.setSoundEnabled(this.soundEnabled)
             soundToggle.textContent = this.soundEnabled
               ? "🔊 Sound: ON"
               : "🔇 Sound: OFF"
@@ -746,68 +715,55 @@ export default function Game() {
        * Populate the collision system with all game entities
        */
       populateCollisionSystem() {
-        // Clear existing entities
+        // Clear existing collision system
         this.collisionSystem.clear()
+        
+        // Disable debug mode for collision system to prevent console spam
+        this.collisionSystem.setDebugMode(false)
 
-        // Add player
+        // Add player entity
         this.collisionSystem.addEntity({
           id: 'player',
-          bounds: {
-            x: this.player.x,
-            y: this.player.y,
-            width: this.player.width,
-            height: this.player.height
-          },
+          bounds: { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height },
           type: 'player',
           data: this.player
         })
 
-        // Add platforms
+        // Add platform entities
         this.platforms.forEach((platform, index) => {
           this.collisionSystem.addEntity({
             id: `platform_${index}`,
-            bounds: {
-              x: platform.x,
-              y: platform.y,
-              width: platform.width,
-              height: platform.height
-            },
+            bounds: { x: platform.x, y: platform.y, width: platform.width, height: platform.height },
             type: 'platform',
             data: platform
           })
         })
 
-        // Add enemies
+        // Add enemy entities with stable IDs
         this.enemies.forEach((enemy, index) => {
           this.collisionSystem.addEntity({
-            id: `enemy_${index}`,
-            bounds: {
-              x: enemy.x,
-              y: enemy.y,
-              width: enemy.width,
-              height: enemy.height
-            },
+            id: `enemy_${index}`, // Use index for stable ID
+            bounds: { x: enemy.x, y: enemy.y, width: enemy.width, height: enemy.height },
             type: 'enemy',
             data: enemy
           })
         })
 
-        // Add collectibles
+        // Add collectible entities
         this.collectibles.forEach((collectible, index) => {
-          if (!collectible.collected) {
-            this.collisionSystem.addEntity({
-              id: `collectible_${index}`,
-              bounds: {
-                x: collectible.x,
-                y: collectible.y,
-                width: collectible.width,
-                height: collectible.height
-              },
-              type: 'collectible',
-              data: collectible
-            })
-          }
+          this.collisionSystem.addEntity({
+            id: `collectible_${index}`,
+            bounds: { x: collectible.x, y: collectible.y, width: collectible.width, height: collectible.height },
+            type: 'collectible',
+            data: collectible
+          })
         })
+
+        // Validate collision system state (only log errors)
+        const validation = this.collisionSystem.validateSystemState()
+        if (!validation.isValid) {
+          console.warn('Collision system validation failed:', validation.issues)
+        }
       }
 
       assignLevelEffects() {
@@ -950,6 +906,21 @@ export default function Game() {
       }
 
       updateGame() {
+        // Periodically check and resume audio context
+        if (this.frameCount % 300 === 0) { // Check every 5 seconds at 60fps
+          this.audioManager.ensureAudioContextRunning()
+        }
+
+        // Periodically validate collision system (less frequent)
+        if (this.frameCount % 1800 === 0) { // Check every 30 seconds at 60fps
+          const validation = this.collisionSystem.validateSystemState()
+          if (!validation.isValid) {
+            console.warn('Collision system validation failed:', validation.issues)
+            // Attempt to fix by repopulating the collision system
+            this.populateCollisionSystem()
+          }
+        }
+
         this.updateBGMEffects()
         if (this.player.dashCooldown > 0) this.player.dashCooldown--
         if (this.player.invulnerable > 0) this.player.invulnerable--
@@ -1077,13 +1048,18 @@ export default function Game() {
             }
           }
 
-          // Update enemy entity in collision system
-          this.collisionSystem.updateEntity(`enemy_${index}`, {
+          // Update enemy entity in collision system with stable ID
+          const enemyId = `enemy_${index}`
+          const updateSuccess = this.collisionSystem.updateEntity(enemyId, {
             x: enemy.x,
             y: enemy.y,
             width: enemy.width,
             height: enemy.height
           })
+
+          if (!updateSuccess) {
+            // Silently handle failed updates - entity might have been removed
+          }
         })
       }
 
@@ -1159,12 +1135,16 @@ export default function Game() {
 
       checkCollisions() {
         // Update player entity in collision system
-        this.collisionSystem.updateEntity('player', {
+        const playerUpdateSuccess = this.collisionSystem.updateEntity('player', {
           x: this.player.x,
           y: this.player.y,
           width: this.player.width,
           height: this.player.height
         })
+
+        if (!playerUpdateSuccess) {
+          console.warn('Failed to update player entity in collision system')
+        }
 
         this.player.grounded = false
 
@@ -1200,7 +1180,11 @@ export default function Game() {
           const enemy = enemyEntity.data as Enemy
           const enemyIndex = this.enemies.indexOf(enemy)
           
-          if (enemyIndex === -1) return
+          if (enemyIndex === -1) {
+            // Silently handle orphaned enemy entities
+            this.collisionSystem.removeEntity(enemyEntity.id)
+            return
+          }
 
           // Check for stomping
           const stompZoneHeight = 8
@@ -1310,6 +1294,8 @@ export default function Game() {
         this.player.velY = 0
         this.player.respawning = false // Clear respawning state
         this.generateLevel()
+        // Populate collision system with new level entities
+        this.populateCollisionSystem()
         // Set 0.5-second invincibility at level start (30 frames at 60fps)
         this.levelStartInvincibility = 30
       }
@@ -2060,9 +2046,17 @@ export default function Game() {
           this.audioNodePool.stopAllAudio()
           this.audioNodePool.clear()
         }
+        
+        // Clean up audio manager
+        if (this.audioManager) {
+          this.audioManager.cleanup()
+        }
       }
 
       createParticleExplosion(x: number, y: number, color: string, count: number = 20) {
+        // Play explosion sound effect
+        this.audioManager.playPreset('explosion', 0.8)
+        
         for (let i = 0; i < count; i++) {
           const particle = this.particlePool.createParticle(
             x,
@@ -2122,6 +2116,13 @@ export default function Game() {
           this.ctx.fill()
           this.ctx.restore()
         })
+      }
+
+      /**
+       * Get audio performance statistics for debugging
+       */
+      getAudioStats() {
+        return this.audioManager.getPerformanceStats()
       }
     }
 

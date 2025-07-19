@@ -203,19 +203,39 @@ export class CollisionSystem {
   private quadtree: QuadTreeNode
   private entityMap: Map<string, CollisionEntity>
   private worldBounds: BoundingBox
+  private debugMode: boolean = false
 
   constructor(worldBounds: BoundingBox, maxEntities: number = 10, maxDepth: number = 8) {
-    this.worldBounds = worldBounds
     this.quadtree = new QuadTreeNode(worldBounds, maxEntities, maxDepth)
     this.entityMap = new Map()
+    this.worldBounds = worldBounds
   }
 
   /**
-   * Add an entity to the collision system
+   * Enable or disable debug mode for collision logging
+   */
+  setDebugMode(enabled: boolean): void {
+    this.debugMode = enabled
+  }
+
+  /**
+   * Add an entity to the collision system with validation
    */
   addEntity(entity: CollisionEntity): void {
+
+
+    // Validate entity bounds
+    if (entity.bounds.width <= 0 || entity.bounds.height <= 0) {
+      console.warn(`Invalid entity bounds for ${entity.id}:`, entity.bounds)
+      return
+    }
+
     this.entityMap.set(entity.id, entity)
-    this.quadtree.insert(entity)
+    const success = this.quadtree.insert(entity)
+    
+    if (this.debugMode && !success) {
+      console.warn(`Failed to insert entity ${entity.id} into quadtree`)
+    }
   }
 
   /**
@@ -230,19 +250,39 @@ export class CollisionSystem {
   }
 
   /**
-   * Update an entity's position/bounds
+   * Update an entity's position/bounds with validation
    */
   updateEntity(entityId: string, newBounds: BoundingBox): boolean {
     const entity = this.entityMap.get(entityId)
     if (!entity) {
+      if (this.debugMode) {
+        console.warn(`Attempted to update non-existent entity: ${entityId}`)
+      }
       return false
     }
 
+    // Validate new bounds
+    if (newBounds.width <= 0 || newBounds.height <= 0) {
+      console.warn(`Invalid bounds for entity ${entityId}:`, newBounds)
+      return false
+    }
+
+
+
     // Remove and re-insert with new bounds
-    this.quadtree.remove(entityId)
+    const removed = this.quadtree.remove(entityId)
+    if (!removed && this.debugMode) {
+      console.warn(`Failed to remove entity ${entityId} from quadtree for update`)
+    }
+
     entity.bounds = newBounds
-    this.quadtree.insert(entity)
-    return true
+    const inserted = this.quadtree.insert(entity)
+    
+    if (this.debugMode && !inserted) {
+      console.warn(`Failed to re-insert entity ${entityId} into quadtree after update`)
+    }
+
+    return inserted
   }
 
   /**
@@ -273,7 +313,7 @@ export class CollisionSystem {
   }
 
   /**
-   * Check for player-enemy collisions with stomp detection
+   * Check for player-enemy collisions with stomp detection and enhanced debugging
    */
   checkPlayerEnemyCollisions(playerBounds: BoundingBox, playerVelY: number): {
     enemies: CollisionEntity[]
@@ -312,7 +352,7 @@ export class CollisionSystem {
   }
 
   /**
-   * Check for player-platform collisions (grounding detection)
+   * Check for player-platform collisions (grounding detection) with enhanced debugging
    */
   checkPlayerPlatformCollisions(playerBounds: BoundingBox, playerVelY: number): {
     platforms: CollisionEntity[]
@@ -328,8 +368,10 @@ export class CollisionSystem {
         
         // Check if player is grounded (on top of platform)
         if (playerVelY >= 0 && 
-            playerBounds.y + playerBounds.height > platform.bounds.y &&
-            playerBounds.y < platform.bounds.y) {
+            playerBounds.y + playerBounds.height >= platform.bounds.y &&
+            playerBounds.y + playerBounds.height <= platform.bounds.y + 5 && // Small tolerance
+            playerBounds.x + playerBounds.width > platform.bounds.x &&
+            playerBounds.x < platform.bounds.x + platform.bounds.width) {
           grounded = true
         }
       }
@@ -425,5 +467,86 @@ export class CollisionSystem {
     }
 
     return totalNodes > 0 ? totalEntities / totalNodes : 0
+  }
+
+  /**
+   * Validate collision system state and detect inconsistencies
+   */
+  validateSystemState(): {
+    isValid: boolean
+    issues: string[]
+    entityCount: number
+    quadtreeEntityCount: number
+    mapEntityCount: number
+  } {
+    const issues: string[] = []
+    const mapEntities = Array.from(this.entityMap.values())
+    const quadtreeEntities = this.quadtree.getAllEntities()
+    
+    const mapEntityCount = mapEntities.length
+    const quadtreeEntityCount = quadtreeEntities.length
+
+    // Check for entity count mismatch
+    if (mapEntityCount !== quadtreeEntityCount) {
+      issues.push(`Entity count mismatch: map has ${mapEntityCount}, quadtree has ${quadtreeEntityCount}`)
+    }
+
+    // Check for entities in map but not in quadtree
+    for (const mapEntity of mapEntities) {
+      const foundInQuadtree = quadtreeEntities.find(qe => qe.id === mapEntity.id)
+      if (!foundInQuadtree) {
+        issues.push(`Entity ${mapEntity.id} in map but not in quadtree`)
+      }
+    }
+
+    // Check for entities in quadtree but not in map
+    for (const quadtreeEntity of quadtreeEntities) {
+      if (!this.entityMap.has(quadtreeEntity.id)) {
+        issues.push(`Entity ${quadtreeEntity.id} in quadtree but not in map`)
+      }
+    }
+
+    // Check for invalid bounds
+    for (const entity of mapEntities) {
+      if (entity.bounds.width <= 0 || entity.bounds.height <= 0) {
+        issues.push(`Entity ${entity.id} has invalid bounds: ${entity.bounds.width}x${entity.bounds.height}`)
+      }
+    }
+
+    return {
+      isValid: issues.length === 0,
+      issues,
+      entityCount: mapEntityCount,
+      quadtreeEntityCount,
+      mapEntityCount
+    }
+  }
+
+  /**
+   * Get detailed information about all entities in the system
+   */
+  getEntityInfo(): Array<{
+    id: string
+    type: string
+    bounds: BoundingBox
+    inMap: boolean
+    inQuadtree: boolean
+  }> {
+    const mapEntities = Array.from(this.entityMap.values())
+    const quadtreeEntities = this.quadtree.getAllEntities()
+    const allIds = new Set([...mapEntities.map(e => e.id), ...quadtreeEntities.map(e => e.id)])
+    
+    return Array.from(allIds).map(id => {
+      const mapEntity = this.entityMap.get(id)
+      const quadtreeEntity = quadtreeEntities.find(e => e.id === id)
+      
+      return {
+        id,
+        type: mapEntity?.type || quadtreeEntity?.type || 'unknown',
+        bounds: mapEntity?.bounds || quadtreeEntity?.bounds || { x: 0, y: 0, width: 0, height: 0 },
+        inMap: !!mapEntity,
+        inQuadtree: !!quadtreeEntity
+      }
+    })
   }
 } 
