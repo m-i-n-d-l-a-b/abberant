@@ -10,6 +10,7 @@ import { ParticlePool, AudioNodePool, Particle as PooledParticle } from './Objec
 import { RenderingOptimizer } from './RenderingOptimizer'
 import { AudioManager } from './AudioManager'
 import { GameStateManager, GameStateType, GameStateCallbacks } from './GameStateManager'
+import { PlayerManager, PlayerInput, PlayerUpdateResult } from './PlayerManager'
 import {
   GameState,
   Player,
@@ -162,6 +163,7 @@ export class GameEngine {
   renderingOptimizer!: RenderingOptimizer; // Optimized rendering system
   audioManager!: AudioManager; // Optimized audio management system
   stateManager!: GameStateManager; // Game state management system
+  playerManager!: PlayerManager; // Player management system
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -253,6 +255,15 @@ export class GameEngine {
 
     // Initialize audio manager
     this.audioManager = new AudioManager()
+
+    // Initialize player manager
+    this.playerManager = new PlayerManager(
+      this.player,
+      this.collisionSystem,
+      this.camera,
+      this.width,
+      this.height
+    )
 
     this.showStartScreen()
     this.generateLevel()
@@ -538,28 +549,52 @@ export class GameEngine {
     // Update UI displays
     this.updateLevelDisplay(this.stateManager.getCurrentLevel())
     
+    // Handle input and update player
+    this.handleInput()
+    
+    // TODO: Implement enemy updates in Phase 3 Task 3.2
+    // TODO: Implement effects updates in Phase 4
     // TODO: Implement remaining game logic in Phase 3
     console.log('updateGame called - remaining logic to be implemented in Phase 3')
   }
 
   handleInput() {
-    // TODO: Implement in Phase 2
-    console.log('handleInput called - to be implemented in Phase 2')
+    const input: PlayerInput = {
+      left: this.keys['a'] || this.keys['A'] || this.keys['ArrowLeft'] || this.touchInput.left,
+      right: this.keys['d'] || this.keys['D'] || this.keys['ArrowRight'] || this.touchInput.right,
+      jump: this.keys['w'] || this.keys['W'] || this.keys['ArrowUp'] || this.keys[' '] || this.touchInput.jump,
+      dash: this.keys['Shift'] || this.touchInput.dash
+    }
+
+    // Update player using player manager
+    const updateResult = this.playerManager.updatePlayer(input)
+    
+    // Update player state
+    this.player = updateResult.player
+    
+    // Handle collision results
+    this.handlePlayerCollisions(updateResult.collisionResult)
+    
+    // Add particles from player effects
+    this.particles.push(...updateResult.particles)
+    
+    // Update camera
+    this.camera = this.playerManager.updateCamera()
   }
 
   jump() {
-    // TODO: Implement in Phase 3
-    console.log('jump called - to be implemented in Phase 3')
+    // Handled by PlayerManager
+    console.log('jump called - handled by PlayerManager')
   }
 
   dash() {
-    // TODO: Implement in Phase 3
-    console.log('dash called - to be implemented in Phase 3')
+    // Handled by PlayerManager
+    console.log('dash called - handled by PlayerManager')
   }
 
   updatePlayer() {
-    // TODO: Implement in Phase 3
-    console.log('updatePlayer called - to be implemented in Phase 3')
+    // Handled by PlayerManager in handleInput method
+    console.log('updatePlayer called - handled by PlayerManager')
   }
 
   updateEnemies() {
@@ -594,17 +629,16 @@ export class GameEngine {
 
   respawn() {
     if (this.stateManager.loseLife()) {
-      // Reset player position
-      this.player.x = PLAYER_START_X
-      this.player.y = PLAYER_START_Y
-      this.player.velX = 0
-      this.player.velY = 0
-      this.player.invulnerable = PLAYER_INVULNERABLE_TIME
-      this.player.respawning = true
+      // Reset player using player manager
+      this.playerManager.resetPlayer()
+      this.playerManager.makeInvulnerable()
+      this.playerManager.setRespawning(true)
       
-      // Reset camera to player position
-      this.camera.x = this.player.x - this.width / 3
-      this.camera.y = 0
+      // Update player state
+      this.player = this.playerManager.getPlayer()
+      
+      // Reset camera
+      this.camera = this.playerManager.updateCamera()
     }
   }
 
@@ -759,6 +793,33 @@ export class GameEngine {
   private updateLevelDisplay(level: number) {
     const levelElement = document.getElementById("level")
     if (levelElement) levelElement.textContent = level.toString()
+  }
+
+  /**
+   * Handle player collision results
+   */
+  private handlePlayerCollisions(collisionResult: any): void {
+    // Handle collectibles
+    if (collisionResult.collectiblesCollected.length > 0) {
+      for (const collectible of collisionResult.collectiblesCollected) {
+        collectible.collected = true
+        this.stateManager.addScore(collectible.value)
+        // TODO: Add collection sound effect in Phase 6
+      }
+    }
+
+    // Handle enemy stomps
+    if (collisionResult.enemiesHit.length > 0) {
+      for (const enemy of collisionResult.enemiesHit) {
+        // TODO: Handle enemy defeat in Phase 3 Task 3.2
+        this.stateManager.addScore(100) // Temporary score for stomping
+      }
+    }
+
+    // Handle player damage
+    if (collisionResult.shouldRespawn) {
+      this.respawn()
+    }
   }
 
   // Getter methods for state manager properties (for compatibility)
