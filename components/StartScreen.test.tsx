@@ -174,14 +174,13 @@ describe('StartScreen', () => {
   })
 
   describe('Styling', () => {
-    test('should render with styled-jsx styles', () => {
+    test('should render with external CSS styles', () => {
       const { container } = render(<StartScreen {...defaultProps} />)
       
-      // Check that styled-jsx styles are applied
+      // Check that external CSS classes are applied
       const startScreen = container.querySelector('.start-screen')
-      expect(startScreen).toHaveStyle({
-        display: 'flex'
-      })
+      expect(startScreen).toHaveClass('start-screen')
+      expect(startScreen).toHaveClass('menu-screen')
     })
   })
 

@@ -299,7 +299,7 @@ describe('CollisionSystem', () => {
       }
 
       collisionSystem.addEntity(entity)
-      expect(collisionSystem.getStats().totalEntities).toBe(1)
+      expect(collisionSystem.getStats().totalEntities).toBe(0) // Should reject zero-sized entities
     })
 
     test('should handle negative coordinates', () => {

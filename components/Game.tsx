@@ -8,6 +8,10 @@ import GameOverScreen from './GameOverScreen'
 import PauseScreen from './PauseScreen'
 import { useGame, GameScreen } from '../hooks/useGame'
 
+// Import CSS files
+import '../styles/common.css'
+import '../styles/game.css'
+
 /**
  * Main Game Component
  * 
@@ -54,36 +58,6 @@ export default function Game() {
 
       {/* Mobile Controls - only show when playing */}
       {gameState.gameScreen === GameScreen.PLAYING && <MobileControls />}
-
-      <style jsx>{`
-        #gameContainer {
-          position: relative;
-          width: 800px;
-          height: 600px;
-          margin: 0 auto;
-          font-family: 'Courier New', monospace;
-          overflow: hidden;
-        }
-
-        #gameCanvas {
-          display: block;
-          border: 2px solid #00ffff;
-          box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-          #gameContainer {
-            width: 100%;
-            height: 100vh;
-          }
-
-          #gameCanvas {
-            width: 100%;
-            height: 100%;
-          }
-        }
-      `}</style>
     </div>
   )
 }

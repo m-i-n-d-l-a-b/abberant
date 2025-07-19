@@ -7,6 +7,10 @@
 
 import React from 'react'
 
+// Import CSS files
+import '../styles/common.css'
+import '../styles/ui.css'
+
 /**
  * Props interface for GameUI component
  */
@@ -59,116 +63,12 @@ export default function GameUI({
       {/* Sound Toggle */}
       <button 
         id="soundToggle" 
-        className="sound-toggle"
+        className={`sound-toggle ${soundEnabled ? 'sound-on' : 'sound-off'}`}
         onClick={onSoundToggle}
         aria-label={soundEnabled ? 'Disable sound' : 'Enable sound'}
       >
         {soundEnabled ? '🔊 SOUND: ON' : '🔇 SOUND: OFF'}
       </button>
-
-      <style jsx>{`
-        /* Game UI */
-        .game-ui {
-          position: absolute;
-          top: 20px;
-          left: 20px;
-          display: flex;
-          gap: 30px;
-          z-index: 10;
-        }
-
-        .ui-item {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 5px;
-        }
-
-        .ui-label {
-          font-size: 12px;
-          color: #00ffff;
-          text-shadow: 0 0 10px #00ffff;
-          font-weight: bold;
-          letter-spacing: 2px;
-        }
-
-        .ui-value {
-          font-size: 24px;
-          color: #ffffff;
-          text-shadow: 0 0 15px #ffffff;
-          font-weight: bold;
-        }
-
-        /* Sound Toggle */
-        .sound-toggle {
-          position: absolute;
-          top: 20px;
-          right: 20px;
-          background: rgba(0, 0, 0, 0.8);
-          border: 2px solid #00ffff;
-          color: #00ffff;
-          padding: 10px 15px;
-          font-family: 'Courier New', monospace;
-          font-size: 14px;
-          cursor: pointer;
-          z-index: 10;
-          transition: all 0.3s ease;
-        }
-
-        .sound-toggle:hover {
-          background: rgba(0, 255, 255, 0.2);
-          box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
-        }
-
-        .sound-toggle:focus {
-          outline: none;
-          box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-          .game-ui {
-            top: 10px;
-            left: 10px;
-            gap: 20px;
-          }
-
-          .ui-label {
-            font-size: 10px;
-          }
-
-          .ui-value {
-            font-size: 20px;
-          }
-
-          .sound-toggle {
-            top: 10px;
-            right: 10px;
-            padding: 8px 12px;
-            font-size: 12px;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .game-ui {
-            flex-direction: column;
-            gap: 10px;
-          }
-
-          .ui-item {
-            flex-direction: row;
-            gap: 10px;
-          }
-
-          .ui-label {
-            font-size: 9px;
-          }
-
-          .ui-value {
-            font-size: 18px;
-          }
-        }
-      `}</style>
     </>
   )
 } 
