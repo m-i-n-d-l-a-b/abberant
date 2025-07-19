@@ -1,14 +1,13 @@
-import OptimizedGameWithVFX from '@/components/OptimizedGameWithVFX'
+import Game from '../components/Game'
 
 export default function Home() {
   return (
-    <main>
-      <OptimizedGameWithVFX 
-        initialVFXEnabled={false}
-        initialEffect="glitch"
-        initialIntensity={1.0}
-        initialQuality="auto"
-      />
+    <main className="flex min-h-screen flex-col items-center justify-center p-24">
+      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
+        <h1 className="text-4xl font-bold mb-8 text-center">Abberant Game with VFX</h1>
+      </div>
+      
+      <Game />
     </main>
   )
 } 

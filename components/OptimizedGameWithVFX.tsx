@@ -1,9 +1,8 @@
 "use client"
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { VFXProvider } from 'react-vfx'
+import { VFXProvider, VFXDiv } from 'react-vfx'
 import Game, { GameRef } from './Game'
-import EnhancedVFXOverlay from './EnhancedVFXOverlay'
 import VFXControls from './VFXControls'
 
 interface OptimizedGameWithVFXProps {
@@ -39,7 +38,7 @@ const OptimizedGameWithVFX: React.FC<OptimizedGameWithVFXProps> = ({
     console.warn('VFX Error:', error)
   }, [onVFXError])
 
-  // Handle VFX toggle with debugging
+  // Handle VFX toggle
   const handleVFXToggle = useCallback((enabled: boolean) => {
     console.log('VFX: Toggle requested:', enabled)
     setVfxEnabled(enabled)
@@ -48,15 +47,6 @@ const OptimizedGameWithVFX: React.FC<OptimizedGameWithVFXProps> = ({
       console.log('VFX: Enabling VFX effects')
     } else {
       console.log('VFX: Disabling VFX effects')
-      // Clear any active effects when disabling
-      if (gameRef.current) {
-        try {
-          gameRef.current.setActiveCustomEffects(null)
-          console.log('VFX: Cleared game effects')
-        } catch (error) {
-          console.error('VFX: Error clearing game effects:', error)
-        }
-      }
     }
   }, [])
 
@@ -82,59 +72,46 @@ const OptimizedGameWithVFX: React.FC<OptimizedGameWithVFXProps> = ({
     return () => clearTimeout(timer)
   }, [effectIntensity])
 
-  // Convert VFX settings to game effects format
-  // Only pass canvas-specific effects to the Game component
-  // Visual effects (glitch, chromatic, pulse, scanlines) are handled by VFX wrapper
-  const convertVFXToGameEffects = useCallback(() => {
-    if (!vfxEnabled) return null
-
-    // Only include canvas effects that the Game component can handle
-    const gameEffects: any = {
-      wobble: { enabled: false },
-      upsideDown: { enabled: false },
-      invert: { enabled: false },
-      backwards: { enabled: false },
-      melting: { enabled: false },
-      dataBleed: { enabled: false }
-    }
-
-    // Map VFX effects to canvas effects only
+  // Map custom effects to React-VFX shader presets
+  const getShaderPreset = useCallback(() => {
     switch (currentEffect) {
       case 'glitch':
-        // Glitch effect is handled by VFX wrapper, not canvas
-        // No canvas effects needed for glitch
-        break
+        return 'glitch'
       case 'chromatic':
-        // Chromatic effect is handled by VFX wrapper, not canvas
-        // No canvas effects needed for chromatic
-        break
-      case 'pulse':
-        // Pulse effect is handled by VFX wrapper, not canvas
-        // No canvas effects needed for pulse
-        break
+        return 'chromatic'
       case 'scanlines':
-        // Scanlines effect is handled by VFX wrapper, not canvas
-        // No canvas effects needed for scanlines
-        break
+        return 'sinewave' // Using sinewave as closest to scanlines
+      case 'pulse':
+        return 'blink'
+      default:
+        return 'none'
     }
+  }, [currentEffect])
 
-    return gameEffects
-  }, [vfxEnabled, currentEffect, debouncedIntensity])
-
-  // Apply effects to game when settings change
-  useEffect(() => {
-    const gameEffects = convertVFXToGameEffects()
+  // Create custom uniforms for intensity control
+  const getCustomUniforms = useCallback(() => {
+    const intensity = debouncedIntensity
     
-    if (gameRef.current) {
-      try {
-        gameRef.current.setActiveCustomEffects(gameEffects)
-        console.log('VFX: Applied game effects:', gameEffects)
-      } catch (error) {
-        console.error('VFX: Error applying game effects:', error)
-        handleVFXError(`Failed to apply game effects: ${error}`)
-      }
+    // For now, return empty object to avoid TypeScript issues
+    // Custom uniforms can be added later when needed
+    return {}
+  }, [currentEffect, debouncedIntensity])
+
+  // Get appropriate blend mode for each effect
+  const getBlendMode = useCallback(() => {
+    switch (currentEffect) {
+      case 'glitch':
+        return 'screen' // Good for glitch effects
+      case 'chromatic':
+        return 'overlay' // Good for color effects
+      case 'scanlines':
+        return 'multiply' // Good for dark line effects
+      case 'pulse':
+        return 'soft-light' // Good for brightness effects
+      default:
+        return 'overlay'
     }
-  }, [convertVFXToGameEffects])
+  }, [currentEffect])
 
   // Save settings to localStorage
   useEffect(() => {
@@ -168,6 +145,11 @@ const OptimizedGameWithVFX: React.FC<OptimizedGameWithVFXProps> = ({
     }
   }, [initialVFXEnabled, initialEffect, initialIntensity, initialQuality])
 
+  // Mark VFX as loaded when component mounts
+  useEffect(() => {
+    handleVFXLoad()
+  }, [handleVFXLoad])
+
   return (
     <VFXProvider>
       <div style={{ position: 'relative', width: '800px', height: '600px' }}>
@@ -176,15 +158,22 @@ const OptimizedGameWithVFX: React.FC<OptimizedGameWithVFXProps> = ({
           <Game ref={gameRef} />
         </div>
 
-        {/* Enhanced VFX Overlay - Only for additional effects not handled by the game */}
+        {/* VFX Overlay - Apply effects as overlay */}
         {vfxEnabled && (
-          <EnhancedVFXOverlay
-            isActive={vfxEnabled && !vfxError}
-            effectType={currentEffect}
-            intensity={debouncedIntensity}
-            quality={quality}
-            onError={handleVFXError}
-            onLoad={handleVFXLoad}
+          <VFXDiv
+            shader={getShaderPreset()}
+            uniforms={getCustomUniforms()}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              opacity: Math.min(0.6 * debouncedIntensity, 0.8), // Intensity-based opacity
+              mixBlendMode: getBlendMode(), // Dynamic blend mode per effect
+              pointerEvents: 'none', // Don't block game interactions
+              zIndex: 2
+            }}
           />
         )}
 
@@ -282,6 +271,7 @@ const OptimizedGameWithVFX: React.FC<OptimizedGameWithVFXProps> = ({
           >
             <div>VFX: {vfxLoaded ? 'Active' : 'Loading'}</div>
             <div>Effect: {currentEffect}</div>
+            <div>Shader: {getShaderPreset()}</div>
             <div>Quality: {quality}</div>
             <div>Intensity: {effectIntensity.toFixed(1)}</div>
           </div>
