@@ -13,6 +13,7 @@ import { GameStateManager, GameStateType, GameStateCallbacks } from './GameState
 import { PlayerManager, PlayerInput, PlayerUpdateResult } from './PlayerManager'
 import { EnemyManager, EnemySpawnConfig, EnemyUpdateResult } from './EnemyManager'
 import { LevelGenerator, LevelConfig, LevelData } from './LevelGenerator'
+import { Renderer, RenderConfig, RenderState } from './Renderer'
 import {
   GameState,
   Player,
@@ -168,6 +169,7 @@ export class GameEngine {
   playerManager!: PlayerManager; // Player management system
   enemyManager!: EnemyManager; // Enemy management system
   levelGenerator!: LevelGenerator; // Level generation system
+  renderer!: Renderer; // Rendering system
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -279,6 +281,15 @@ export class GameEngine {
     // Initialize level generator
     this.levelGenerator = new LevelGenerator(this.width, this.height)
 
+    // Initialize renderer
+    const renderConfig: RenderConfig = {
+      width: this.width,
+      height: this.height,
+      fps: FPS,
+      enableOptimization: true
+    }
+    this.renderer = new Renderer(this.canvas, renderConfig)
+
     this.showStartScreen()
     this.generateLevel()
     // Populate collision system with initial level entities
@@ -304,6 +315,16 @@ export class GameEngine {
       const startScreen = document.getElementById("startScreen")
       if (startScreen) startScreen.style.display = "none"
       this.initAudioContext()
+      
+      // Generate level and start rendering
+      this.generateLevel()
+      this.populateCollisionSystem()
+      
+      // Start renderer
+      this.renderer.start()
+      
+      // Start game loop
+      this.gameLoop()
     }
   }
 
@@ -854,13 +875,61 @@ export class GameEngine {
   }
 
   gameLoop() {
-    // TODO: Implement in Phase 2
-    console.log('gameLoop called - to be implemented in Phase 2')
+    const currentTime = performance.now()
+    this.frameCount++
+
+    // Update game state
+    this.update()
+
+    // Update renderer state
+    this.renderer.updateState(this.camera, this.effects, this.frameCount)
+
+    // Render frame
+    this.renderer.render()
+
+    // Schedule next frame
+    this.animationFrameId = requestAnimationFrame(() => this.gameLoop())
   }
 
   cleanup() {
-    // TODO: Implement in Phase 2
-    console.log('cleanup called - to be implemented in Phase 2')
+    // Stop renderer
+    this.renderer.stop()
+    
+    // Cancel animation frame
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId)
+      this.animationFrameId = null
+    }
+    
+    // Clean up input handlers
+    if (this.keydownHandler) {
+      document.removeEventListener("keydown", this.keydownHandler)
+    }
+    if (this.keyupHandler) {
+      document.removeEventListener("keyup", this.keyupHandler)
+    }
+    
+    // Clean up mobile handlers
+    for (const handler of this.mobileHandlers) {
+      handler.button.removeEventListener("touchstart", handler.handleStart)
+      handler.button.removeEventListener("touchend", handler.handleEnd)
+    }
+    
+    // Clean up other handlers
+    if (this.startButtonHandler) {
+      const startButton = document.getElementById("startButton")
+      if (startButton) {
+        startButton.removeEventListener("click", this.startButtonHandler)
+      }
+    }
+    if (this.soundToggleHandler) {
+      const soundToggle = document.getElementById("soundToggle")
+      if (soundToggle) {
+        soundToggle.removeEventListener("click", this.soundToggleHandler)
+      }
+    }
+    
+    console.log('GameEngine cleanup completed')
   }
 
   createParticleExplosion(x: number, y: number, color: string, count: number = 20) {
