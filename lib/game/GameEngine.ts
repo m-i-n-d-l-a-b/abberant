@@ -9,6 +9,7 @@ import { CollisionSystem, CollisionEntity, BoundingBox } from './CollisionSystem
 import { ParticlePool, AudioNodePool, Particle as PooledParticle } from './ObjectPool'
 import { RenderingOptimizer } from './RenderingOptimizer'
 import { AudioManager } from './AudioManager'
+import { AudioManagerWrapper } from './AudioManagerWrapper'
 import { GameStateManager, GameStateType, GameStateCallbacks } from './GameStateManager'
 import { PlayerManager, PlayerInput, PlayerUpdateResult } from './PlayerManager'
 import { EnemyManager, EnemySpawnConfig, EnemyUpdateResult } from './EnemyManager'
@@ -160,6 +161,7 @@ export class GameEngine {
   audioNodePool!: AudioNodePool; // Object pool for audio nodes
   renderingOptimizer!: RenderingOptimizer; // Optimized rendering system
   audioManager!: AudioManager; // Optimized audio management system
+  audioWrapper!: AudioManagerWrapper; // Game-specific audio wrapper
   stateManager!: GameStateManager; // Game state management system
   playerManager!: PlayerManager; // Player management system
   enemyManager!: EnemyManager; // Enemy management system
@@ -180,13 +182,19 @@ export class GameEngine {
     const stateCallbacks: GameStateCallbacks = {
       onStateChange: (oldState, newState) => {
         console.log(`Game state changed: ${oldState} -> ${newState}`)
+        // Notify audio wrapper of state change
+        this.audioWrapper?.onGameStateChange(newState)
       },
       onLevelComplete: (level, score) => {
         console.log(`Level ${level} completed! Score: ${score}`)
+        // Play level complete sound
+        this.audioWrapper?.playGameSound('level_complete')
       },
       onGameOver: (finalScore) => {
         console.log(`Game Over! Final Score: ${finalScore}`)
         this.showGameOverScreen()
+        // Play game over sound
+        this.audioWrapper?.playGameSound('game_over')
       },
       onPauseToggle: (paused) => {
         console.log(`Game ${paused ? 'paused' : 'resumed'}`)
@@ -195,6 +203,10 @@ export class GameEngine {
       onLivesChanged: (lives) => {
         console.log(`Lives changed: ${lives}`)
         this.updateLivesDisplay(lives)
+        // Play death sound if lives decreased
+        if (lives < this.stateManager.getLives()) {
+          this.audioWrapper?.playGameSound('death')
+        }
       },
       onScoreChanged: (score) => {
         console.log(`Score changed: ${score}`)
@@ -246,8 +258,9 @@ export class GameEngine {
     // Initialize rendering optimizer
     this.renderingOptimizer = new RenderingOptimizer(this.ctx)
 
-    // Initialize audio manager
+    // Initialize audio manager and wrapper
     this.audioManager = new AudioManager()
+    this.audioWrapper = new AudioManagerWrapper()
 
     // Initialize player manager
     this.playerManager = new PlayerManager(
@@ -335,8 +348,8 @@ export class GameEngine {
   initAudioContext() {
     if (this.audioInitialized) return
     
-    // Initialize audio manager context
-    const success = this.audioManager.initAudioContext()
+    // Initialize audio wrapper context
+    const success = this.audioWrapper.initAudioContext()
     if (success) {
       this.audioCtx = this.audioManager['audioContext'] // Access private property for compatibility
       this.audioInitialized = true
@@ -345,42 +358,16 @@ export class GameEngine {
   }
 
   playSound(type: string) {
-    if (!this.soundEnabled || !this.audioInitialized) {
-      console.log('Audio not ready, skipping sound:', type)
-      return
-    }
-    
-    // Ensure audio context is running before playing sounds
-    if (!this.audioManager.ensureAudioContextRunning()) {
-      console.warn('Audio context not ready, cannot play sound:', type)
-      return
-    }
-    
-    console.log('Playing sound:', type, 'Audio context state:', this.audioManager.getAudioContextState())
-    this.audioManager.playSound(type, 1.0)
+    // Use audio wrapper for game-specific sound handling
+    this.audioWrapper.playGameSound(type as any, 1.0)
   }
 
   startBGM() {
-    console.log('Game: Starting BGM, audio context state:', this.audioManager.getAudioContextState())
-    if (this.soundEnabled && this.audioInitialized && !this.paused) {
-      // Ensure audio context is running before starting BGM
-      if (this.audioManager.ensureAudioContextRunning()) {
-        this.audioManager.startBGM()
-      } else {
-        console.warn('Cannot start BGM: audio context not ready')
-      }
-    } else {
-      console.log('BGM start conditions not met:', {
-        soundEnabled: this.soundEnabled,
-        audioInitialized: this.audioInitialized,
-        paused: this.paused
-      })
-    }
+    this.audioWrapper.startBGM()
   }
 
   stopBGM() {
-    console.log('Game: Stopping BGM')
-    this.audioManager.stopBGM()
+    this.audioWrapper.stopBGM()
   }
 
   setupInput() {
@@ -403,25 +390,18 @@ export class GameEngine {
         }
       },
       onAudioContextResume: () => {
-        if (!this.audioInitialized) {
-          this.initAudioContext()
-        } else {
-          this.audioManager.ensureAudioContextRunning()
-        }
+        this.audioWrapper.resumeAudioContext()
       },
       onSoundToggle: () => {
-        this.soundEnabled = !this.soundEnabled
-        this.audioManager.setSoundEnabled(this.soundEnabled)
+        const newState = !this.audioWrapper.isSoundEnabled()
+        this.audioWrapper.setSoundEnabled(newState)
+        this.soundEnabled = newState
+        
         const soundToggle = document.getElementById("soundToggle")
         if (soundToggle) {
-          soundToggle.textContent = this.soundEnabled
+          soundToggle.textContent = newState
             ? "🔊 SOUND: ON"
             : "🔇 SOUND: OFF"
-        }
-        if (this.soundEnabled) {
-          this.startBGM()
-        } else {
-          this.stopBGM()
         }
       }
     }
@@ -612,11 +592,15 @@ export class GameEngine {
   }
 
   jump() {
+    // Play jump sound
+    this.audioWrapper.onPlayerAction('jump')
     // Handled by PlayerManager
     console.log('jump called - handled by PlayerManager')
   }
 
   dash() {
+    // Play dash sound
+    this.audioWrapper.onPlayerAction('dash')
     // Handled by PlayerManager
     console.log('dash called - handled by PlayerManager')
   }
@@ -775,6 +759,11 @@ export class GameEngine {
     if (this.inputManager) {
       this.inputManager.cleanup()
     }
+    
+    // Clean up audio wrapper
+    if (this.audioWrapper) {
+      this.audioWrapper.cleanup()
+    }
 
     
     console.log('GameEngine cleanup completed')
@@ -784,8 +773,7 @@ export class GameEngine {
   // These methods have been moved to lib/game/EffectsRenderer.ts
 
   getAudioStats() {
-    // TODO: Implement in Phase 6
-    console.log('getAudioStats called - to be implemented in Phase 6')
+    return this.audioWrapper.getAudioStats()
   }
 
   // UI update methods for state manager callbacks
@@ -827,7 +815,8 @@ export class GameEngine {
       for (const collectible of collisionResult.collectiblesCollected) {
         collectible.collected = true
         this.stateManager.addScore(collectible.value)
-        // TODO: Add collection sound effect in Phase 6
+        // Play collect sound effect
+        this.audioWrapper.onPlayerAction('collect')
       }
     }
 
@@ -838,7 +827,8 @@ export class GameEngine {
         const defeatParticles = this.enemyManager.defeatEnemy(enemy)
         this.particles.push(...defeatParticles)
         this.stateManager.addScore(ENEMY_SCORE_VALUE)
-        // TODO: Add stomp sound effect in Phase 6
+        // Play explosion sound effect
+        this.audioWrapper.playGameSound('explosion')
       }
     }
 

@@ -17,6 +17,7 @@ Break down the monolithic Game.tsx file (2,592 lines) into modular, maintainable
 - `lib/game/EffectsRenderer.ts` - Effects rendering system extracted from GameEngine
 - `lib/game/InputManager.ts` - Input handling system extracted from GameEngine
 - `components/MobileControls.tsx` - Mobile controls UI component extracted from Game.tsx
+- `lib/game/AudioManagerWrapper.ts` - Game-specific audio management wrapper
 - `components/Game.tsx` - Simplified to use the new GameEngine class, reduced from 2,462 lines to ~300 lines
 
 ## Phase 1: Type Definitions and Interfaces (Priority: High)
@@ -170,14 +171,14 @@ Break down the monolithic Game.tsx file (2,592 lines) into modular, maintainable
 ## Phase 6: Audio System (Priority: Medium)
 
 ### Task 6.1: Create Audio Manager Wrapper
-- **File**: `lib/game/AudioManagerWrapper.ts`
-- **Content**: Extract audio management logic
-  - Audio context management
-  - Sound effect handling
-  - BGM management
-  - Audio state management
-- **Dependencies**: Task 1.1, Task 2.1
-- **Estimated Time**: 2 hours
+- [x] **File**: `lib/game/AudioManagerWrapper.ts`
+- [x] **Content**: Extract audio management logic
+  - [x] Audio context management
+  - [x] Sound effect handling
+  - [x] BGM management
+  - [x] Audio state management
+- [x] **Dependencies**: Task 1.1, Task 2.1
+- [x] **Estimated Time**: 2 hours
 
 ## Phase 7: UI Components (Priority: Medium)
 
