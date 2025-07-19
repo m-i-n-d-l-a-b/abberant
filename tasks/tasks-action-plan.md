@@ -4,16 +4,19 @@
 
 - `components/Game.tsx` - Main game component containing canvas effects and game logic
 - `components/Game.test.tsx` - Unit tests for Game component
-- `components/VFXWrapper.tsx` - VFX wrapper component for visual effects
+- `components/VFXWrapper.tsx` - VFX wrapper component for visual effects with unified controls
 - `components/VFXWrapper.test.tsx` - Unit tests for VFX wrapper component
-- `components/UnifiedVFXControl.tsx` - Unified control panel for all effects
+- `components/UnifiedVFXControl.tsx` - Unified control panel for all effects (visual + canvas)
 - `components/UnifiedVFXControl.test.tsx` - Unit tests for unified control panel
+- `components/CanvasEffectsControl.tsx` - Dedicated canvas effects control component
+- `components/CanvasEffectsControl.test.tsx` - Unit tests for canvas effects control
 - `components/EffectsLab.tsx` - Enhanced effects lab for canvas effects only
 - `components/EffectsLab.test.tsx` - Unit tests for effects lab
 - `lib/utils/effectUtils.ts` - Utility functions for effect management
 - `lib/utils/effectUtils.test.ts` - Unit tests for effect utilities
 - `lib/utils/performanceUtils.ts` - Performance monitoring and optimization utilities
 - `lib/utils/performanceUtils.test.ts` - Unit tests for performance utilities
+- `lib/utils/webgl-support.ts` - WebGL support detection and quality optimization
 - `types/effects.d.ts` - TypeScript definitions for effect interfaces
 - `types/gameRef.d.ts` - TypeScript definitions for game reference interface
 - `docs/effect-classification.md` - Effect categorization and classification documentation
@@ -59,28 +62,28 @@
     - [x] 2.3.4 Add performance metrics to GameRef interface
     - [x] 2.3.5 Create TypeScript definitions for GameRef interface
 
-- [ ] 3.0 VFX Wrapper Enhancement
-  - [ ] 3.1 Unified Control Panel Design
-    - [ ] 3.1.1 Design primary controls for visual effects (glitch, chromatic, etc.)
-    - [ ] 3.1.2 Design secondary controls for canvas effects (via game ref)
-    - [ ] 3.1.3 Design combined presets system (mix of visual + canvas effects)
-    - [ ] 3.1.4 Design performance settings (quality controls for both systems)
-    - [ ] 3.1.5 Create UI mockups and wireframes
-  - [ ] 3.2 Visual Effects Implementation
-    - [ ] 3.2.1 Implement glitch effect using react-vfx shaders
-    - [ ] 3.2.2 Implement chromatic effect using react-vfx shaders
-    - [ ] 3.2.3 Implement pulsing effect using react-vfx shaders
-    - [ ] 3.2.4 Implement scanlines effect using react-vfx shaders
-    - [ ] 3.2.5 Create custom shaders for each effect type
-    - [ ] 3.2.6 Add intensity and quality controls for each effect
-    - [ ] 3.2.7 Implement effect combinations and layering
-    - [ ] 3.2.8 Create unit tests for visual effects
-  - [ ] 3.3 Canvas Effects Control
-    - [ ] 3.3.1 Create UI controls for canvas effects
-    - [ ] 3.3.2 Implement communication with game via ref interface
-    - [ ] 3.3.3 Sync canvas effect state with wrapper state
-    - [ ] 3.3.4 Provide real-time feedback on canvas effect changes
-    - [ ] 3.3.5 Create unit tests for canvas effects control
+- [x] 3.0 VFX Wrapper Enhancement
+  - [x] 3.1 Unified Control Panel Design
+    - [x] 3.1.1 Design primary controls for visual effects (glitch, chromatic, etc.)
+    - [x] 3.1.2 Design secondary controls for canvas effects (via game ref)
+    - [x] 3.1.3 Design combined presets system (mix of visual + canvas effects)
+    - [x] 3.1.4 Design performance settings (quality controls for both systems)
+    - [x] 3.1.5 Create UI mockups and wireframes
+  - [x] 3.2 Visual Effects Implementation
+    - [x] 3.2.1 Implement glitch effect using react-vfx shaders
+    - [x] 3.2.2 Implement chromatic effect using react-vfx shaders
+    - [x] 3.2.3 Implement pulsing effect using react-vfx shaders
+    - [x] 3.2.4 Implement scanlines effect using react-vfx shaders
+    - [x] 3.2.5 Create custom shaders for each effect type
+    - [x] 3.2.6 Add intensity and quality controls for each effect
+    - [x] 3.2.7 Implement effect combinations and layering
+    - [x] 3.2.8 Create unit tests for visual effects
+  - [x] 3.3 Canvas Effects Control
+    - [x] 3.3.1 Create UI controls for canvas effects
+    - [x] 3.3.2 Implement communication with game via ref interface
+    - [x] 3.3.3 Sync canvas effect state with wrapper state
+    - [x] 3.3.4 Provide real-time feedback on canvas effect changes
+    - [x] 3.3.5 Create unit tests for canvas effects control
 
 - [ ] 4.0 Integration & Communication
   - [ ] 4.1 State Management
