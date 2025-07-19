@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { CollisionSystem, CollisionEntity, BoundingBox } from '../lib/game/CollisionSystem'
 
 interface GameState {
   gameState: string
@@ -146,8 +147,8 @@ export default function Game() {
       lives!: number
       score!: number
       paused!: boolean
-      // isReversed is used only for level progress calculation when backwards effect is active
       isReversed!: boolean
+
       player!: Player
       camera!: Camera
       keys!: Keys
@@ -186,6 +187,7 @@ export default function Game() {
       transitionProgress!: number;
       levelStartInvincibility!: number;
       particles!: Particle[]; // Canvas-based particles
+      collisionSystem!: CollisionSystem; // Spatial partitioning collision system
 
       constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas
@@ -270,6 +272,15 @@ export default function Game() {
         this.frameCount = 0
         this.lastTime = performance.now()
         this.fps = 60
+
+        // Initialize collision system with world bounds
+        const worldBounds: BoundingBox = {
+          x: 0,
+          y: 0,
+          width: 3000 + this.currentLevel * 500, // Level width
+          height: this.height
+        }
+        this.collisionSystem = new CollisionSystem(worldBounds, 10, 8)
 
         this.showStartScreen()
         this.generateLevel()
@@ -712,6 +723,77 @@ export default function Game() {
             value: 100,
           })
         }
+
+        // Populate collision system with all entities
+        this.populateCollisionSystem()
+      }
+
+      /**
+       * Populate the collision system with all game entities
+       */
+      populateCollisionSystem() {
+        // Clear existing entities
+        this.collisionSystem.clear()
+
+        // Add player
+        this.collisionSystem.addEntity({
+          id: 'player',
+          bounds: {
+            x: this.player.x,
+            y: this.player.y,
+            width: this.player.width,
+            height: this.player.height
+          },
+          type: 'player',
+          data: this.player
+        })
+
+        // Add platforms
+        this.platforms.forEach((platform, index) => {
+          this.collisionSystem.addEntity({
+            id: `platform_${index}`,
+            bounds: {
+              x: platform.x,
+              y: platform.y,
+              width: platform.width,
+              height: platform.height
+            },
+            type: 'platform',
+            data: platform
+          })
+        })
+
+        // Add enemies
+        this.enemies.forEach((enemy, index) => {
+          this.collisionSystem.addEntity({
+            id: `enemy_${index}`,
+            bounds: {
+              x: enemy.x,
+              y: enemy.y,
+              width: enemy.width,
+              height: enemy.height
+            },
+            type: 'enemy',
+            data: enemy
+          })
+        })
+
+        // Add collectibles
+        this.collectibles.forEach((collectible, index) => {
+          if (!collectible.collected) {
+            this.collisionSystem.addEntity({
+              id: `collectible_${index}`,
+              bounds: {
+                x: collectible.x,
+                y: collectible.y,
+                width: collectible.width,
+                height: collectible.height
+              },
+              type: 'collectible',
+              data: collectible
+            })
+          }
+        })
       }
 
       assignLevelEffects() {
@@ -741,6 +823,7 @@ export default function Game() {
         if (this.currentLevel === 1) {
           availableEffects = availableEffects.filter(effect => 
             effect !== "upsideDown" && 
+            effect !== "invert" && 
             effect !== "backwards" && 
             effect !== "rotation" &&
             effect !== "zoom"
@@ -781,6 +864,8 @@ export default function Game() {
         if (this.levelEffects.includes("backwards")) {
           this.isReversed = true
         }
+
+
       }
 
       nextLevel() {
@@ -897,6 +982,7 @@ export default function Game() {
           this.player.velX = this.player.speed
         } else this.player.velX *= 0.8
 
+        // Invert effect: reverse controls
         if (this.levelEffects.includes("invert")) this.player.velX *= -1
       }
 
@@ -950,7 +1036,7 @@ export default function Game() {
       }
 
       updateEnemies() {
-        this.enemies.forEach((enemy) => {
+        this.enemies.forEach((enemy, index) => {
           if (enemy.movementType === 'horizontal') {
             enemy.x += enemy.velX * enemy.speed
             const onPlatform = this.platforms.find(
@@ -976,6 +1062,14 @@ export default function Game() {
               enemy.velY = -1
             }
           }
+
+          // Update enemy entity in collision system
+          this.collisionSystem.updateEntity(`enemy_${index}`, {
+            x: enemy.x,
+            y: enemy.y,
+            width: enemy.width,
+            height: enemy.height
+          })
         })
       }
 
@@ -1050,101 +1144,109 @@ export default function Game() {
       }
 
       checkCollisions() {
+        // Update player entity in collision system
+        this.collisionSystem.updateEntity('player', {
+          x: this.player.x,
+          y: this.player.y,
+          width: this.player.width,
+          height: this.player.height
+        })
+
         this.player.grounded = false
-        this.platforms.forEach((p) => {
-          if (
-            this.player.x < p.x + p.width &&
-            this.player.x + this.player.width > p.x &&
-            this.player.y + this.player.height > p.y &&
-            this.player.y < p.y
-          ) {
-            // Always normal collision logic (same as normal mode)
-            if (this.player.velY >= 0) {
-              this.player.y = p.y - this.player.height
-              this.player.velY = 0
-              this.player.grounded = true
-            }
+
+        // Check player-platform collisions
+        const platformCollisions = this.collisionSystem.checkPlayerPlatformCollisions(
+          { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height },
+          this.player.velY
+        )
+
+        // Handle platform collisions
+        platformCollisions.platforms.forEach((platformEntity) => {
+          const platform = platformEntity.data as Platform
+          if (this.player.velY >= 0) {
+            this.player.y = platform.y - this.player.height
+            this.player.velY = 0
+            this.player.grounded = true
           }
         })
-        this.enemies.forEach((enemy, index) => {
-          // Reset stomp zone indicator
-          enemy.stompZoneActive = false
+
+        // Check player-enemy collisions
+        const enemyCollisions = this.collisionSystem.checkPlayerEnemyCollisions(
+          { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height },
+          this.player.velY
+        )
+
+        // Reset all enemy stomp zones
+        this.enemies.forEach(enemy => enemy.stompZoneActive = false)
+
+        // Handle enemy collisions
+        enemyCollisions.enemies.forEach((enemyEntity) => {
+          if (this.player.invulnerable > 0 || this.levelStartInvincibility > 0) return
+
+          const enemy = enemyEntity.data as Enemy
+          const enemyIndex = this.enemies.indexOf(enemy)
           
-          if (
-            this.player.x < enemy.x + enemy.width &&
-            this.player.x + this.player.width > enemy.x &&
-            this.player.y < enemy.y + enemy.height &&
-            this.player.y + this.player.height > enemy.y
-          ) {
-            if (this.player.invulnerable > 0 || this.levelStartInvincibility > 0) return
-            
-            // More forgiving stomping logic
-            const stompZoneHeight = 8 // Extra pixels for stomp detection
-            const playerBottom = this.player.y + this.player.height
-            const enemyTop = enemy.y
-            const enemyBottom = enemy.y + enemy.height
-            
-            // Check if player is falling and within stomp zone
-            const isStomping = (
-              this.player.velY > 0 && // Player is falling
-              playerBottom >= enemyTop - stompZoneHeight && // Player bottom is near enemy top
-              playerBottom <= enemyBottom + stompZoneHeight && // Player bottom is not too far below enemy
-              this.player.y < enemyTop + enemy.height * 0.7 // Player top is above most of enemy
+          if (enemyIndex === -1) return
+
+          // Check for stomping
+          const stompZoneHeight = 8
+          const playerBottom = this.player.y + this.player.height
+          const enemyTop = enemy.y
+          const enemyBottom = enemy.y + enemy.height
+          
+          const isStomping = (
+            this.player.velY > 0 && // Player is falling
+            playerBottom >= enemyTop - stompZoneHeight && // Player bottom is near enemy top
+            playerBottom <= enemyBottom + stompZoneHeight && // Player bottom is not too far below enemy
+            this.player.y < enemyTop + enemy.height * 0.7 // Player top is above most of enemy
+          )
+          
+          if (isStomping) {
+            this.triggerDataBleed(enemy.x, enemy.y)
+            this.createParticleExplosion(
+              enemy.x + enemy.width / 2, 
+              enemy.y + enemy.height / 2, 
+              "#ff0000", // Red particles
+              15
             )
-            
-            if (isStomping) {
-              this.triggerDataBleed(enemy.x, enemy.y)
-              // Create particle explosion for enemy defeat
-              this.createParticleExplosion(
-                enemy.x + enemy.width / 2, 
-                enemy.y + enemy.height / 2, 
-                "#ff0000", // Red particles
-                15
-              )
-              this.enemies.splice(index, 1)
-              this.score += 250
-              const jumpDirection = -1
-              this.player.velY = jumpDirection * this.player.jumpPower * 0.6
-              this.playSound("stomp")
-            } else {
-              this.respawn()
-            }
+            this.enemies.splice(enemyIndex, 1)
+            this.collisionSystem.removeEntity(enemyEntity.id)
+            this.score += 250
+            const jumpDirection = -1
+            this.player.velY = jumpDirection * this.player.jumpPower * 0.6
+            this.playSound("stomp")
           } else {
-            // Check if player is above enemy and falling (potential stomp zone)
-            const playerBottom = this.player.y + this.player.height
-            const enemyTop = enemy.y
-            const stompZoneHeight = 8
-            
-            if (
-              this.player.x < enemy.x + enemy.width &&
-              this.player.x + this.player.width > enemy.x &&
-              this.player.velY > 0 && // Player is falling
-              playerBottom >= enemyTop - stompZoneHeight && // Player bottom is near enemy top
-              playerBottom <= enemyTop + stompZoneHeight && // Player bottom is within stomp range
-              this.player.y < enemyTop + enemy.height * 0.8 // Player top is above most of enemy
-            ) {
-              enemy.stompZoneActive = true
-            }
+            this.respawn()
           }
         })
-        this.collectibles.forEach((c) => {
-          if (
-            !c.collected &&
-            this.player.x < c.x + c.width &&
-            this.player.x + this.player.width > c.x &&
-            this.player.y < c.y + c.height &&
-            this.player.y + this.player.height > c.y
-          ) {
-            c.collected = true
-            // Create particle explosion for collectible
+
+        // Handle stomp zone indicators
+        enemyCollisions.stompTargets.forEach((enemyEntity) => {
+          const enemy = enemyEntity.data as Enemy
+          enemy.stompZoneActive = true
+        })
+
+        // Check player-collectible collisions
+        const collectibleCollisions = this.collisionSystem.checkPlayerCollectibleCollisions({
+          x: this.player.x,
+          y: this.player.y,
+          width: this.player.width,
+          height: this.player.height
+        })
+
+        collectibleCollisions.forEach((collectibleEntity) => {
+          const collectible = collectibleEntity.data as Collectible
+          if (!collectible.collected) {
+            collectible.collected = true
             this.createParticleExplosion(
-              c.x + c.width / 2, 
-              c.y + c.height / 2, 
-              c.color === "#000" ? "#ffffff" : "#000000", // White or black particles
+              collectible.x + collectible.width / 2, 
+              collectible.y + collectible.height / 2, 
+              collectible.color === "#000" ? "#ffffff" : "#000000", // White or black particles
               10
             )
-            this.score += c.value
+            this.score += collectible.value
             this.playSound("collect")
+            this.collisionSystem.removeEntity(collectibleEntity.id)
           }
         })
       }
@@ -1432,6 +1534,9 @@ export default function Game() {
           this.ctx.translate(this.width / 2, this.height / 2)
           this.ctx.rotate(this.effects.rotationFactor)
           this.ctx.translate(-this.width / 2, -this.height / 2)
+        }
+        if (this.levelEffects.includes("invert")) {
+          this.ctx.filter = "invert(1) hue-rotate(180deg)"
         }
 
         // Clear the canvas
@@ -1740,7 +1845,7 @@ export default function Game() {
         this.ctx.rotate(rotation)
         
         // Apply backwards flip if needed
-        if (this.levelEffects.includes("backwards")) {
+        if (this.isReversed) {
           this.ctx.scale(-1, 1)
         }
         
