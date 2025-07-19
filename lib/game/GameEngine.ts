@@ -9,6 +9,7 @@ import { CollisionSystem, CollisionEntity, BoundingBox } from './CollisionSystem
 import { ParticlePool, AudioNodePool, Particle as PooledParticle } from './ObjectPool'
 import { RenderingOptimizer } from './RenderingOptimizer'
 import { AudioManager } from './AudioManager'
+import { GameStateManager, GameStateType, GameStateCallbacks } from './GameStateManager'
 import {
   GameState,
   Player,
@@ -124,27 +125,17 @@ export class GameEngine {
   ctx: CanvasRenderingContext2D
   width: number
   height: number
-  gameState!: string
-  currentLevel!: number
-  lives!: number
-  score!: number
-  paused!: boolean
-  isReversed!: boolean
 
   player!: Player
   camera!: Camera
   keys!: Keys
   touchInput!: TouchInput
   effects!: Effects
-  levelProgress!: number
-  levelTarget!: number
   platforms!: Platform[]
   enemies!: Enemy[]
   collectibles!: Collectible[]
   backgroundStars!: BackgroundStar[]
   dataBleedEffects!: DataBleedEffect[]
-  transitionTimer!: number
-  levelEffects!: string[]
   frameCount!: number
   lastTime!: number
   fps!: number
@@ -164,16 +155,13 @@ export class GameEngine {
   keyupHandler!: (e: KeyboardEvent) => void
   mobileHandlers!: Array<{ button: Element; handleStart: (e: Event) => void; handleEnd: (e: Event) => void }>
   soundToggleHandler!: () => void
-  cameraZoom!: number;
-  transitionPhase!: 'none' | 'zoomIn' | 'transition' | 'zoomOut';
-  transitionProgress!: number;
-  levelStartInvincibility!: number;
   particles!: Particle[]; // Canvas-based particles
   collisionSystem!: CollisionSystem; // Spatial partitioning collision system
   particlePool!: ParticlePool; // Object pool for particles
   audioNodePool!: AudioNodePool; // Object pool for audio nodes
   renderingOptimizer!: RenderingOptimizer; // Optimized rendering system
   audioManager!: AudioManager; // Optimized audio management system
+  stateManager!: GameStateManager; // Game state management system
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -185,36 +173,40 @@ export class GameEngine {
   }
 
   init() {
-    this.gameState = "start"
-    this.currentLevel = INITIAL_LEVEL
-    this.lives = INITIAL_LIVES
-    this.score = INITIAL_SCORE
-    this.paused = false
-    this.isReversed = false
-    this.cameraZoom = CAMERA_ZOOM_MIN
-    this.transitionPhase = 'none'
-    this.transitionProgress = 0
-    this.levelStartInvincibility = LEVEL_START_INVINCIBILITY
-    this.particles = []
-
-    this.player = {
-      x: PLAYER_START_X,
-      y: PLAYER_START_Y,
-      width: PLAYER_WIDTH,
-      height: PLAYER_HEIGHT,
-      velX: 0,
-      velY: 0,
-      speed: PLAYER_SPEED,
-      jumpPower: PLAYER_JUMP_POWER,
-      grounded: false,
-      doubleJump: false,
-      dashCooldown: 0,
-      invulnerable: 0,
-      color: PLAYER_COLOR,
-      trail: [],
-      respawning: false,
+    // Initialize state manager with callbacks
+    const stateCallbacks: GameStateCallbacks = {
+      onStateChange: (oldState, newState) => {
+        console.log(`Game state changed: ${oldState} -> ${newState}`)
+      },
+      onLevelComplete: (level, score) => {
+        console.log(`Level ${level} completed! Score: ${score}`)
+      },
+      onGameOver: (finalScore) => {
+        console.log(`Game Over! Final Score: ${finalScore}`)
+        this.showGameOverScreen()
+      },
+      onPauseToggle: (paused) => {
+        console.log(`Game ${paused ? 'paused' : 'resumed'}`)
+        this.showPauseScreen(paused)
+      },
+      onLivesChanged: (lives) => {
+        console.log(`Lives changed: ${lives}`)
+        this.updateLivesDisplay(lives)
+      },
+      onScoreChanged: (score) => {
+        console.log(`Score changed: ${score}`)
+        this.updateScoreDisplay(score)
+      }
     }
-    this.camera = { x: 0, y: 0, targetX: 0, targetY: 0, smoothing: CAMERA_SMOOTHING }
+
+    this.stateManager = new GameStateManager(stateCallbacks)
+    this.stateManager.init()
+
+    // Initialize game entities using state manager
+    this.player = this.stateManager.getPlayerInitialState()
+    this.camera = this.stateManager.getCameraInitialState()
+    this.effects = this.stateManager.getEffectsInitialState()
+    
     this.keys = {}
     this.touchInput = {
       left: false,
@@ -230,30 +222,12 @@ export class GameEngine {
       this.inputSetupDone = true
     }
 
-    this.effects = {
-      glitchOffset: { x: 0, y: 0 },
-      meltingFactor: 0,
-      colorShift: 0,
-      pulseFactor: 1,
-      blurFactor: 0,
-      noiseFactor: 0,
-      rgbShiftFactor: 0,
-      waveFactor: 0,
-      zoomFactor: 0,
-      rotationFactor: 0,
-      pixelBleedFactor: 0,
-    }
-    this.levelProgress = 0
-    this.levelTarget = LEVEL_TARGET
-
+    this.particles = []
     this.platforms = []
     this.enemies = []
     this.collectibles = []
     this.backgroundStars = []
-
     this.dataBleedEffects = []
-    this.transitionTimer = 0
-    this.levelEffects = []
 
     this.frameCount = 0
     this.lastTime = performance.now()
@@ -263,7 +237,7 @@ export class GameEngine {
     const worldBounds: BoundingBox = {
       x: -COLLISION_WORLD_BUFFER, // Allow some buffer for entities that might be slightly off-screen
       y: -COLLISION_WORLD_BUFFER,
-      width: BASE_LEVEL_WIDTH + this.currentLevel * LEVEL_WIDTH_INCREMENT + COLLISION_WORLD_BUFFER * 2, // Level width + buffer
+      width: BASE_LEVEL_WIDTH + this.stateManager.getCurrentLevel() * LEVEL_WIDTH_INCREMENT + COLLISION_WORLD_BUFFER * 2, // Level width + buffer
       height: this.height + COLLISION_WORLD_BUFFER * 2 // Height + buffer
     }
     this.collisionSystem = new CollisionSystem(worldBounds, COLLISION_GRID_SIZE, COLLISION_MAX_ENTITIES)
@@ -301,14 +275,15 @@ export class GameEngine {
   }
 
   startGame() {
-    if (this.gameState !== "start") return
-    this.gameState = "playing"
-    const startScreen = document.getElementById("startScreen")
-    if (startScreen) startScreen.style.display = "none"
-    this.initAudioContext()
+    if (this.stateManager.startGame()) {
+      const startScreen = document.getElementById("startScreen")
+      if (startScreen) startScreen.style.display = "none"
+      this.initAudioContext()
+    }
   }
 
   restart() {
+    this.stateManager.restart()
     this.init()
   }
 
@@ -529,23 +504,42 @@ export class GameEngine {
   }
 
   nextLevel() {
-    // TODO: Implement in Phase 2
-    console.log('nextLevel called - to be implemented in Phase 2')
+    this.stateManager.completeLevel()
   }
 
   update() {
-    // TODO: Implement in Phase 2
-    console.log('update called - to be implemented in Phase 2')
+    if (this.stateManager.isPaused()) return
+    
+    switch (this.stateManager.getGameState()) {
+      case "start":
+        break
+      case "playing":
+        this.updateGame()
+        break
+      case "transition":
+        this.updateTransition()
+        break
+      case "gameover":
+        break
+    }
   }
 
   updateTransition() {
-    // TODO: Implement in Phase 2
-    console.log('updateTransition called - to be implemented in Phase 2')
+    this.stateManager.updateTransition()
   }
 
   updateGame() {
-    // TODO: Implement in Phase 2
-    console.log('updateGame called - to be implemented in Phase 2')
+    // Update level start invincibility
+    this.stateManager.updateLevelStartInvincibility()
+    
+    // Update level progress
+    this.stateManager.updateLevelProgress(this.player.x, this.stateManager.isReversed())
+    
+    // Update UI displays
+    this.updateLevelDisplay(this.stateManager.getCurrentLevel())
+    
+    // TODO: Implement remaining game logic in Phase 3
+    console.log('updateGame called - remaining logic to be implemented in Phase 3')
   }
 
   handleInput() {
@@ -599,18 +593,27 @@ export class GameEngine {
   }
 
   respawn() {
-    // TODO: Implement in Phase 2
-    console.log('respawn called - to be implemented in Phase 2')
+    if (this.stateManager.loseLife()) {
+      // Reset player position
+      this.player.x = PLAYER_START_X
+      this.player.y = PLAYER_START_Y
+      this.player.velX = 0
+      this.player.velY = 0
+      this.player.invulnerable = PLAYER_INVULNERABLE_TIME
+      this.player.respawning = true
+      
+      // Reset camera to player position
+      this.camera.x = this.player.x - this.width / 3
+      this.camera.y = 0
+    }
   }
 
   resetLevel(fullReset = true) {
-    // TODO: Implement in Phase 2
-    console.log('resetLevel called - to be implemented in Phase 2')
+    this.stateManager.resetLevel(fullReset)
   }
 
   togglePause() {
-    // TODO: Implement in Phase 2
-    console.log('togglePause called - to be implemented in Phase 2')
+    this.stateManager.togglePause()
   }
 
   renderBackground() {
@@ -726,5 +729,92 @@ export class GameEngine {
   getAudioStats() {
     // TODO: Implement in Phase 6
     console.log('getAudioStats called - to be implemented in Phase 6')
+  }
+
+  // UI update methods for state manager callbacks
+  private showGameOverScreen() {
+    const gameOverScreen = document.getElementById("gameOverScreen")
+    const finalScore = document.getElementById("finalScore")
+    if (gameOverScreen) gameOverScreen.style.display = "flex"
+    if (finalScore) finalScore.textContent = this.stateManager.getScore().toString()
+  }
+
+  private showPauseScreen(paused: boolean) {
+    const pauseScreen = document.getElementById("pauseScreen")
+    if (pauseScreen) {
+      pauseScreen.style.display = paused ? "flex" : "none"
+    }
+  }
+
+  private updateLivesDisplay(lives: number) {
+    const livesElement = document.getElementById("lives")
+    if (livesElement) livesElement.textContent = lives.toString()
+  }
+
+  private updateScoreDisplay(score: number) {
+    const scoreElement = document.getElementById("score")
+    if (scoreElement) scoreElement.textContent = score.toString()
+  }
+
+  private updateLevelDisplay(level: number) {
+    const levelElement = document.getElementById("level")
+    if (levelElement) levelElement.textContent = level.toString()
+  }
+
+  // Getter methods for state manager properties (for compatibility)
+  get gameState(): string {
+    return this.stateManager.getGameState()
+  }
+
+  get currentLevel(): number {
+    return this.stateManager.getCurrentLevel()
+  }
+
+  get lives(): number {
+    return this.stateManager.getLives()
+  }
+
+  get score(): number {
+    return this.stateManager.getScore()
+  }
+
+  get paused(): boolean {
+    return this.stateManager.isPaused()
+  }
+
+  get isReversed(): boolean {
+    return this.stateManager.isReversed()
+  }
+
+  get levelProgress(): number {
+    return this.stateManager.getLevelProgress()
+  }
+
+  get levelTarget(): number {
+    return this.stateManager.getLevelTarget()
+  }
+
+  get cameraZoom(): number {
+    return this.stateManager.getCameraZoom()
+  }
+
+  get transitionPhase(): 'none' | 'zoomIn' | 'transition' | 'zoomOut' {
+    return this.stateManager.getTransitionPhase()
+  }
+
+  get transitionProgress(): number {
+    return this.stateManager.getTransitionProgress()
+  }
+
+  get levelStartInvincibility(): number {
+    return this.stateManager.getLevelStartInvincibility()
+  }
+
+  get levelEffects(): string[] {
+    return this.stateManager.getLevelEffects()
+  }
+
+  get transitionTimer(): number {
+    return this.stateManager.getState().transitionTimer
   }
 } 
