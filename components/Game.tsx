@@ -8,9 +8,9 @@ import GameOverScreen from './GameOverScreen'
 import PauseScreen from './PauseScreen'
 import { useGame, GameScreen } from '../hooks/useGame'
 
-// Import CSS files
-import '../styles/common.css'
-import '../styles/game.css'
+// Import CSS Modules
+import styles from '../styles/common.module.css'
+import gameStyles from '../styles/game.module.css'
 
 /**
  * Main Game Component
@@ -23,8 +23,8 @@ export default function Game() {
   const { gameState, gameHandlers } = useGame(canvasRef)
 
   return (
-    <div id="gameContainer">
-      <canvas ref={canvasRef} id="gameCanvas" width="800" height="600"></canvas>
+    <div id="gameContainer" className={gameStyles.gameContainer}>
+      <canvas ref={canvasRef} id="gameCanvas" width="800" height="600" className={gameStyles.gameCanvas}></canvas>
 
       {/* Game UI - only show when playing */}
       {gameState.gameScreen === GameScreen.PLAYING && (

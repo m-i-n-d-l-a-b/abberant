@@ -7,9 +7,9 @@
 
 import React from 'react'
 
-// Import CSS files
-import '../styles/common.css'
-import '../styles/menu.css'
+// Import CSS Modules
+import styles from '../styles/common.module.css'
+import menuStyles from '../styles/menu.module.css'
 
 /**
  * Props interface for GameOverScreen component
@@ -41,29 +41,29 @@ export default function GameOverScreen({
   }
 
   return (
-    <div id="gameOverScreen" className={`menu-screen game-over-screen ${className}`}>
-      <div className="menu-background"></div>
-      <div className="menu-content">
-        <div className="title-container">
-          <h2 className="game-title game-over-title">GAME OVER</h2>
-          <div className="title-glow"></div>
+    <div id="gameOverScreen" className={`${menuStyles.menuScreen} ${menuStyles.gameOverScreen} ${className}`}>
+      <div className={menuStyles.menuBackground}></div>
+      <div className={menuStyles.menuContent}>
+        <div className={menuStyles.titleContainer}>
+          <h2 className={`${menuStyles.gameTitle} ${menuStyles.gameOverTitle}`}>GAME OVER</h2>
+          <div className={menuStyles.titleGlow}></div>
         </div>
         
-        <div className="score-display">
-          <div className="final-score">
-            <span className="score-label">FINAL SCORE</span>
-            <span id="finalScore" data-testid="finalScore" className="score-value">{finalScore}</span>
+        <div className={menuStyles.scoreDisplay}>
+          <div className={menuStyles.finalScore}>
+            <span className={menuStyles.scoreLabel}>FINAL SCORE</span>
+            <span id="finalScore" data-testid="finalScore" className={menuStyles.scoreValue}>{finalScore}</span>
           </div>
         </div>
         
-        <div className="menu-buttons">
+        <div className={menuStyles.menuButtons}>
           <button 
-            className="menu-button primary-button"
+            className={`${menuStyles.menuButton} ${menuStyles.primaryButton}`}
             onClick={onRestart}
             aria-label="Play again"
           >
-            <span className="button-text">PLAY AGAIN</span>
-            <div className="button-glow"></div>
+            <span className={menuStyles.buttonText}>PLAY AGAIN</span>
+            <div className={menuStyles.buttonGlow}></div>
           </button>
         </div>
       </div>

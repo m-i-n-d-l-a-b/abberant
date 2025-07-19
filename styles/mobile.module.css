@@ -1,0 +1,397 @@
+/* Mobile Controls and Interface */
+
+/* Mobile Controls Container */
+.mobileControls {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  display: none;
+  z-index: 15;
+  animation: fadeIn 0.3s ease-in;
+}
+
+/* D-Pad Container */
+.dpad {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin-bottom: 20px;
+}
+
+/* D-Pad Center */
+.dpadCenter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 255, 255, 0.3);
+  border: 2px solid #00ffff;
+  border-radius: 5px;
+}
+
+/* Mobile Button Base Styles */
+.mobileButton {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid #00ffff;
+  color: #00ffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  border-radius: 5px;
+  touch-action: manipulation;
+}
+
+.mobileButton:active {
+  background: rgba(0, 255, 255, 0.3);
+  transform: scale(0.95);
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+}
+
+/* D-Pad Button Positions */
+.dpadUp { 
+  top: 0; 
+  left: 50%; 
+  transform: translateX(-50%); 
+}
+
+.dpadDown { 
+  bottom: 0; 
+  left: 50%; 
+  transform: translateX(-50%); 
+}
+
+.dpadLeft { 
+  left: 0; 
+  top: 50%; 
+  transform: translateY(-50%); 
+}
+
+.dpadRight { 
+  right: 0; 
+  top: 50%; 
+  transform: translateY(-50%); 
+}
+
+/* Action Buttons Container */
+.actionButtons {
+  display: flex;
+  gap: 10px;
+}
+
+/* Action Button Specific Styles */
+.jump-button, 
+.dash-button, 
+.pause-button {
+  position: static;
+  width: 60px;
+  height: 40px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Jump Button */
+.jump-button {
+  background: rgba(76, 205, 196, 0.2);
+  border-color: #4ecdc4;
+  color: #4ecdc4;
+}
+
+.jump-button:active {
+  background: rgba(76, 205, 196, 0.4);
+}
+
+/* Dash Button */
+.dash-button {
+  background: rgba(255, 230, 109, 0.2);
+  border-color: #ffe66d;
+  color: #ffe66d;
+}
+
+.dash-button:active {
+  background: rgba(255, 230, 109, 0.4);
+}
+
+/* Pause Button */
+.pause-button {
+  background: rgba(255, 107, 107, 0.2);
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}
+
+.pause-button:active {
+  background: rgba(255, 107, 107, 0.4);
+}
+
+/* Mobile Button Hover Effects (for devices that support hover) */
+@media (hover: hover) {
+  .mobile-button:hover {
+    background: rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  }
+  
+  .jump-button:hover {
+    background: rgba(76, 205, 196, 0.3);
+    box-shadow: 0 0 10px rgba(76, 205, 196, 0.3);
+  }
+  
+  .dash-button:hover {
+    background: rgba(255, 230, 109, 0.3);
+    box-shadow: 0 0 10px rgba(255, 230, 109, 0.3);
+  }
+  
+  .pause-button:hover {
+    background: rgba(255, 107, 107, 0.3);
+    box-shadow: 0 0 10px rgba(255, 107, 107, 0.3);
+  }
+}
+
+/* Mobile Button Focus States */
+.mobile-button:focus {
+  outline: none;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+}
+
+/* Mobile Button Animations */
+@keyframes buttonPress {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+.mobile-button.pressed {
+  animation: buttonPress 0.1s ease-in-out;
+}
+
+/* Mobile Controls Visibility */
+@media (max-width: 768px) {
+  .mobile-controls {
+    display: block;
+  }
+}
+
+/* Tablet Adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .mobile-controls {
+    display: block;
+    bottom: 30px;
+    left: 30px;
+  }
+  
+  .dpad {
+    width: 140px;
+    height: 140px;
+  }
+  
+  .mobile-button {
+    width: 45px;
+    height: 45px;
+    font-size: 18px;
+  }
+  
+  .jump-button, 
+  .dash-button, 
+  .pause-button {
+    width: 70px;
+    height: 45px;
+    font-size: 14px;
+  }
+}
+
+/* Large Mobile Adjustments */
+@media (min-width: 481px) and (max-width: 768px) {
+  .mobile-controls {
+    bottom: 25px;
+    left: 25px;
+  }
+  
+  .dpad {
+    width: 130px;
+    height: 130px;
+  }
+  
+  .mobile-button {
+    width: 42px;
+    height: 42px;
+    font-size: 17px;
+  }
+  
+  .jump-button, 
+  .dash-button, 
+  .pause-button {
+    width: 65px;
+    height: 42px;
+    font-size: 13px;
+  }
+}
+
+/* Small Mobile Adjustments */
+@media (max-width: 480px) {
+  .mobile-controls {
+    bottom: 15px;
+    left: 15px;
+  }
+  
+  .dpad {
+    width: 110px;
+    height: 110px;
+    margin-bottom: 15px;
+  }
+  
+  .dpad-center {
+    width: 35px;
+    height: 35px;
+  }
+  
+  .mobile-button {
+    width: 35px;
+    height: 35px;
+    font-size: 14px;
+  }
+  
+  .jump-button, 
+  .dash-button, 
+  .pause-button {
+    width: 55px;
+    height: 35px;
+    font-size: 11px;
+  }
+  
+  .action-buttons {
+    gap: 8px;
+  }
+}
+
+/* Extra Small Mobile Adjustments */
+@media (max-width: 360px) {
+  .mobile-controls {
+    bottom: 10px;
+    left: 10px;
+  }
+  
+  .dpad {
+    width: 100px;
+    height: 100px;
+    margin-bottom: 10px;
+  }
+  
+  .dpad-center {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .mobile-button {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+  
+  .jump-button, 
+  .dash-button, 
+  .pause-button {
+    width: 50px;
+    height: 30px;
+    font-size: 10px;
+  }
+  
+  .action-buttons {
+    gap: 5px;
+  }
+}
+
+/* Landscape Orientation Adjustments */
+@media (max-width: 768px) and (orientation: landscape) {
+  .mobile-controls {
+    bottom: 10px;
+    left: 10px;
+  }
+  
+  .dpad {
+    width: 90px;
+    height: 90px;
+    margin-bottom: 10px;
+  }
+  
+  .dpad-center {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .mobile-button {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+  
+  .jump-button, 
+  .dash-button, 
+  .pause-button {
+    width: 45px;
+    height: 30px;
+    font-size: 10px;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .mobile-button {
+    border-color: #ffffff;
+    color: #ffffff;
+    background: rgba(0, 0, 0, 0.9);
+  }
+  
+  .dpad-center {
+    border-color: #ffffff;
+    background: rgba(255, 255, 255, 0.3);
+  }
+  
+  .jump-button {
+    border-color: #ffffff;
+    color: #ffffff;
+  }
+  
+  .dash-button {
+    border-color: #ffffff;
+    color: #ffffff;
+  }
+  
+  .pause-button {
+    border-color: #ffffff;
+    color: #ffffff;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .mobile-button {
+    transition: none;
+  }
+  
+  .mobile-button.pressed {
+    animation: none;
+  }
+}
+
+/* Touch Device Optimizations */
+@media (pointer: coarse) {
+  .mobile-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .jump-button, 
+  .dash-button, 
+  .pause-button {
+    min-height: 44px;
+  }
+} 

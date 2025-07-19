@@ -7,9 +7,9 @@
 
 import React from 'react'
 
-// Import CSS files
-import '../styles/common.css'
-import '../styles/ui.css'
+// Import CSS Modules
+import styles from '../styles/common.module.css'
+import uiStyles from '../styles/ui.module.css'
 
 /**
  * Props interface for GameUI component
@@ -45,25 +45,25 @@ export default function GameUI({
   return (
     <>
       {/* Game UI */}
-      <div id="ui" className={`game-ui ${className}`}>
-        <div className="ui-item">
-          <span className="ui-label">LIVES</span>
-          <span id="lives" data-testid="lives" className="ui-value">{lives}</span>
+      <div id="ui" className={`${uiStyles.gameUi} ${className}`}>
+        <div className={uiStyles.uiItem}>
+          <span className={uiStyles.uiLabel}>LIVES</span>
+          <span id="lives" data-testid="lives" className={uiStyles.uiValue}>{lives}</span>
         </div>
-        <div className="ui-item">
-          <span className="ui-label">SCORE</span>
-          <span id="score" data-testid="score" className="ui-value">{score}</span>
+        <div className={uiStyles.uiItem}>
+          <span className={uiStyles.uiLabel}>SCORE</span>
+          <span id="score" data-testid="score" className={uiStyles.uiValue}>{score}</span>
         </div>
-        <div className="ui-item">
-          <span className="ui-label">LEVEL</span>
-          <span id="level" data-testid="level" className="ui-value">{level}</span>
+        <div className={uiStyles.uiItem}>
+          <span className={uiStyles.uiLabel}>LEVEL</span>
+          <span id="level" data-testid="level" className={uiStyles.uiValue}>{level}</span>
         </div>
       </div>
 
       {/* Sound Toggle */}
       <button 
         id="soundToggle" 
-        className={`sound-toggle ${soundEnabled ? 'sound-on' : 'sound-off'}`}
+        className={`${uiStyles.soundToggle} ${soundEnabled ? uiStyles.soundOn : uiStyles.soundOff}`}
         onClick={onSoundToggle}
         aria-label={soundEnabled ? 'Disable sound' : 'Enable sound'}
       >

@@ -7,9 +7,9 @@
 
 import React from 'react'
 
-// Import CSS files
-import '../styles/common.css'
-import '../styles/menu.css'
+// Import CSS Modules
+import styles from '../styles/common.module.css'
+import menuStyles from '../styles/menu.module.css'
 
 /**
  * Props interface for StartScreen component
@@ -38,49 +38,49 @@ export default function StartScreen({
   }
 
   return (
-    <div id="startScreen" className={`menu-screen start-screen ${className}`}>
-      <div className="menu-background"></div>
-      <div className="menu-content">
-        <div className="title-container">
-          <h1 className="game-title">ABBERANT</h1>
-          <div className="title-glow"></div>
+    <div id="startScreen" className={`${menuStyles.menuScreen} ${menuStyles.startScreen} ${className}`}>
+      <div className={menuStyles.menuBackground}></div>
+      <div className={menuStyles.menuContent}>
+        <div className={menuStyles.titleContainer}>
+          <h1 className={menuStyles.gameTitle}>ABBERANT</h1>
+          <div className={menuStyles.titleGlow}></div>
         </div>
         
-        <div className="menu-buttons">
+        <div className={menuStyles.menuButtons}>
           <button 
             id="startButton" 
-            className="menu-button primary-button"
+            className={`${menuStyles.menuButton} ${menuStyles.primaryButton}`}
             onClick={onStartGame}
             aria-label="Start the game"
           >
-            <span className="button-text">START GAME</span>
-            <div className="button-glow"></div>
+            <span className={menuStyles.buttonText}>START GAME</span>
+            <div className={menuStyles.buttonGlow}></div>
           </button>
         </div>
         
-        <div className="controls-info">
-          <div className="controls-section">
+        <div className={menuStyles.controlsInfo}>
+          <div className={menuStyles.controlsSection}>
             <h3>CONTROLS</h3>
-            <div className="control-grid">
-              <div className="control-item">
-                <span className="key">WASD</span>
-                <span className="action">Move</span>
+            <div className={menuStyles.controlGrid}>
+              <div className={menuStyles.controlItem}>
+                <span className={menuStyles.key}>WASD</span>
+                <span className={menuStyles.action}>Move</span>
               </div>
-              <div className="control-item">
-                <span className="key">SPACE</span>
-                <span className="action">Jump</span>
+              <div className={menuStyles.controlItem}>
+                <span className={menuStyles.key}>SPACE</span>
+                <span className={menuStyles.action}>Jump</span>
               </div>
-              <div className="control-item">
-                <span className="key">SHIFT</span>
-                <span className="action">Dash</span>
+              <div className={menuStyles.controlItem}>
+                <span className={menuStyles.key}>SHIFT</span>
+                <span className={menuStyles.action}>Dash</span>
               </div>
-              <div className="control-item">
-                <span className="key">P</span>
-                <span className="action">Pause</span>
+              <div className={menuStyles.controlItem}>
+                <span className={menuStyles.key}>P</span>
+                <span className={menuStyles.action}>Pause</span>
               </div>
-              <div className="control-item">
-                <span className="key">R</span>
-                <span className="action">Reset</span>
+              <div className={menuStyles.controlItem}>
+                <span className={menuStyles.key}>R</span>
+                <span className={menuStyles.action}>Reset</span>
               </div>
             </div>
           </div>

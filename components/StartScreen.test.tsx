@@ -53,7 +53,7 @@ describe('StartScreen', () => {
 
     test('should apply custom className when provided', () => {
       const { container } = render(<StartScreen {...defaultProps} className="custom-class" />)
-      const startScreen = container.querySelector('.start-screen')
+      const startScreen = container.querySelector('[id="startScreen"]')
       expect(startScreen).toHaveClass('custom-class')
     })
   })
@@ -111,76 +111,66 @@ describe('StartScreen', () => {
     test('should have correct CSS classes', () => {
       const { container } = render(<StartScreen {...defaultProps} />)
 
-      // Check main container
-      const startScreen = container.querySelector('.start-screen')
+      // Check main container - CSS Modules will generate unique class names
+      const startScreen = container.querySelector('[id="startScreen"]')
       expect(startScreen).toBeInTheDocument()
 
-      // Check menu screen
-      const menuScreen = container.querySelector('.menu-screen')
-      expect(menuScreen).toBeInTheDocument()
-
-      // Check background
-      const menuBackground = container.querySelector('.menu-background')
+      // Check that the component has the expected structure
+      const menuBackground = container.querySelector('[class*="menuBackground"]')
       expect(menuBackground).toBeInTheDocument()
 
-      // Check content
-      const menuContent = container.querySelector('.menu-content')
+      const menuContent = container.querySelector('[class*="menuContent"]')
       expect(menuContent).toBeInTheDocument()
 
-      // Check title container
-      const titleContainer = container.querySelector('.title-container')
+      const titleContainer = container.querySelector('[class*="titleContainer"]')
       expect(titleContainer).toBeInTheDocument()
 
-      // Check title glow
-      const titleGlow = container.querySelector('.title-glow')
+      const titleGlow = container.querySelector('[class*="titleGlow"]')
       expect(titleGlow).toBeInTheDocument()
 
-      // Check menu buttons
-      const menuButtons = container.querySelector('.menu-buttons')
+      const menuButtons = container.querySelector('[class*="menuButtons"]')
       expect(menuButtons).toBeInTheDocument()
 
-      // Check start button
-      const startButton = container.querySelector('.menu-button')
+      const startButton = container.querySelector('[class*="menuButton"]')
       expect(startButton).toBeInTheDocument()
 
-      // Check button text and glow
-      const buttonText = container.querySelector('.button-text')
-      const buttonGlow = container.querySelector('.button-glow')
+      const buttonText = container.querySelector('[class*="buttonText"]')
+      const buttonGlow = container.querySelector('[class*="buttonGlow"]')
       expect(buttonText).toBeInTheDocument()
       expect(buttonGlow).toBeInTheDocument()
 
-      // Check controls info
-      const controlsInfo = container.querySelector('.controls-info')
+      const controlsInfo = container.querySelector('[class*="controlsInfo"]')
       expect(controlsInfo).toBeInTheDocument()
 
-      // Check controls section
-      const controlsSection = container.querySelector('.controls-section')
+      const controlsSection = container.querySelector('[class*="controlsSection"]')
       expect(controlsSection).toBeInTheDocument()
 
-      // Check control grid
-      const controlGrid = container.querySelector('.control-grid')
+      const controlGrid = container.querySelector('[class*="controlGrid"]')
       expect(controlGrid).toBeInTheDocument()
 
-      // Check control items
-      const controlItems = container.querySelectorAll('.control-item')
+      const controlItems = container.querySelectorAll('[class*="controlItem"]')
       expect(controlItems).toHaveLength(5)
 
-      // Check keys and actions
-      const keys = container.querySelectorAll('.key')
-      const actions = container.querySelectorAll('.action')
+      const keys = container.querySelectorAll('[class*="key"]')
+      const actions = container.querySelectorAll('[class*="action"]')
       expect(keys).toHaveLength(5)
       expect(actions).toHaveLength(5)
     })
   })
 
   describe('Styling', () => {
-    test('should render with external CSS styles', () => {
+    test('should render with CSS Modules styles', () => {
       const { container } = render(<StartScreen {...defaultProps} />)
       
-      // Check that external CSS classes are applied
-      const startScreen = container.querySelector('.start-screen')
-      expect(startScreen).toHaveClass('start-screen')
-      expect(startScreen).toHaveClass('menu-screen')
+      // Check that CSS Modules classes are applied
+      const startScreen = container.querySelector('[id="startScreen"]')
+      expect(startScreen).toBeInTheDocument()
+      
+      // Check that the component has the expected CSS Module classes
+      const menuScreen = container.querySelector('[class*="menuScreen"]')
+      const startScreenClass = container.querySelector('[class*="startScreen"]')
+      expect(menuScreen).toBeInTheDocument()
+      expect(startScreenClass).toBeInTheDocument()
     })
   })
 

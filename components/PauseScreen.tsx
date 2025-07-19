@@ -7,9 +7,9 @@
 
 import React from 'react'
 
-// Import CSS files
-import '../styles/common.css'
-import '../styles/menu.css'
+// Import CSS Modules
+import styles from '../styles/common.module.css'
+import menuStyles from '../styles/menu.module.css'
 
 /**
  * Props interface for PauseScreen component
@@ -38,16 +38,16 @@ export default function PauseScreen({
   }
 
   return (
-    <div id="pauseScreen" className={`menu-screen pause-screen ${className}`}>
-      <div className="menu-background"></div>
-      <div className="menu-content">
-        <div className="title-container">
-          <h2 className="game-title pause-title">PAUSED</h2>
-          <div className="title-glow"></div>
+    <div id="pauseScreen" className={`${menuStyles.menuScreen} ${menuStyles.pauseScreen} ${className}`}>
+      <div className={menuStyles.menuBackground}></div>
+      <div className={menuStyles.menuContent}>
+        <div className={menuStyles.titleContainer}>
+          <h2 className={`${menuStyles.gameTitle} ${menuStyles.pauseTitle}`}>PAUSED</h2>
+          <div className={menuStyles.titleGlow}></div>
         </div>
         
-        <div className="pause-message">
-          <p>Press <span className="key-highlight">P</span> to continue</p>
+        <div className={menuStyles.pauseMessage}>
+          <p>Press <span className={menuStyles.keyHighlight}>P</span> to continue</p>
         </div>
       </div>
 
