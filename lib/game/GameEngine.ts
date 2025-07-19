@@ -12,6 +12,7 @@ import { AudioManager } from './AudioManager'
 import { GameStateManager, GameStateType, GameStateCallbacks } from './GameStateManager'
 import { PlayerManager, PlayerInput, PlayerUpdateResult } from './PlayerManager'
 import { EnemyManager, EnemySpawnConfig, EnemyUpdateResult } from './EnemyManager'
+import { LevelGenerator, LevelConfig, LevelData } from './LevelGenerator'
 import {
   GameState,
   Player,
@@ -166,6 +167,7 @@ export class GameEngine {
   stateManager!: GameStateManager; // Game state management system
   playerManager!: PlayerManager; // Player management system
   enemyManager!: EnemyManager; // Enemy management system
+  levelGenerator!: LevelGenerator; // Level generation system
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -273,6 +275,9 @@ export class GameEngine {
       this.width,
       this.height
     )
+
+    // Initialize level generator
+    this.levelGenerator = new LevelGenerator(this.width, this.height)
 
     this.showStartScreen()
     this.generateLevel()
@@ -509,28 +514,109 @@ export class GameEngine {
 
   // Placeholder methods that will be implemented in subsequent phases
   generateLevel() {
-    // TODO: Implement platform generation in Phase 3 Task 3.3
-    console.log('generateLevel called - platform generation to be implemented in Phase 3 Task 3.3')
+    const levelConfig: LevelConfig = {
+      level: this.stateManager.getCurrentLevel(),
+      playerX: this.player.x,
+      playerY: this.player.y,
+      difficulty: this.stateManager.getCurrentLevel() / 10
+    }
+    
+    // Generate complete level using level generator
+    const levelData = this.levelGenerator.generateLevel(levelConfig)
+    
+    // Update game state with level data
+    this.platforms = levelData.platforms
+    this.collectibles = levelData.collectibles
+    this.backgroundStars = levelData.backgroundStars
+    this.stateManager.setLevelTarget(levelData.levelWidth)
     
     // Generate enemies using enemy manager
     const spawnConfig: EnemySpawnConfig = {
       level: this.stateManager.getCurrentLevel(),
-      levelWidth: this.stateManager.getLevelTarget(),
+      levelWidth: levelData.levelWidth,
       platforms: this.platforms,
       playerX: this.player.x
     }
     
     this.enemies = this.enemyManager.generateEnemies(spawnConfig)
+    
+    // Assign level effects
+    this.assignLevelEffects()
+    
+    console.log(`Generated level ${levelConfig.level}: ${levelData.platforms.length} platforms, ${levelData.collectibles.length} collectibles, ${levelData.backgroundStars.length} stars`)
   }
 
   populateCollisionSystem() {
-    // TODO: Implement in Phase 3
-    console.log('populateCollisionSystem called - to be implemented in Phase 3')
+    // Clear existing entities
+    this.collisionSystem.clear()
+    
+    // Add platforms to collision system
+    for (const platform of this.platforms) {
+      this.collisionSystem.addEntity({
+        id: `platform-${platform.x}-${platform.y}`,
+        type: 'platform',
+        bounds: {
+          x: platform.x,
+          y: platform.y,
+          width: platform.width,
+          height: platform.height
+        },
+        data: platform
+      })
+    }
+    
+    // Add enemies to collision system
+    for (const enemy of this.enemies) {
+      this.collisionSystem.addEntity({
+        id: `enemy-${enemy.x}-${enemy.y}`,
+        type: 'enemy',
+        bounds: {
+          x: enemy.x,
+          y: enemy.y,
+          width: enemy.width,
+          height: enemy.height
+        },
+        data: enemy
+      })
+    }
+    
+    // Add collectibles to collision system
+    for (const collectible of this.collectibles) {
+      if (!collectible.collected) {
+        this.collisionSystem.addEntity({
+          id: `collectible-${collectible.x}-${collectible.y}`,
+          type: 'collectible',
+          bounds: {
+            x: collectible.x,
+            y: collectible.y,
+            width: collectible.width,
+            height: collectible.height
+          },
+          data: collectible
+        })
+      }
+    }
+    
+    console.log(`Populated collision system: ${this.platforms.length} platforms, ${this.enemies.length} enemies, ${this.collectibles.filter(c => !c.collected).length} collectibles`)
   }
 
   assignLevelEffects() {
-    // TODO: Implement in Phase 3
-    console.log('assignLevelEffects called - to be implemented in Phase 3')
+    const level = this.stateManager.getCurrentLevel()
+    let effects: string[] = []
+    
+    // Assign effects based on level
+    if (level >= 1 && level <= 3) {
+      effects = ['melting', 'colorShift']
+    } else if (level >= 4 && level <= 6) {
+      effects = ['melting', 'colorShift', 'pulse']
+    } else if (level >= 7 && level <= 10) {
+      effects = ['melting', 'colorShift', 'pulse', 'blur']
+    } else if (level >= 11) {
+      effects = ['melting', 'colorShift', 'pulse', 'blur', 'noise', 'rgbShift', 'wave', 'zoom', 'rotation', 'pixelBleed']
+    }
+    
+    this.stateManager.setLevelEffects(effects)
+    console.log(`Assigned level effects for level ${level}: ${effects.join(', ')}`)
   }
 
   nextLevel() {
