@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { VFXProvider, VFXDiv } from 'react-vfx'
+import { VFXDiv } from 'react-vfx'
 import { useWebGLSupport, getWebGLFallbackMessage, getPerformanceWarning } from '../lib/utils/webgl-support'
 
 interface EnhancedVFXOverlayProps {
@@ -195,48 +195,46 @@ const EnhancedVFXOverlay: React.FC<EnhancedVFXOverlayProps> = ({
   }
 
   return (
-    <VFXProvider>
-      <div 
+    <div 
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: 1000
+      }}
+    >
+      <VFXDiv
+        shader={getOptimizedShader()}
         style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
           width: '100%',
           height: '100%',
-          pointerEvents: 'none',
-          zIndex: 1000
+          opacity: vfxState.quality === 'low' ? 0.2 : vfxState.quality === 'medium' ? 0.3 : 0.4
         }}
-      >
-        <VFXDiv
-          shader={getOptimizedShader()}
+      />
+      
+      {/* Performance warning overlay */}
+      {vfxState.performanceWarning && (
+        <div 
           style={{
-            width: '100%',
-            height: '100%',
-            opacity: vfxState.quality === 'low' ? 0.2 : vfxState.quality === 'medium' ? 0.3 : 0.4
+            position: 'absolute',
+            bottom: '10px',
+            left: '10px',
+            background: 'rgba(255, 165, 0, 0.9)',
+            color: 'white',
+            padding: '8px 12px',
+            borderRadius: '4px',
+            fontSize: '12px',
+            maxWidth: '200px',
+            pointerEvents: 'auto'
           }}
-        />
-        
-        {/* Performance warning overlay */}
-        {vfxState.performanceWarning && (
-          <div 
-            style={{
-              position: 'absolute',
-              bottom: '10px',
-              left: '10px',
-              background: 'rgba(255, 165, 0, 0.9)',
-              color: 'white',
-              padding: '8px 12px',
-              borderRadius: '4px',
-              fontSize: '12px',
-              maxWidth: '200px',
-              pointerEvents: 'auto'
-            }}
-          >
-            ⚠️ {vfxState.performanceWarning}
-          </div>
-        )}
-      </div>
-    </VFXProvider>
+        >
+          ⚠️ {vfxState.performanceWarning}
+        </div>
+      )}
+    </div>
   )
 }
 

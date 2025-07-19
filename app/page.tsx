@@ -4,7 +4,7 @@ export default function Home() {
   return (
     <main>
       <OptimizedGameWithVFX 
-        initialVFXEnabled={true}
+        initialVFXEnabled={false}
         initialEffect="glitch"
         initialIntensity={1.0}
         initialQuality="auto"
