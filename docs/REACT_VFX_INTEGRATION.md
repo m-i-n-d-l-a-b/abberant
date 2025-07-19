@@ -147,18 +147,20 @@ You can write your own GLSL shaders for custom effects:
 ```tsx
 <VFXDiv
   shader={`
-    uniform float time;
     uniform vec2 resolution;
-    
-    void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-      vec2 uv = fragCoord / resolution;
+    uniform vec2 offset;
+    uniform float time;
+    uniform sampler2D src;
+    out vec4 outColor;
+
+    void main() {
+      vec2 uv = (gl_FragCoord.xy - offset) / resolution;
       
       // Custom glitch effect
       float glitch = sin(time * 5.0) * 0.1;
       uv.x += glitch * sin(uv.y * 10.0);
       
-      vec4 color = texture2D(iChannel0, uv);
-      fragColor = color;
+      outColor = texture2D(src, uv);
     }
   `}
 >

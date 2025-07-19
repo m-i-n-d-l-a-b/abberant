@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { VFXProvider, VFXDiv } from 'react-vfx'
-import { hasVFXSupport, getWebGLFallbackMessage, getPerformanceWarning, getOptimalVFXQuality } from '../lib/utils/webgl-support'
+import { useWebGLSupport, getWebGLFallbackMessage, getPerformanceWarning } from '../lib/utils/webgl-support'
 
 interface EnhancedVFXOverlayProps {
   isActive: boolean
@@ -27,6 +27,7 @@ const EnhancedVFXOverlay: React.FC<EnhancedVFXOverlayProps> = ({
   onError,
   onLoad
 }) => {
+  const { hasVFXSupport: webglSupported, optimalQuality, isLoading } = useWebGLSupport()
   const [vfxState, setVfxState] = useState<VFXState>({
     loading: true,
     error: null,
@@ -35,41 +36,29 @@ const EnhancedVFXOverlay: React.FC<EnhancedVFXOverlayProps> = ({
     quality: 'low'
   })
 
-  // Initialize VFX support detection
+  // Update VFX state when WebGL detection completes
   useEffect(() => {
-    const initializeVFX = () => {
-      try {
-        const webglSupported = hasVFXSupport()
-        const performanceWarning = getPerformanceWarning()
-        const autoQuality = getOptimalVFXQuality()
-        const finalQuality = quality === 'auto' ? autoQuality : quality
+    if (!isLoading) {
+      const performanceWarning = getPerformanceWarning()
+      const finalQuality = quality === 'auto' ? optimalQuality : quality
 
-        setVfxState({
-          loading: false,
-          error: null,
-          webglSupported,
-          performanceWarning,
-          quality: finalQuality
-        })
+      setVfxState({
+        loading: false,
+        error: null,
+        webglSupported: webglSupported || false,
+        performanceWarning,
+        quality: finalQuality
+      })
 
-        if (!webglSupported) {
-          const fallbackMessage = getWebGLFallbackMessage()
-          setVfxState(prev => ({ ...prev, error: fallbackMessage }))
-          onError?.(fallbackMessage)
-        } else {
-          onLoad?.()
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to initialize VFX'
-        setVfxState(prev => ({ ...prev, loading: false, error: errorMessage }))
-        onError?.(errorMessage)
+      if (!webglSupported) {
+        const fallbackMessage = getWebGLFallbackMessage()
+        setVfxState(prev => ({ ...prev, error: fallbackMessage }))
+        onError?.(fallbackMessage)
+      } else {
+        onLoad?.()
       }
     }
-
-    // Small delay to ensure DOM is ready
-    const timer = setTimeout(initializeVFX, 100)
-    return () => clearTimeout(timer)
-  }, [quality, onError, onLoad])
+  }, [isLoading, webglSupported, optimalQuality, quality, onError, onLoad])
 
   const getOptimizedShader = useCallback(() => {
     const { quality: currentQuality } = vfxState
@@ -80,77 +69,92 @@ const EnhancedVFXOverlay: React.FC<EnhancedVFXOverlayProps> = ({
     switch (effectType) {
       case 'glitch':
         return `
-          uniform float time;
-          uniform float intensity;
-          uniform vec2 resolution;
+          precision mediump float;
           
-          void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-            vec2 uv = fragCoord / resolution;
+          uniform vec2 resolution;
+          uniform vec2 offset;
+          uniform float time;
+          uniform sampler2D src;
+          out vec4 outColor;
+
+          void main() {
+            vec2 uv = (gl_FragCoord.xy - offset) / resolution;
             
             // Optimized glitch effect
-            float glitch = sin(time * ${8.0 * complexity}) * intensity * ${0.1 * complexity};
+            float glitch = sin(time * ${8.0 * complexity}) * ${0.1 * complexity};
             uv.x += glitch * sin(uv.y * ${8.0 * complexity});
             
-            vec4 color = texture2D(iChannel0, uv);
-            fragColor = color;
+            outColor = texture(src, uv);
           }
         `
       case 'chromatic':
         return `
-          uniform float time;
-          uniform float intensity;
-          uniform vec2 resolution;
+          precision mediump float;
           
-          void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-            vec2 uv = fragCoord / resolution;
+          uniform vec2 resolution;
+          uniform vec2 offset;
+          uniform float time;
+          uniform sampler2D src;
+          out vec4 outColor;
+
+          void main() {
+            vec2 uv = (gl_FragCoord.xy - offset) / resolution;
             
             // Optimized chromatic aberration
-            float offset = sin(time) * intensity * ${0.008 * complexity};
-            vec4 r = texture2D(iChannel0, uv + vec2(offset, 0.0));
-            vec4 g = texture2D(iChannel0, uv);
-            vec4 b = texture2D(iChannel0, uv - vec2(offset, 0.0));
+            float chromaOffset = sin(time) * ${0.008 * complexity};
+            vec4 r = texture(src, uv + vec2(chromaOffset, 0.0));
+            vec4 g = texture(src, uv);
+            vec4 b = texture(src, uv - vec2(chromaOffset, 0.0));
             
-            fragColor = vec4(r.r, g.g, b.b, 1.0);
+            outColor = vec4(r.r, g.g, b.b, 1.0);
           }
         `
       case 'scanlines':
         return `
-          uniform float time;
-          uniform float intensity;
-          uniform vec2 resolution;
+          precision mediump float;
           
-          void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-            vec2 uv = fragCoord / resolution;
-            vec4 color = texture2D(iChannel0, uv);
+          uniform vec2 resolution;
+          uniform vec2 offset;
+          uniform float time;
+          uniform sampler2D src;
+          out vec4 outColor;
+
+          void main() {
+            vec2 uv = (gl_FragCoord.xy - offset) / resolution;
+            vec4 color = texture(src, uv);
             
             // Optimized scanlines effect
             float scanline = sin(uv.y * resolution.y * ${0.3 * complexity} + time) * 0.5 + 0.5;
-            scanline = scanline * intensity * ${0.25 * complexity} + 0.75;
+            scanline = scanline * ${0.25 * complexity} + 0.75;
             
-            fragColor = color * scanline;
+            outColor = color * scanline;
           }
         `
       case 'pulse':
         return `
-          uniform float time;
-          uniform float intensity;
-          uniform vec2 resolution;
+          precision mediump float;
           
-          void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-            vec2 uv = fragCoord / resolution;
-            vec4 color = texture2D(iChannel0, uv);
+          uniform vec2 resolution;
+          uniform vec2 offset;
+          uniform float time;
+          uniform sampler2D src;
+          out vec4 outColor;
+
+          void main() {
+            vec2 uv = (gl_FragCoord.xy - offset) / resolution;
+            vec4 color = texture(src, uv);
             
             // Optimized pulsing effect
             float pulse = sin(time * ${1.5 * complexity}) * 0.5 + 0.5;
-            pulse = pulse * intensity * ${0.4 * complexity} + 0.6;
+            pulse = pulse * ${0.4 * complexity} + 0.6;
             
-            fragColor = color * pulse;
+            outColor = color * pulse;
           }
         `
       default:
         return ''
     }
-  }, [effectType, vfxState.quality])
+  }, [effectType, vfxState])
 
   // Don't render if not active or if there's an error
   if (!isActive || vfxState.error) {

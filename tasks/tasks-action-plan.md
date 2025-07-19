@@ -27,6 +27,7 @@
 
 - Unit tests should typically be placed alongside the code files they are testing (e.g., `Game.tsx` and `Game.test.tsx` in the same directory).
 - Use `npx jest [optional/path/to/test/file]` to run tests. Running without a path executes all tests found by the Jest configuration.
+- Tests from section 4 need to be reviewed at the end
 
 ## Tasks
 
@@ -85,48 +86,48 @@
     - [x] 3.3.4 Provide real-time feedback on canvas effect changes
     - [x] 3.3.5 Create unit tests for canvas effects control
 
-- [ ] 4.0 Integration & Communication
-  - [ ] 4.1 State Management
-    - [ ] 4.1.1 Implement wrapper state management for all effect settings
-    - [ ] 4.1.2 Implement game state reception of effect commands via ref
-    - [ ] 4.1.3 Implement synchronization between both systems
-    - [ ] 4.1.4 Implement persistence for save/load unified effect presets
-    - [ ] 4.1.5 Create state management tests
-  - [ ] 4.2 Effect Priority System
-    - [ ] 4.2.1 Implement visual effects as overlays (highest priority)
-    - [ ] 4.2.2 Implement canvas effects applied to game objects (medium priority)
-    - [ ] 4.2.3 Maintain game logic as core gameplay (lowest priority)
-    - [ ] 4.2.4 Implement conflict resolution rules for effect interactions
-    - [ ] 4.2.5 Create priority system tests
-  - [ ] 4.3 Performance Optimization
-    - [ ] 4.3.1 Implement quality settings for both visual and canvas effects
-    - [ ] 4.3.2 Implement effect culling based on performance
-    - [ ] 4.3.3 Implement LOD system to reduce effect complexity on slower devices
-    - [ ] 4.3.4 Implement efficient memory management
-    - [ ] 4.3.5 Create performance monitoring utilities
-    - [ ] 4.3.6 Create performance optimization tests
+- [x] 4.0 Integration & Communication
+  - [x] 4.1 State Management
+    - [x] 4.1.1 Implement wrapper state management for all effect settings
+    - [x] 4.1.2 Implement game state reception of effect commands via ref
+    - [x] 4.1.3 Implement synchronization between both systems
+    - [x] 4.1.4 Implement persistence for save/load unified effect presets
+    - [x] 4.1.5 Create state management tests
+  - [x] 4.2 Effect Priority System
+    - [x] 4.2.1 Implement visual effects as overlays (highest priority)
+    - [x] 4.2.2 Implement canvas effects applied to game objects (medium priority)
+    - [x] 4.2.3 Maintain game logic as core gameplay (lowest priority)
+    - [x] 4.2.4 Implement conflict resolution rules for effect interactions
+    - [x] 4.2.5 Create priority system tests
+  - [x] 4.3 Performance Optimization
+    - [x] 4.3.1 Implement quality settings for both visual and canvas effects
+    - [x] 4.3.2 Implement effect culling based on performance
+    - [x] 4.3.3 Implement LOD system to reduce effect complexity on slower devices
+    - [x] 4.3.4 Implement efficient memory management
+    - [x] 4.3.5 Create performance monitoring utilities
+    - [x] 4.3.6 Create performance optimization tests
 
-- [ ] 5.0 User Experience Design
-  - [ ] 5.1 Unified Control Interface
-    - [ ] 5.1.1 Implement single panel for all effects
-    - [ ] 5.1.2 Create effect categories (Visual vs Canvas tabs/sections)
-    - [ ] 5.1.3 Implement quick presets for pre-configured effect combinations
-    - [ ] 5.1.4 Implement real-time preview functionality
-    - [ ] 5.1.5 Create responsive design for different screen sizes
-  - [ ] 5.2 Effect Presets System
-    - [ ] 5.2.1 Implement visual presets (Glitch, Chromatic, etc.)
-    - [ ] 5.2.2 Implement canvas presets (Wobble, Backwards, etc.)
-    - [ ] 5.2.3 Implement combined presets (mix of both systems)
-    - [ ] 5.2.4 Implement custom presets (user-created combinations)
-    - [ ] 5.2.5 Create preset management interface
-    - [ ] 5.2.6 Create preset system tests
-  - [ ] 5.3 Accessibility & Usability
-    - [ ] 5.3.1 Implement effect intensity warnings to prevent disorienting combinations
-    - [ ] 5.3.2 Implement performance indicators showing impact on frame rate
-    - [ ] 5.3.3 Implement reset options for easy return to defaults
-    - [ ] 5.3.4 Implement help system explaining what each effect does
-    - [ ] 5.3.5 Implement keyboard navigation and screen reader support
-    - [ ] 5.3.6 Create accessibility tests
+- [x] 5.0 User Experience Design
+  - [x] 5.1 Unified Control Interface
+    - [x] 5.1.1 Implement single panel for all effects
+    - [x] 5.1.2 Create effect categories (Visual vs Canvas tabs/sections)
+    - [x] 5.1.3 Implement quick presets for pre-configured effect combinations
+    - [x] 5.1.4 Implement real-time preview functionality
+    - [x] 5.1.5 Create responsive design for different screen sizes
+  - [x] 5.2 Effect Presets System
+    - [x] 5.2.1 Implement visual presets (Glitch, Chromatic, etc.)
+    - [x] 5.2.2 Implement canvas presets (Wobble, Backwards, etc.)
+    - [x] 5.2.3 Implement combined presets (mix of both systems)
+    - [x] 5.2.4 Implement custom presets (user-created combinations)
+    - [x] 5.2.5 Create preset management interface
+    - [x] 5.2.6 Create preset system tests
+  - [x] 5.3 Accessibility & Usability
+    - [x] 5.3.1 Implement effect intensity warnings to prevent disorienting combinations
+    - [x] 5.3.2 Implement performance indicators showing impact on frame rate
+    - [x] 5.3.3 Implement reset options for easy return to defaults
+    - [x] 5.3.4 Implement help system explaining what each effect does
+    - [x] 5.3.5 Implement keyboard navigation and screen reader support
+    - [x] 5.3.6 Create accessibility tests
 
 - [ ] 6.0 Testing & Validation
   - [ ] 6.1 Effect Isolation Testing

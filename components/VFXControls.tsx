@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { hasVFXSupport, getOptimalVFXQuality } from '../lib/utils/webgl-support'
+import { useWebGLSupport } from '../lib/utils/webgl-support'
 
 interface VFXControlsProps {
   vfxEnabled: boolean
@@ -29,8 +29,7 @@ const VFXControls: React.FC<VFXControlsProps> = ({
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [showTooltip, setShowTooltip] = useState<string | null>(null)
 
-  const webglSupported = hasVFXSupport()
-  const autoQuality = getOptimalVFXQuality()
+  const { hasVFXSupport: webglSupported, optimalQuality: autoQuality, isLoading } = useWebGLSupport()
 
   const effectOptions = [
     { value: 'glitch', label: 'Glitch', description: 'Digital distortion effect' },
@@ -45,6 +44,33 @@ const VFXControls: React.FC<VFXControlsProps> = ({
     { value: 'medium', label: 'Medium', description: 'Balanced quality and performance' },
     { value: 'high', label: 'High', description: 'Best visual quality' }
   ]
+
+  // Show loading state during SSR or initial client-side detection
+  if (isLoading) {
+    return (
+      <div 
+        style={{
+          position: 'absolute',
+          top: '10px',
+          right: '10px',
+          background: 'rgba(0, 0, 0, 0.8)',
+          color: 'white',
+          padding: '12px',
+          borderRadius: '8px',
+          fontSize: '12px',
+          maxWidth: '250px',
+          zIndex: 1000
+        }}
+      >
+        <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+          🔄 Detecting WebGL...
+        </div>
+        <div style={{ fontSize: '11px', opacity: 0.9 }}>
+          Checking device capabilities...
+        </div>
+      </div>
+    )
+  }
 
   if (!webglSupported) {
     return (
@@ -66,7 +92,8 @@ const VFXControls: React.FC<VFXControlsProps> = ({
           ⚠️ WebGL Not Supported
         </div>
         <div style={{ fontSize: '11px', opacity: 0.9 }}>
-          VFX effects are disabled because your device doesn't support WebGL.
+          {/* eslint-disable-next-line react/no-unescaped-entities */}
+          VFX effects are disabled because your device doesn&apos;t support WebGL.
         </div>
       </div>
     )
