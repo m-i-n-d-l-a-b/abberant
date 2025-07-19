@@ -13,6 +13,7 @@
 
 import { Camera, Player, Platform, Enemy, Collectible, BackgroundStar, Effects, Particle } from '../../types/game'
 import { RenderingOptimizer } from './RenderingOptimizer'
+import { BackgroundRenderer, BackgroundRenderContext } from './BackgroundRenderer'
 import {
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
@@ -58,6 +59,7 @@ export class Renderer {
   private config: RenderConfig
   private state: RenderState
   private optimizer: RenderingOptimizer
+  private backgroundRenderer: BackgroundRenderer
   private layers: Map<string, RenderLayer>
   private isRendering: boolean
   private animationFrameId: number | null
@@ -67,6 +69,7 @@ export class Renderer {
     this.ctx = canvas.getContext('2d')!
     this.config = config
     this.optimizer = new RenderingOptimizer(this.ctx)
+    this.backgroundRenderer = new BackgroundRenderer(this.config.width, this.config.height)
     this.layers = new Map()
     this.isRendering = false
     this.animationFrameId = null
@@ -312,8 +315,20 @@ export class Renderer {
    * Render background effects layer
    */
   private renderBackgroundEffects(context: RenderContext): void {
-    // This will be implemented with background stars and effects
-    // from the BackgroundRenderer in Phase 4 Task 4.2
+    // Create background render context
+    const backgroundContext: BackgroundRenderContext = {
+      ctx: context.ctx,
+      width: context.width,
+      height: context.height,
+      camera: context.camera,
+      effects: context.effects,
+      frameCount: context.frameCount,
+      deltaTime: context.deltaTime,
+      now: performance.now()
+    }
+
+    // Render background using background renderer
+    this.backgroundRenderer.render(backgroundContext)
   }
 
   /**
@@ -521,10 +536,25 @@ export class Renderer {
   }
 
   /**
+   * Set background stars
+   */
+  setBackgroundStars(stars: BackgroundStar[]): void {
+    this.backgroundRenderer.setBackgroundStars(stars)
+  }
+
+  /**
+   * Get background renderer
+   */
+  getBackgroundRenderer(): BackgroundRenderer {
+    return this.backgroundRenderer
+  }
+
+  /**
    * Get render summary for debugging
    */
   getRenderSummary(): string {
     const stats = this.getRenderStats()
-    return `Renderer: ${stats.isActive ? 'Active' : 'Inactive'}, FPS: ${stats.fps.toFixed(1)}, Layers: ${stats.visibleLayers}/${stats.layerCount}, Frame: ${stats.frameCount}`
+    const backgroundStats = this.backgroundRenderer.getRenderStats()
+    return `Renderer: ${stats.isActive ? 'Active' : 'Inactive'}, FPS: ${stats.fps.toFixed(1)}, Layers: ${stats.visibleLayers}/${stats.layerCount}, Frame: ${stats.frameCount} | ${backgroundStats.visibleLayers}/${backgroundStats.layerCount} bg layers`
   }
 } 

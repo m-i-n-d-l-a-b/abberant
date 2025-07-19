@@ -551,6 +551,9 @@ export class GameEngine {
     this.backgroundStars = levelData.backgroundStars
     this.stateManager.setLevelTarget(levelData.levelWidth)
     
+    // Update renderer with background stars
+    this.renderer.setBackgroundStars(this.backgroundStars)
+    
     // Generate enemies using enemy manager
     const spawnConfig: EnemySpawnConfig = {
       level: this.stateManager.getCurrentLevel(),
