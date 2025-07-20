@@ -586,16 +586,33 @@ import { getFromStorage } from '../lib/utils/storage'
         this.player.y = 400 // Always normal starting position
 
         const platformCount = 15 + this.currentLevel * 3
-        this.platforms.push({
-          x: 0,
-          y: 550,
-          width: 200,
-          height: 50,
-          color: "#ff00ff",
-          type: "normal",
-          liquidPixels: [],
-          distortionOffset: 0,
-        })
+        
+        // Add spawn platform based on backwards mode
+        if (this.isReversed) {
+          // In backwards mode, add a platform near the player spawn point (right side)
+          this.platforms.push({
+            x: this.levelTarget - 150,
+            y: 550,
+            width: 200,
+            height: 50,
+            color: "#ff00ff",
+            type: "normal",
+            liquidPixels: [],
+            distortionOffset: 0,
+          })
+        } else {
+          // Normal mode - platform at left side
+          this.platforms.push({
+            x: 0,
+            y: 550,
+            width: 200,
+            height: 50,
+            color: "#ff00ff",
+            type: "normal",
+            liquidPixels: [],
+            distortionOffset: 0,
+          })
+        }
         for (let i = 1; i < platformCount; i++) {
           const x =
             (i * levelWidth) / platformCount + Math.random() * 100 - 50
@@ -832,7 +849,7 @@ import { getFromStorage } from '../lib/utils/storage'
         if (this.isReversed) {
           this.levelProgress =
             ((this.levelTarget - this.player.x) / this.levelTarget) * 100
-          if (this.player.x <= 0) this.nextLevel()
+          if (this.player.x <= 100) this.nextLevel()
         } else {
           this.levelProgress = (this.player.x / this.levelTarget) * 100
           if (this.levelProgress >= 100) this.nextLevel()
@@ -1075,8 +1092,13 @@ import { getFromStorage } from '../lib/utils/storage'
           if (gameOverScreen) gameOverScreen.style.display = "flex"
           this.stopBGM()
         } else {
-          this.player.x = 100
-          this.player.y = 400 // Always normal respawn position
+          // Respawn player based on backwards mode
+          if (this.isReversed) {
+            this.player.x = this.levelTarget - 100
+          } else {
+            this.player.x = 100
+          }
+          this.player.y = 400
           this.player.velX = 0
           this.player.velY = 0
           this.player.grounded = false

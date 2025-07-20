@@ -871,14 +871,29 @@
           this.player.y = 400;
 
           const platformCount = 15 + this.currentLevel * 3;
-          this.platforms.push({
-            x: 0,
-            y: 550,
-            width: 200,
-            height: 50,
-            color: "#ff00ff",
-            type: "normal",
-          });
+          
+          // Add spawn platform based on backwards mode
+          if (this.isReversed) {
+            // In backwards mode, add a platform near the player spawn point (right side)
+            this.platforms.push({
+              x: this.levelTarget - 150,
+              y: 550,
+              width: 200,
+              height: 50,
+              color: "#ff00ff",
+              type: "normal",
+            });
+          } else {
+            // Normal mode - platform at left side
+            this.platforms.push({
+              x: 0,
+              y: 550,
+              width: 200,
+              height: 50,
+              color: "#ff00ff",
+              type: "normal",
+            });
+          }
           for (let i = 1; i < platformCount; i++) {
             const x =
               (i * levelWidth) / platformCount + Math.random() * 100 - 50;
@@ -1010,7 +1025,7 @@
           }
         }
 
-        // --- UPDATED --- Inverts controls if 'backwards' mode is active
+        // --- UPDATED --- Controls are not affected by 'backwards' mode, only by 'invert'
         handleInput() {
           const leftPressed =
             this.keys["a"] ||
@@ -1023,12 +1038,10 @@
             this.gamepadInput.right ||
             this.touchInput.right;
 
-          let speedMod = this.isReversed ? -1 : 1;
-
           if (leftPressed) {
-            this.player.velX = -this.player.speed * speedMod;
+            this.player.velX = -this.player.speed;
           } else if (rightPressed) {
-            this.player.velX = this.player.speed * speedMod;
+            this.player.velX = this.player.speed;
           } else this.player.velX *= 0.8;
 
           if (this.levelEffects.includes("invert")) this.player.velX *= -1;
@@ -1058,7 +1071,7 @@
           this.playSound("dash");
           const dashPower = 15;
           let direction = this.keys["a"] || this.keys["arrowleft"] ? -1 : 1;
-          this.player.velX = direction * dashPower * (this.isReversed ? -1 : 1);
+          this.player.velX = direction * dashPower;
           this.player.dashCooldown = 60;
         }
 
