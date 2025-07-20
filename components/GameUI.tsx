@@ -48,48 +48,30 @@ export default function GameUI({
   return (
     <>
       {/* Game UI */}
-      <div id="ui" style={{
-        position: 'absolute',
-        top: '10px',
-        left: '10px',
-        color: '#00ffff',
-        fontFamily: 'Courier New, monospace',
-        fontSize: '16px',
-        textShadow: '0 0 10px #00ffff',
-        zIndex: 10
-      }}>
-        <div>Lives: <span id="lives">{lives}</span></div>
-        <div>Score: <span id="score">{score}</span></div>
-        <div>Level: <span id="level">{level}</span></div>
-        <div>Combo: <span id="combo">{combo}</span></div>
+      <div id="ui" className={uiStyles.gameUi}>
+        <div className={uiStyles.uiItem}>
+          <span className={uiStyles.uiLabel}>Lives</span>
+          <span id="lives" className={uiStyles.uiValue}>{lives}</span>
+        </div>
+        <div className={uiStyles.uiItem}>
+          <span className={uiStyles.uiLabel}>Score</span>
+          <span id="score" className={uiStyles.uiValue}>{score}</span>
+        </div>
+        <div className={uiStyles.uiItem}>
+          <span className={uiStyles.uiLabel}>Level</span>
+          <span id="level" className={uiStyles.uiValue}>{level}</span>
+        </div>
+        <div className={uiStyles.uiItem}>
+          <span className={uiStyles.uiLabel}>Combo</span>
+          <span id="combo" className={uiStyles.uiValue}>{combo}</span>
+        </div>
       </div>
 
       {/* Sound Toggle */}
       <button 
         id="soundToggle" 
         onClick={onSoundToggle}
-        style={{
-          position: 'absolute',
-          top: '10px',
-          right: '10px',
-          background: 'rgba(0, 0, 0, 0.8)',
-          border: '2px solid #00ffff',
-          color: '#00ffff',
-          padding: '10px 20px',
-          fontFamily: 'Courier New, monospace',
-          fontSize: '14px',
-          cursor: 'pointer',
-          zIndex: 10,
-          transition: 'all 0.3s ease'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'rgba(0, 255, 255, 0.2)'
-          e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 255, 255, 0.5)'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)'
-          e.currentTarget.style.boxShadow = 'none'
-        }}
+        className={`${uiStyles.soundToggle} ${soundEnabled ? uiStyles.soundOn : uiStyles.soundOff}`}
       >
         {soundEnabled ? '🔊 Sound: ON' : '🔇 Sound: OFF'}
       </button>

@@ -38,58 +38,16 @@ export default function StartScreen({
   }
 
   return (
-    <div id="startScreen" style={{
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: 'rgba(0, 0, 0, 0.9)',
-      color: '#00ffff',
-      fontFamily: 'Courier New, monospace',
-      zIndex: 20
-    }}>
-      <h1 style={{
-        fontSize: '48px',
-        marginBottom: '40px',
-        textShadow: '0 0 30px #00ffff',
-        letterSpacing: '4px'
-      }}>Abberant</h1>
+    <div id="startScreen" className={menuStyles.startScreen}>
+      <h1 className={menuStyles.startTitle}>Abberant</h1>
       <button 
         id="startButton" 
         onClick={onStartGame}
-        style={{
-          background: 'rgba(0, 0, 0, 0.8)',
-          border: '2px solid #00ffff',
-          color: '#00ffff',
-          padding: '15px 30px',
-          fontFamily: 'Courier New, monospace',
-          fontSize: '18px',
-          cursor: 'pointer',
-          marginBottom: '30px',
-          transition: 'all 0.3s ease'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'rgba(0, 255, 255, 0.2)'
-          e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 255, 255, 0.5)'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)'
-          e.currentTarget.style.boxShadow = 'none'
-        }}
+        className={menuStyles.startButton}
       >
         Start Game
       </button>
-      <div id="controls" style={{
-        fontSize: '14px',
-        textAlign: 'center',
-        opacity: 0.8,
-        lineHeight: '1.5'
-      }}>
+      <div id="controls" className={menuStyles.controlsInfo}>
         WASD/Arrow Keys: Move | Space: Jump | Shift: Dash | P: Pause | R: Reset
       </div>
     </div>
