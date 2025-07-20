@@ -101,6 +101,8 @@ export interface Effects {
   zoomFactor: number
   rotationFactor: number
   pixelBleedFactor: number
+  dataBleedEffects?: DataBleedEffect[]
+  particles?: Particle[]
 }
 
 export interface Camera {
@@ -109,6 +111,8 @@ export interface Camera {
   targetX: number
   targetY: number
   smoothing: number
+  zoom: number
+  targetZoom?: number
 }
 
 export interface Keys {

@@ -38,6 +38,7 @@
   ],
   "exclude": [
     "node_modules",
-    "**/*.benchmark.ts"
+    "**/*.benchmark.ts",
+    "GameOG.tsx"
   ]
 }

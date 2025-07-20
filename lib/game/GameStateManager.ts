@@ -51,6 +51,8 @@ export interface GameStateData {
   currentLevel: number
   lives: number
   score: number
+  combo: number
+  bestCombo: number
   paused: boolean
   isReversed: boolean
   levelProgress: number
@@ -92,6 +94,8 @@ export class GameStateManager {
       currentLevel: INITIAL_LEVEL,
       lives: INITIAL_LIVES,
       score: INITIAL_SCORE,
+      combo: 0,
+      bestCombo: 0,
       paused: false,
       isReversed: false,
       levelProgress: 0,
@@ -137,6 +141,14 @@ export class GameStateManager {
 
   getScore(): number {
     return this.state.score
+  }
+
+  getCombo(): number {
+    return this.state.combo
+  }
+
+  getBestCombo(): number {
+    return this.state.bestCombo
   }
 
   isPaused(): boolean {
@@ -311,6 +323,24 @@ export class GameStateManager {
     this.callbacks.onScoreChanged?.(this.state.score)
   }
 
+  setCombo(combo: number): void {
+    this.state.combo = combo
+    if (combo > this.state.bestCombo) {
+      this.state.bestCombo = combo
+    }
+  }
+
+  incrementCombo(): void {
+    this.state.combo++
+    if (this.state.combo > this.state.bestCombo) {
+      this.state.bestCombo = this.state.combo
+    }
+  }
+
+  resetCombo(): void {
+    this.state.combo = 0
+  }
+
   /**
    * Lose a life
    */
@@ -428,7 +458,8 @@ export class GameStateManager {
       y: 0,
       targetX: 0,
       targetY: 0,
-      smoothing: CAMERA_SMOOTHING
+      smoothing: CAMERA_SMOOTHING,
+      zoom: 1.0
     }
   }
 

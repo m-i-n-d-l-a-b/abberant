@@ -27,6 +27,7 @@ const mockCanvasContext = {
   beginPath: jest.fn(),
   moveTo: jest.fn(),
   lineTo: jest.fn(),
+  closePath: jest.fn(),
   stroke: jest.fn(),
   fill: jest.fn(),
   arc: jest.fn(),
@@ -122,6 +123,7 @@ describe('Renderer', () => {
         height: 16,
         collected: false,
         color: '#ffff00',
+        value: 100,
       },
     ]
 
@@ -139,6 +141,17 @@ describe('Renderer', () => {
       dreamLayers: [],
       dataBleedEffects: [],
       particles: [],
+      glitchOffset: { x: 0, y: 0 },
+      meltingFactor: 0,
+      colorShift: 0,
+      pulseFactor: 1,
+      blurFactor: 0,
+      noiseFactor: 0,
+      rgbShiftFactor: 0,
+      waveFactor: 0,
+      zoomFactor: 0,
+      rotationFactor: 0,
+      pixelBleedFactor: 0,
     }
 
     // Create renderer instance
@@ -227,7 +240,7 @@ describe('Renderer', () => {
 
   describe('Rendering Functions', () => {
     test('should render background', () => {
-      renderer.renderBackground()
+      renderer.renderBackgroundLayer()
       
       expect(mockCanvasContext.clearRect).toHaveBeenCalled()
       expect(mockCanvasContext.fillRect).toHaveBeenCalled()

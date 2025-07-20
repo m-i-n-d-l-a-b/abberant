@@ -32,6 +32,13 @@ export interface PlayerInput {
   dash: boolean
 }
 
+export interface GamepadInput {
+  left: boolean
+  right: boolean
+  jump: boolean
+  dash: boolean
+}
+
 /**
  * Mobile button handler configuration
  */
@@ -55,10 +62,21 @@ export class InputManager {
     jump: false,
     dash: false
   }
+  private gamepadInput: GamepadInput = {
+    left: false,
+    right: false,
+    jump: false,
+    dash: false
+  }
 
   private callbacks: InputCallbacks
   private gameState: string = 'start'
   private audioInitialized: boolean = false
+
+  // Gamepad support
+  private gamepadIndex: number | null = null
+  private gamepadDeadzone: number = 0.3
+  private gamepadButtonPressed: { [key: string]: boolean } = {}
 
   // Event handlers
   private keydownHandler!: (e: KeyboardEvent) => void
@@ -92,6 +110,7 @@ export class InputManager {
   private setupEventHandlers(): void {
     this.setupKeyboardHandlers()
     this.setupMobileControls()
+    this.setupGamepadSupport()
     this.setupStartButton()
     this.setupSoundToggle()
   }
@@ -101,6 +120,7 @@ export class InputManager {
    */
   private setupKeyboardHandlers(): void {
     this.keydownHandler = (e: KeyboardEvent) => {
+      
       // Ensure audio context is resumed on any user interaction
       if (!this.audioInitialized) {
         this.callbacks.onAudioContextResume()
@@ -111,7 +131,18 @@ export class InputManager {
         return
       }
 
-      this.keys[e.key.toLowerCase()] = true
+      // Handle arrow keys with proper casing
+      if (e.key === "ArrowLeft") {
+        this.keys["ArrowLeft"] = true
+      } else if (e.key === "ArrowRight") {
+        this.keys["ArrowRight"] = true
+      } else if (e.key === "ArrowUp") {
+        this.keys["ArrowUp"] = true
+      } else if (e.key === "ArrowDown") {
+        this.keys["ArrowDown"] = true
+      } else {
+        this.keys[e.key.toLowerCase()] = true
+      }
 
       // Handle specific key actions
       if (e.key === " " || e.key === "ArrowUp" || e.key.toLowerCase() === "w") {
@@ -145,7 +176,18 @@ export class InputManager {
     }
 
     this.keyupHandler = (e: KeyboardEvent) => {
-      this.keys[e.key.toLowerCase()] = false
+      // Handle arrow keys with proper casing
+      if (e.key === "ArrowLeft") {
+        this.keys["ArrowLeft"] = false
+      } else if (e.key === "ArrowRight") {
+        this.keys["ArrowRight"] = false
+      } else if (e.key === "ArrowUp") {
+        this.keys["ArrowUp"] = false
+      } else if (e.key === "ArrowDown") {
+        this.keys["ArrowDown"] = false
+      } else {
+        delete this.keys[e.key.toLowerCase()]
+      }
     }
 
     // Add event listeners
@@ -217,6 +259,63 @@ export class InputManager {
   }
 
   /**
+   * Setup gamepad support
+   */
+  private setupGamepadSupport(): void {
+    this.gamepadIndex = null
+    this.gamepadDeadzone = 0.3
+    this.gamepadButtonPressed = {}
+    
+    window.addEventListener("gamepadconnected", (e: any) => {
+      this.gamepadIndex = e.gamepad.index
+    })
+    
+    window.addEventListener("gamepaddisconnected", () => {
+      this.gamepadIndex = null
+    })
+  }
+
+  /**
+   * Update gamepad input state
+   */
+  private updateGamepadInput(): void {
+    if (this.gamepadIndex === null) return
+    
+    const gamepad = navigator.getGamepads()[this.gamepadIndex]
+    if (!gamepad) return
+    
+    if (this.gameState === "start" && gamepad.buttons.some((b) => b.pressed)) {
+      this.callbacks.onStartGame()
+      return
+    }
+    
+    const leftStickX = gamepad.axes[0]
+    const dpadLeft = gamepad.buttons[14]?.pressed || false
+    const dpadRight = gamepad.buttons[15]?.pressed || false
+    
+    this.gamepadInput.left = leftStickX < -this.gamepadDeadzone || dpadLeft
+    this.gamepadInput.right = leftStickX > this.gamepadDeadzone || dpadRight
+    
+    const jumpButton = gamepad.buttons[0]
+    if (jumpButton.pressed && !this.gamepadButtonPressed.jump) {
+      this.callbacks.onJump()
+    }
+    this.gamepadButtonPressed.jump = jumpButton.pressed
+    
+    const dashButton = gamepad.buttons[1]
+    if (dashButton.pressed && !this.gamepadButtonPressed.dash) {
+      this.callbacks.onDash()
+    }
+    this.gamepadButtonPressed.dash = dashButton.pressed
+    
+    const pauseButton = gamepad.buttons[9]
+    if (pauseButton && pauseButton.pressed && !this.gamepadButtonPressed.pause) {
+      this.callbacks.onPause()
+    }
+    this.gamepadButtonPressed.pause = pauseButton ? pauseButton.pressed : false
+  }
+
+  /**
    * Setup start button handler
    */
   private setupStartButton(): void {
@@ -248,12 +347,19 @@ export class InputManager {
    * Get current input state for player movement
    */
   getPlayerInput(): PlayerInput {
-    return {
-      left: this.keys['a'] || this.keys['A'] || this.keys['ArrowLeft'] || this.touchInput.left,
-      right: this.keys['d'] || this.keys['D'] || this.keys['ArrowRight'] || this.touchInput.right,
-      jump: this.keys['w'] || this.keys['W'] || this.keys['ArrowUp'] || this.keys[' '] || this.touchInput.jump,
-      dash: this.keys['Shift'] || this.touchInput.dash
+    // Update gamepad input before returning
+    this.updateGamepadInput()
+    
+    const input = {
+      left: this.keys['a'] || this.keys['A'] || this.keys['ArrowLeft'] || this.touchInput.left || this.gamepadInput.left,
+      right: this.keys['d'] || this.keys['D'] || this.keys['ArrowRight'] || this.touchInput.right || this.gamepadInput.right,
+      jump: this.keys['w'] || this.keys['W'] || this.keys['ArrowUp'] || this.keys[' '] || this.touchInput.jump || this.gamepadInput.jump,
+      dash: this.keys['Shift'] || this.touchInput.dash || this.gamepadInput.dash
     }
+    
+
+    
+    return input
   }
 
   /**
@@ -281,6 +387,13 @@ export class InputManager {
       jump: false,
       dash: false
     }
+    this.gamepadInput = {
+      left: false,
+      right: false,
+      jump: false,
+      dash: false
+    }
+    this.gamepadButtonPressed = {}
   }
 
   /**

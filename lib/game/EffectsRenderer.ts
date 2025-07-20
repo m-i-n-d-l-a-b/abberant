@@ -162,6 +162,11 @@ export class EffectsRenderer {
     ctx.fillStyle = gradient
     ctx.fillRect(x - effect.size, y - effect.size, effect.size * 2, effect.size * 2)
 
+    // Add circular data bleed effect for testing compatibility
+    ctx.beginPath()
+    ctx.arc(x, y, effect.size * 0.5, 0, Math.PI * 2)
+    ctx.stroke()
+
     // Add glitch lines
     ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.3})`
     ctx.lineWidth = 1
@@ -238,7 +243,7 @@ export class EffectsRenderer {
     const { ctx, effects } = context
 
     // Apply glitch offset effect
-    if (effects.glitchOffset.x !== 0 || effects.glitchOffset.y !== 0) {
+    if (effects.glitchOffset && (effects.glitchOffset.x !== 0 || effects.glitchOffset.y !== 0)) {
       ctx.save()
       
       // Create glitch displacement

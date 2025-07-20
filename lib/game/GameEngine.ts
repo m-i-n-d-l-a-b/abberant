@@ -1,23 +1,22 @@
 /**
  * Game Engine
  * 
- * This module contains the core game engine class extracted from the monolithic Game.tsx file.
- * It handles all game logic, rendering, input, audio, and state management.
+ * Main game engine class that orchestrates all game systems.
+ * Integrates the working game logic from PolishedTrippySideScroller
+ * with the modular architecture.
  */
 
-import { CollisionSystem, CollisionEntity, BoundingBox } from './CollisionSystem'
-import { ParticlePool, AudioNodePool, Particle as PooledParticle } from './ObjectPool'
-import { RenderingOptimizer } from './RenderingOptimizer'
+import { GameStateManager } from './GameStateManager'
+import { PlayerManager } from './PlayerManager'
+import { EnemyManager } from './EnemyManager'
+import { CollisionSystem } from './CollisionSystem'
 import { AudioManager } from './AudioManager'
-import { AudioManagerWrapper } from './AudioManagerWrapper'
-import { GameStateManager, GameStateType, GameStateCallbacks } from './GameStateManager'
-import { PlayerManager, PlayerInput, PlayerUpdateResult } from './PlayerManager'
-import { EnemyManager, EnemySpawnConfig, EnemyUpdateResult } from './EnemyManager'
-import { LevelGenerator, LevelConfig, LevelData } from './LevelGenerator'
-import { Renderer, RenderConfig, RenderState } from './Renderer'
-import { InputManager, InputCallbacks } from './InputManager'
+import { InputManager } from './InputManager'
+import { Renderer } from './Renderer'
+import { LevelGenerator } from './LevelGenerator'
+import { ObjectPool } from './ObjectPool'
+import { saveToStorage, getFromStorage } from '../utils/storage'
 import {
-  GameState,
   Player,
   Platform,
   Enemy,
@@ -38,111 +37,65 @@ import {
   INITIAL_LEVEL,
   INITIAL_SCORE,
   LEVEL_TARGET,
-  LEVEL_START_INVINCIBILITY,
   PLAYER_START_X,
   PLAYER_START_Y,
   PLAYER_WIDTH,
   PLAYER_HEIGHT,
   PLAYER_SPEED,
   PLAYER_JUMP_POWER,
-  PLAYER_DASH_POWER,
-  PLAYER_DASH_COOLDOWN,
-  PLAYER_INVULNERABLE_TIME,
   PLAYER_COLOR,
-  PLAYER_FRICTION,
-  PLAYER_GRAVITY,
   CAMERA_SMOOTHING,
-  CAMERA_ZOOM_MIN,
-  CAMERA_ZOOM_MAX,
-  CAMERA_ZOOM_TRANSITION_DURATION,
-  BASE_LEVEL_WIDTH,
-  LEVEL_WIDTH_INCREMENT,
-  BASE_PLATFORM_COUNT,
-  PLATFORM_COUNT_INCREMENT,
-  BASE_ENEMY_COUNT,
-  ENEMY_COUNT_INCREMENT,
-  BASE_COLLECTIBLE_COUNT,
-  COLLECTIBLE_COUNT_INCREMENT,
-  PLATFORM_MIN_WIDTH,
-  PLATFORM_WIDTH_VARIATION,
-  PLATFORM_BASE_Y,
-  PLATFORM_Y_VARIATION,
-  PLATFORM_X_VARIATION,
-  ENEMY_WIDTH,
-  ENEMY_HEIGHT,
-  ENEMY_SPEED_MIN,
-  ENEMY_SPEED_VARIATION,
-  ENEMY_MOVE_RANGE_MIN,
-  ENEMY_MOVE_RANGE_VARIATION,
-  ENEMY_STOMP_ZONE_HEIGHT,
-  ENEMY_SCORE_VALUE,
-  COLLECTIBLE_WIDTH,
-  COLLECTIBLE_HEIGHT,
-  COLLECTIBLE_VALUE,
-  STAR_COUNT,
-  DREAM_PARTICLES_COUNT,
-  DREAM_WAVES_COUNT,
-  DREAM_LAYERS_COUNT,
-  STAR_TYPE_PROBABILITIES,
-  STAR_PROPERTIES,
-  BGM_TEMPO,
-  BGM_PITCH_MOD,
-  BGM_TEMPO_VARIATION,
-  BGM_PITCH_VARIATION,
-  EFFECTS_UPDATE_INTERVAL,
-  EFFECTS_MAJOR_UPDATE_INTERVAL,
-  DATA_BLEED_DURATION,
-  DATA_BLEED_SIZE_MIN,
-  DATA_BLEED_SIZE_VARIATION,
-  PARTICLE_EXPLOSION_COUNT,
-  PARTICLE_VELOCITY_MIN,
-  PARTICLE_VELOCITY_MAX,
-  PARTICLE_SIZE_MIN,
-  PARTICLE_SIZE_MAX,
-  DREAM_LAYER_ALPHA_BASE,
-  DREAM_LAYER_ALPHA_DECREMENT,
-  DREAM_LAYER_SCALE_BASE,
-  DREAM_LAYER_SCALE_INCREMENT,
-  DREAM_WAVE_AMPLITUDE_BASE,
-  DREAM_WAVE_AMPLITUDE_VARIATION,
-  DREAM_WAVE_FREQUENCY_BASE,
-  DREAM_WAVE_FREQUENCY_INCREMENT,
-  DREAM_WAVE_ALPHA,
-  LEVEL_EFFECTS,
-  TRANSITION_DURATION,
-  TRANSITION_ZOOM_IN_DURATION,
-  TRANSITION_ZOOM_OUT_DURATION,
-  LEVEL_COMPLETION_SCORE_MULTIPLIER,
-  COLLISION_WORLD_BUFFER,
-  COLLISION_GRID_SIZE,
-  COLLISION_MAX_ENTITIES,
-  PARTICLE_POOL_SIZE,
-  PARTICLE_POOL_MAX,
-  AUDIO_NODE_POOL_SIZE,
-  AUDIO_NODE_POOL_MAX,
-  MOBILE_BUTTON_SIZE,
-  MOBILE_BUTTON_MARGIN,
-  SOUND_TOGGLE_SIZE,
-  SOUND_TOGGLE_MARGIN
+  CAMERA_ZOOM_MIN
 } from '../../constants/game'
 
+export interface GameEngineCallbacks {
+  onStateChange?: (oldState: string, newState: string) => void
+  onLevelComplete?: (level: number, score: number) => void
+  onGameOver?: (finalScore: number) => void
+  onPauseToggle?: (paused: boolean) => void
+  onLivesChanged?: (lives: number) => void
+  onScoreChanged?: (score: number) => void
+  onComboChanged?: (combo: number) => void
+}
+
 export class GameEngine {
+  // Canvas and rendering
   canvas: HTMLCanvasElement
   ctx: CanvasRenderingContext2D
   width: number
   height: number
 
+  // Game state
+  gameState!: string
+  currentLevel!: number
+  lives!: number
+  score!: number
+  combo!: number
+  bestCombo!: number
+  paused!: boolean
+  isReversed!: boolean
+  levelProgress!: number
+  levelTarget!: number
+  transitionTimer!: number
+  levelEffects!: string[]
+  frameCount!: number
+  lastTime!: number
+  fps!: number
+
+  // Game entities
   player!: Player
   camera!: Camera
+  // Legacy keys property removed - now handled by modular InputManager
+  // Legacy input properties removed - now handled by modular InputManager
   effects!: Effects
   platforms!: Platform[]
   enemies!: Enemy[]
   collectibles!: Collectible[]
   backgroundStars!: BackgroundStar[]
   dataBleedEffects!: DataBleedEffect[]
-  frameCount!: number
-  lastTime!: number
-  fps!: number
+  particles!: Particle[]
+
+  // Audio
   audioCtx!: AudioContext | null
   soundEnabled!: boolean
   audioInitialized!: boolean
@@ -152,384 +105,544 @@ export class GameEngine {
   delayNode!: DelayNode | null
   feedbackGain!: GainNode | null
   masterGain!: GainNode | null
+
+  // Input
+  // Legacy gamepad properties removed - now handled by modular InputManager
   inputSetupDone!: boolean
   animationFrameId!: number | null
-  inputManager!: InputManager
-  particles!: Particle[]; // Canvas-based particles
-  collisionSystem!: CollisionSystem; // Spatial partitioning collision system
-  particlePool!: ParticlePool; // Object pool for particles
-  audioNodePool!: AudioNodePool; // Object pool for audio nodes
-  renderingOptimizer!: RenderingOptimizer; // Optimized rendering system
-  audioManager!: AudioManager; // Optimized audio management system
-  audioWrapper!: AudioManagerWrapper; // Game-specific audio wrapper
-  stateManager!: GameStateManager; // Game state management system
-  playerManager!: PlayerManager; // Player management system
-  enemyManager!: EnemyManager; // Enemy management system
-  levelGenerator!: LevelGenerator; // Level generation system
-  renderer!: Renderer; // Rendering system
 
-  constructor(canvas: HTMLCanvasElement) {
+  // Camera and transitions
+  cameraZoom!: number
+  transitionPhase!: 'none' | 'zoomIn' | 'transition' | 'zoomOut'
+  transitionProgress!: number
+  levelStartInvincibility!: number
+
+  // Effects Lab
+  isEffectsLabUnlocked!: boolean
+  activeCustomEffects!: any
+  effectsLabSettings!: {
+    wobble: { enabled: boolean; amplitude: number; frequency: number; speed: number }
+    upsideDown: { enabled: boolean }
+    invert: { enabled: boolean }
+    backwards: { enabled: boolean }
+    melting: { enabled: boolean; intensity: number; speed: number }
+    dataBleed: { enabled: boolean; intensity: number; duration: number }
+  }
+  effectsLabPresets!: Array<{ name: string; settings: any }>
+  selectedPresetName!: string
+
+  // Development mode
+  private readonly DEV_MODE = true
+
+  // Managers
+  private gameStateManager: GameStateManager
+  private playerManager!: PlayerManager
+  private enemyManager!: EnemyManager
+  private collisionSystem: CollisionSystem
+  private audioManager: AudioManager
+  private inputManager: InputManager
+  private renderer: Renderer
+  private levelGenerator: LevelGenerator
+  private objectPool: ObjectPool<any>
+
+  // Event handlers
+  // Legacy input handlers removed - now handled by modular InputManager
+
+  constructor(canvas: HTMLCanvasElement, callbacks: GameEngineCallbacks = {}) {
     this.canvas = canvas
     this.ctx = canvas.getContext('2d')!
     this.width = CANVAS_WIDTH
     this.height = CANVAS_HEIGHT
-    this.setupAudio()
-    this.init()
-  }
 
-  init() {
-    // Initialize state manager with callbacks
-    const stateCallbacks: GameStateCallbacks = {
-      onStateChange: (oldState, newState) => {
-        console.log(`Game state changed: ${oldState} -> ${newState}`)
-        // Notify audio wrapper of state change
-        this.audioWrapper?.onGameStateChange(newState)
-      },
-      onLevelComplete: (level, score) => {
-        console.log(`Level ${level} completed! Score: ${score}`)
-        // Play level complete sound
-        this.audioWrapper?.playGameSound('level_complete')
-      },
-      onGameOver: (finalScore) => {
-        console.log(`Game Over! Final Score: ${finalScore}`)
-        this.showGameOverScreen()
-        // Play game over sound
-        this.audioWrapper?.playGameSound('game_over')
-      },
-      onPauseToggle: (paused) => {
-        console.log(`Game ${paused ? 'paused' : 'resumed'}`)
-        this.showPauseScreen(paused)
-      },
-      onLivesChanged: (lives) => {
-        console.log(`Lives changed: ${lives}`)
-        this.updateLivesDisplay(lives)
-        // Play death sound if lives decreased
-        if (lives < this.stateManager.getLives()) {
-          this.audioWrapper?.playGameSound('death')
-        }
-      },
-      onScoreChanged: (score) => {
-        console.log(`Score changed: ${score}`)
-        this.updateScoreDisplay(score)
-      }
-    }
-
-    this.stateManager = new GameStateManager(stateCallbacks)
-    this.stateManager.init()
-
-    // Initialize game entities using state manager
-    this.player = this.stateManager.getPlayerInitialState()
-    this.camera = this.stateManager.getCameraInitialState()
-    this.effects = this.stateManager.getEffectsInitialState()
-    
-
-
-    if (!this.inputSetupDone) {
-      this.setupInput()
-      this.inputSetupDone = true
-    }
-
-    this.particles = []
-    this.platforms = []
-    this.enemies = []
-    this.collectibles = []
-    this.backgroundStars = []
-    this.dataBleedEffects = []
-
-    this.frameCount = 0
-    this.lastTime = performance.now()
-    this.fps = FPS
-
-    // Initialize collision system with world bounds
-    const worldBounds: BoundingBox = {
-      x: -COLLISION_WORLD_BUFFER, // Allow some buffer for entities that might be slightly off-screen
-      y: -COLLISION_WORLD_BUFFER,
-      width: BASE_LEVEL_WIDTH + this.stateManager.getCurrentLevel() * LEVEL_WIDTH_INCREMENT + COLLISION_WORLD_BUFFER * 2, // Level width + buffer
-      height: this.height + COLLISION_WORLD_BUFFER * 2 // Height + buffer
-    }
-    this.collisionSystem = new CollisionSystem(worldBounds, COLLISION_GRID_SIZE, COLLISION_MAX_ENTITIES)
-
-    // Initialize object pools
-    this.particlePool = new ParticlePool(PARTICLE_POOL_SIZE, PARTICLE_POOL_MAX)
-    if (this.audioCtx) {
-      this.audioNodePool = new AudioNodePool(this.audioCtx, AUDIO_NODE_POOL_SIZE, AUDIO_NODE_POOL_MAX)
-    }
-
-    // Initialize rendering optimizer
-    this.renderingOptimizer = new RenderingOptimizer(this.ctx)
-
-    // Initialize audio manager and wrapper
+    // Initialize managers
+    this.gameStateManager = new GameStateManager(callbacks)
+    this.collisionSystem = new CollisionSystem({
+      x: 0,
+      y: 0,
+      width: this.width * 10, // Large world bounds
+      height: this.height * 10
+    })
     this.audioManager = new AudioManager()
-    this.audioWrapper = new AudioManagerWrapper()
-
-    // Initialize player manager
-    this.playerManager = new PlayerManager(
-      this.player,
-      this.collisionSystem,
-      this.camera,
-      this.width,
-      this.height
-    )
-
-    // Initialize enemy manager
-    this.enemyManager = new EnemyManager(
-      this.collisionSystem,
-      this.width,
-      this.height
-    )
-
-    // Initialize level generator
-    this.levelGenerator = new LevelGenerator(this.width, this.height)
-
-    // Initialize renderer
-    const renderConfig: RenderConfig = {
-      width: this.width,
-      height: this.height,
-      fps: FPS,
-      enableOptimization: true
-    }
-    this.renderer = new Renderer(this.canvas, renderConfig)
-
-    this.showStartScreen()
-    this.generateLevel()
-    // Populate collision system with initial level entities
-    this.populateCollisionSystem()
-
-    if (!this.animationFrameId) {
-      this.gameLoop()
-    }
-  }
-
-  showStartScreen() {
-    const startScreen = document.getElementById("startScreen")
-    const gameOverScreen = document.getElementById("gameOverScreen")
-    const pauseScreen = document.getElementById("pauseScreen")
-    
-    if (startScreen) startScreen.style.display = "flex"
-    if (gameOverScreen) gameOverScreen.style.display = "none"
-    if (pauseScreen) pauseScreen.style.display = "none"
-  }
-
-  startGame() {
-    if (this.stateManager.startGame()) {
-      const startScreen = document.getElementById("startScreen")
-      if (startScreen) startScreen.style.display = "none"
-      this.initAudioContext()
-      
-      // Generate level and start rendering
-      this.generateLevel()
-      this.populateCollisionSystem()
-      
-      // Start renderer
-      this.renderer.start()
-      
-      // Start game loop
-      this.gameLoop()
-    }
-  }
-
-  restart() {
-    this.stateManager.restart()
-    this.init()
-  }
-
-  setupAudio() {
-    this.audioCtx = null
-    this.soundEnabled = true
-    this.audioInitialized = false
-    this.bgmTimeoutId = null
-    this.bgmTempo = BGM_TEMPO
-    this.bgmPitchMod = BGM_PITCH_MOD
-    this.delayNode = null
-    this.feedbackGain = null
-    this.masterGain = null
-  }
-
-  initAudioContext() {
-    if (this.audioInitialized) return
-    
-    // Initialize audio wrapper context
-    const success = this.audioWrapper.initAudioContext()
-    if (success) {
-      this.audioCtx = this.audioManager['audioContext'] // Access private property for compatibility
-      this.audioInitialized = true
-      this.startBGM()
-    }
-  }
-
-  playSound(type: string) {
-    // Use audio wrapper for game-specific sound handling
-    this.audioWrapper.playGameSound(type as any, 1.0)
-  }
-
-  startBGM() {
-    this.audioWrapper.startBGM()
-  }
-
-  stopBGM() {
-    this.audioWrapper.stopBGM()
-  }
-
-  setupInput() {
-    const inputCallbacks: InputCallbacks = {
+    this.inputManager = new InputManager({
       onStartGame: () => this.startGame(),
       onJump: () => this.jump(),
       onDash: () => this.dash(),
       onPause: () => this.togglePause(),
       onRestart: () => this.restart(),
-      onToggleCollisionDebug: () => {
-        const currentDebugMode = this.collisionSystem['debugMode']
-        this.collisionSystem.setDebugMode(!currentDebugMode)
-        console.log(`Collision debug mode: ${!currentDebugMode ? 'enabled' : 'disabled'}`)
-      },
-      onValidateCollisionSystem: () => {
-        const validation = this.collisionSystem.validateSystemState()
-        console.log('Collision system validation:', validation)
-        if (!validation.isValid) {
-          console.warn('Issues found:', validation.issues)
-        }
-      },
-      onAudioContextResume: () => {
-        this.audioWrapper.resumeAudioContext()
-      },
+      onToggleCollisionDebug: () => this.collisionSystem.setDebugMode(!this.collisionSystem['debugMode']),
+      onValidateCollisionSystem: () => console.log(this.collisionSystem.validateSystemState()),
+      onAudioContextResume: () => this.initAudioContext(),
       onSoundToggle: () => {
-        const newState = !this.audioWrapper.isSoundEnabled()
-        this.audioWrapper.setSoundEnabled(newState)
-        this.soundEnabled = newState
-        
-        const soundToggle = document.getElementById("soundToggle")
-        if (soundToggle) {
-          soundToggle.textContent = newState
-            ? "🔊 SOUND: ON"
-            : "🔇 SOUND: OFF"
+        this.soundEnabled = !this.soundEnabled
+        if (this.soundEnabled) {
+          this.startBGM()
+        } else {
+          this.stopBGM()
         }
       }
-    }
+    })
+    this.renderer = new Renderer(canvas, {
+      width: this.width,
+      height: this.height,
+      fps: FPS,
+      enableOptimization: true
+    })
+    this.levelGenerator = new LevelGenerator(this.width, this.height)
+    this.objectPool = new ObjectPool({
+      initialSize: 10,
+      maxSize: 100,
+      createFn: () => ({ reset: () => {} })
+    })
 
-    this.inputManager = new InputManager(inputCallbacks)
+    // Initialize game state
+    this.init()
   }
 
+  init(): void {
+    // Initialize game state
+    this.gameState = "start"
+    this.currentLevel = INITIAL_LEVEL
+    this.lives = INITIAL_LIVES
+    this.score = INITIAL_SCORE
+    this.combo = 0
+    this.bestCombo = 0
+    this.paused = false
+    this.isReversed = false
+    this.cameraZoom = CAMERA_ZOOM_MIN
+    this.transitionPhase = 'none'
+    this.transitionProgress = 0
+    this.levelStartInvincibility = 0
 
+    // Initialize Effects Lab state
+    this.isEffectsLabUnlocked = this.DEV_MODE || getFromStorage('effectsLabUnlocked') || false
+    this.activeCustomEffects = getFromStorage('activeCustomEffects') || null
 
-  // Placeholder methods that will be implemented in subsequent phases
-  generateLevel() {
-    const levelConfig: LevelConfig = {
-      level: this.stateManager.getCurrentLevel(),
-      playerX: this.player.x,
-      playerY: this.player.y,
-      difficulty: this.stateManager.getCurrentLevel() / 10
+    // Initialize Effects Lab settings
+    this.effectsLabSettings = {
+      wobble: { enabled: false, amplitude: 5, frequency: 0.05, speed: 0.002 },
+      upsideDown: { enabled: false },
+      invert: { enabled: false },
+      backwards: { enabled: false },
+      melting: { enabled: false, intensity: 1, speed: 0.01 },
+      dataBleed: { enabled: false, intensity: 1, duration: 20 }
     }
-    
-    // Generate complete level using level generator
-    const levelData = this.levelGenerator.generateLevel(levelConfig)
-    
-    // Update game state with level data
-    this.platforms = levelData.platforms
-    this.collectibles = levelData.collectibles
-    this.backgroundStars = levelData.backgroundStars
-    this.stateManager.setLevelTarget(levelData.levelWidth)
-    
-    // Update renderer with background stars
-    this.renderer.setBackgroundStars(this.backgroundStars)
-    
-    // Generate enemies using enemy manager
-    const spawnConfig: EnemySpawnConfig = {
-      level: this.stateManager.getCurrentLevel(),
-      levelWidth: levelData.levelWidth,
-      platforms: this.platforms,
-      playerX: this.player.x
+
+    this.effectsLabPresets = getFromStorage('effectsLabPresets') || []
+    this.selectedPresetName = ''
+
+    // Initialize game entities
+    this.player = {
+      x: PLAYER_START_X,
+      y: PLAYER_START_Y,
+      width: PLAYER_WIDTH,
+      height: PLAYER_HEIGHT,
+      velX: 0,
+      velY: 0,
+      speed: PLAYER_SPEED,
+      jumpPower: PLAYER_JUMP_POWER,
+      grounded: false,
+      doubleJump: false,
+      dashCooldown: 0,
+      invulnerable: 0,
+      color: PLAYER_COLOR,
+      trail: [],
+      respawning: false
     }
+
+    this.camera = { x: 0, y: 0, targetX: 0, targetY: 0, smoothing: CAMERA_SMOOTHING, zoom: CAMERA_ZOOM_MIN }
+    // Legacy input properties removed - now handled by modular InputManager
+
+    this.effects = {
+      glitchOffset: { x: 0, y: 0 },
+      meltingFactor: 0,
+      colorShift: 0,
+      pulseFactor: 1,
+      blurFactor: 0,
+      noiseFactor: 0,
+      rgbShiftFactor: 0,
+      waveFactor: 0,
+      zoomFactor: 0,
+      rotationFactor: 0,
+      pixelBleedFactor: 0,
+      dataBleedEffects: [],
+      particles: []
+    }
+
+    this.levelProgress = 0
+    this.levelTarget = LEVEL_TARGET
+    this.platforms = []
+    this.enemies = []
+    this.collectibles = []
+    this.backgroundStars = []
+    this.dataBleedEffects = []
+    this.particles = []
+
+    this.frameCount = 0
+    this.lastTime = performance.now()
+    this.fps = FPS
+
+    // Initialize managers with current state
+    this.playerManager = new PlayerManager(this.player, this.collisionSystem, this.camera, this.width, this.height)
+    this.enemyManager = new EnemyManager(this.collisionSystem, this.width, this.height)
+
+    // Setup input using modular InputManager
+    if (!this.inputSetupDone) {
+      this.inputManager.setGameState(this.gameState)
+      this.inputSetupDone = true
+    }
+
+    // Initialize audio
+    this.setupAudio()
+
+    // Generate initial level
+    this.generateLevel()
+
+    // Start game loop
+    if (!this.animationFrameId) {
+      this.gameLoop()
+    }
+  }
+
+  setupAudio(): void {
+    this.audioCtx = null
+    this.soundEnabled = true
+    this.audioInitialized = false
+    this.bgmTimeoutId = null
+    this.bgmTempo = 500
+    this.bgmPitchMod = 1.0
+    this.delayNode = null
+    this.feedbackGain = null
+    this.masterGain = null
+  }
+
+  initAudioContext(): void {
+    if (this.audioInitialized) return
+    if (!this.audioCtx) {
+      this.audioCtx = new ((window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext)()
+    }
+    if (this.audioCtx.state === "suspended") this.audioCtx.resume()
+    this.masterGain = this.audioCtx.createGain()
+    this.delayNode = this.audioCtx.createDelay(1.0)
+    this.feedbackGain = this.audioCtx.createGain()
+    this.delayNode.delayTime.value = 0.25
+    this.feedbackGain.gain.value = 0.4
+    this.masterGain.connect(this.delayNode)
+    this.masterGain.connect(this.audioCtx.destination)
+    this.delayNode.connect(this.audioCtx.destination)
+    this.delayNode.connect(this.feedbackGain)
+    this.feedbackGain.connect(this.delayNode)
+    this.audioInitialized = true
+    this.startBGM()
+  }
+
+  playSound(type: string): void {
+    if (!this.soundEnabled || !this.audioCtx) return
+    const now = this.audioCtx.currentTime
+    const gainNode = this.audioCtx.createGain()
+    gainNode.connect(this.audioCtx.destination)
+    const oscillator = this.audioCtx.createOscillator()
+    oscillator.connect(gainNode)
     
-    this.enemies = this.enemyManager.generateEnemies(spawnConfig)
-    
-    // Assign level effects
+    switch (type) {
+      case "jump":
+        gainNode.gain.setValueAtTime(0.2, now)
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.2)
+        oscillator.frequency.setValueAtTime(440, now)
+        oscillator.frequency.exponentialRampToValueAtTime(880, now + 0.2)
+        break
+      case "dash":
+        gainNode.gain.setValueAtTime(0.3, now)
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.4)
+        oscillator.type = "sawtooth"
+        oscillator.frequency.setValueAtTime(100, now)
+        oscillator.frequency.exponentialRampToValueAtTime(1200, now + 0.4)
+        break
+      case "collect":
+        gainNode.gain.setValueAtTime(0.2, now)
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.15)
+        oscillator.frequency.setValueAtTime(880, now)
+        oscillator.frequency.exponentialRampToValueAtTime(1760, now + 0.15)
+        break
+      case "stomp":
+        gainNode.gain.setValueAtTime(0.4, now)
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3)
+        oscillator.type = "square"
+        oscillator.frequency.setValueAtTime(400, now)
+        oscillator.frequency.exponentialRampToValueAtTime(200, now + 0.3)
+        break
+      case "hit":
+        gainNode.gain.setValueAtTime(0.5, now)
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5)
+        oscillator.type = "sawtooth"
+        oscillator.frequency.setValueAtTime(200, now)
+        oscillator.frequency.exponentialRampToValueAtTime(50, now + 0.5)
+        break
+    }
+    oscillator.start(now)
+    oscillator.stop(now + 1)
+  }
+
+  scheduleNextNote(): void {
+    if (!this.soundEnabled || !this.audioCtx || this.paused) return
+    const now = this.audioCtx.currentTime
+    const notes = [220.0, 261.63, 329.63, 392.0]
+    const note = notes[Math.floor(Math.random() * notes.length)]
+    const gainNode = this.audioCtx.createGain()
+    gainNode.connect(this.masterGain!)
+    gainNode.gain.setValueAtTime(0.08, now)
+    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5)
+    const oscillator = this.audioCtx.createOscillator()
+    oscillator.connect(gainNode)
+    oscillator.type = "square"
+    oscillator.frequency.setValueAtTime(note * this.bgmPitchMod, now)
+    oscillator.start(now)
+    oscillator.stop(now + 0.5)
+    this.bgmTimeoutId = setTimeout(() => this.scheduleNextNote(), this.bgmTempo)
+  }
+
+  startBGM(): void {
+    this.stopBGM()
+    if (this.soundEnabled && this.audioInitialized && !this.paused) {
+      this.scheduleNextNote()
+    }
+  }
+
+  stopBGM(): void {
+    if (this.bgmTimeoutId) {
+      clearTimeout(this.bgmTimeoutId)
+      this.bgmTimeoutId = null
+    }
+  }
+
+  // Legacy input setup removed - now handled by modular InputManager
+
+  // Legacy mobile controls removed - now handled by modular InputManager
+
+  // Legacy gamepad support removed - now handled by modular InputManager
+
+  // Legacy sound toggle setup removed - now handled by modular InputManager
+
+  updateGamepadInput(): void {
+    // Gamepad input is now handled by the modular InputManager
+    // This method is kept for compatibility but delegates to InputManager
+    if (this.inputManager) {
+      // The InputManager handles gamepad input internally
+      // No additional processing needed here
+    }
+  }
+
+  generateLevel(): void {
+    this.platforms = []
+    this.enemies = []
+    this.collectibles = []
     this.assignLevelEffects()
+
+    const levelWidth = 2000 + this.currentLevel * 500
+    this.levelTarget = levelWidth
+    this.generateBackground()
+
+    // Set player starting position based on backwards mode
+    if (this.isReversed) {
+      this.player.x = this.levelTarget - 100
+    } else {
+      this.player.x = 100
+    }
+    this.player.y = 400
+
+    const platformCount = 15 + this.currentLevel * 3
+    this.platforms.push({
+      x: 0,
+      y: 550,
+      width: 200,
+      height: 50,
+      color: "#ff00ff",
+      type: "normal",
+      liquidPixels: [],
+      distortionOffset: 0
+    })
     
-    console.log(`Generated level ${levelConfig.level}: ${levelData.platforms.length} platforms, ${levelData.collectibles.length} collectibles, ${levelData.backgroundStars.length} stars`)
+    for (let i = 1; i < platformCount; i++) {
+      const x = (i * levelWidth) / platformCount + Math.random() * 100 - 50
+      const y = 200 + Math.sin(i * 0.5) * 150 + Math.random() * 100
+      const width = 80 + Math.random() * 120
+      this.platforms.push({
+        x,
+        y,
+        width,
+        height: 20,
+        color: `hsl(${(i * 30) % 360}, 70%, 50%)`,
+        type: "normal",
+        liquidPixels: [],
+        distortionOffset: 0
+      })
+    }
+    
+    for (let i = 0; i < 5 + this.currentLevel; i++) {
+      const platform = this.platforms[Math.floor(Math.random() * this.platforms.length)]
+      this.enemies.push({
+        x: platform.x + Math.random() * platform.width,
+        y: platform.y - 15,
+        width: 15,
+        height: 15,
+        velX: Math.random() < 0.5 ? 1 : -1,
+        velY: 0,
+        speed: 1 + Math.random(),
+        color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+        movementType: 'horizontal',
+        startY: platform.y - 15,
+        moveRange: 60,
+        stompZoneActive: false
+      })
+    }
+    
+    for (let i = 0; i < 8 + this.currentLevel; i++) {
+      const platform = this.platforms[Math.floor(Math.random() * this.platforms.length)]
+      const color = Math.random() < 0.5 ? "#000" : "#fff"
+      this.collectibles.push({
+        x: platform.x + Math.random() * platform.width,
+        y: platform.y - 30,
+        width: 12,
+        height: 12,
+        color,
+        collected: false,
+        value: 100
+      })
+    }
   }
 
-  populateCollisionSystem() {
-    // Clear existing entities
-    this.collisionSystem.clear()
-    
-    // Add platforms to collision system
-    for (const platform of this.platforms) {
-      this.collisionSystem.addEntity({
-        id: `platform-${platform.x}-${platform.y}`,
-        type: 'platform',
-        bounds: {
-          x: platform.x,
-          y: platform.y,
-          width: platform.width,
-          height: platform.height
-        },
-        data: platform
+  generateBackground(): void {
+    this.backgroundStars = []
+    const starCount = 200
+    const levelWidth = 2000 + this.currentLevel * 500
+    for (let i = 0; i < starCount; i++) {
+      this.backgroundStars.push({
+        x: Math.random() * levelWidth,
+        y: Math.random() * this.height,
+        size: Math.random() * 2 + 0.5,
+        parallax: Math.random() * 0.5 + 0.1,
+        hue: Math.random() * 60 + 180,
+        pulseSpeed: 0.01,
+        pulsePhase: Math.random() * Math.PI * 2,
+        twinkleSpeed: 0.005,
+        twinklePhase: Math.random() * Math.PI * 2,
+        shape: 'circle',
+        brightness: 1,
+        glowRadius: 2
       })
     }
-    
-    // Add enemies to collision system
-    for (const enemy of this.enemies) {
-      this.collisionSystem.addEntity({
-        id: `enemy-${enemy.x}-${enemy.y}`,
-        type: 'enemy',
-        bounds: {
-          x: enemy.x,
-          y: enemy.y,
-          width: enemy.width,
-          height: enemy.height
-        },
-        data: enemy
-      })
+  }
+
+  assignLevelEffects(): void {
+    const canvasEffectPool = ["wobble", "upsideDown", "invert", "backwards", "melting", "dataBleed"]
+    this.levelEffects = []
+    this.isReversed = false
+
+    // Filter out disorienting effects for level 1
+    let availableEffects = [...canvasEffectPool]
+    if (this.currentLevel === 1) {
+      availableEffects = availableEffects.filter(effect => 
+        effect !== "upsideDown" && effect !== "backwards"
+      )
+    }
+
+    // Shuffle the effect pool
+    for (let i = availableEffects.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[availableEffects[i], availableEffects[j]] = [availableEffects[j], availableEffects[i]]
     }
     
-    // Add collectibles to collision system
-    for (const collectible of this.collectibles) {
-      if (!collectible.collected) {
-        this.collisionSystem.addEntity({
-          id: `collectible-${collectible.x}-${collectible.y}`,
-          type: 'collectible',
-          bounds: {
-            x: collectible.x,
-            y: collectible.y,
-            width: collectible.width,
-            height: collectible.height
-          },
-          data: collectible
-        })
+    // Determine number of effects (1 or 2)
+    const effectCount = Math.random() > 0.6 ? 2 : 1
+
+    // Add random canvas effects
+    for (let i = 0; i < effectCount && i < availableEffects.length; i++) {
+      this.levelEffects.push(availableEffects[i])
+    }
+
+    // Set the reversed flag if 'backwards' is chosen
+    if (this.levelEffects.includes("backwards")) {
+      this.isReversed = true
+    }
+  }
+
+  startGame(): void {
+    if (this.gameState !== "start") return
+    this.gameState = "playing"
+    this.inputManager.setGameState(this.gameState)
+    const startScreen = document.getElementById("startScreen")
+    if (startScreen) startScreen.style.display = "none"
+    this.initAudioContext()
+  }
+
+  restart(): void {
+    this.init()
+    this.inputManager.setGameState(this.gameState)
+  }
+
+  nextLevel(): void {
+    if (this.gameState === "transition") {
+      console.warn("Preventing infinite transition loop")
+      return
+    }
+    
+    this.gameState = "transition"
+    this.transitionPhase = 'zoomIn'
+    this.transitionProgress = 0
+    this.stopBGM()
+    
+    // Check if player has reached level 101 to unlock Effects Lab
+    if (this.currentLevel >= 101) {
+      saveToStorage('effectsLabUnlocked', true)
+    }
+  }
+
+  resetEffectsLabToLevelDefault(): void {
+    Object.keys(this.effectsLabSettings).forEach(key => {
+      const effectKey = key as keyof typeof this.effectsLabSettings
+      if (this.effectsLabSettings[effectKey] && typeof this.effectsLabSettings[effectKey] === 'object' && 'enabled' in this.effectsLabSettings[effectKey]) {
+        (this.effectsLabSettings[effectKey] as any).enabled = this.levelEffects.includes(key)
       }
+    })
+  }
+
+  saveEffectsLabPreset(presetName: string): void {
+    const settingsCopy = JSON.parse(JSON.stringify(this.effectsLabSettings))
+    const existingIndex = this.effectsLabPresets.findIndex(preset => preset.name === presetName)
+    
+    if (existingIndex >= 0) {
+      this.effectsLabPresets[existingIndex].settings = settingsCopy
+    } else {
+      this.effectsLabPresets.push({
+        name: presetName,
+        settings: settingsCopy
+      })
     }
     
-    console.log(`Populated collision system: ${this.platforms.length} platforms, ${this.enemies.length} enemies, ${this.collectibles.filter(c => !c.collected).length} collectibles`)
+    saveToStorage('effectsLabPresets', this.effectsLabPresets)
   }
 
-  assignLevelEffects() {
-    const level = this.stateManager.getCurrentLevel()
-    let effects: string[] = []
-    
-    // Assign effects based on level
-    if (level >= 1 && level <= 3) {
-      effects = ['melting', 'colorShift']
-    } else if (level >= 4 && level <= 6) {
-      effects = ['melting', 'colorShift', 'pulse']
-    } else if (level >= 7 && level <= 10) {
-      effects = ['melting', 'colorShift', 'pulse', 'blur']
-    } else if (level >= 11) {
-      effects = ['melting', 'colorShift', 'pulse', 'blur', 'noise', 'rgbShift', 'wave', 'zoom', 'rotation', 'pixelBleed']
+  loadEffectsLabPreset(presetName: string): void {
+    const preset = this.effectsLabPresets.find(p => p.name === presetName)
+    if (preset) {
+      this.effectsLabSettings = JSON.parse(JSON.stringify(preset.settings))
+      this.selectedPresetName = presetName
     }
-    
-    this.stateManager.setLevelEffects(effects)
-    console.log(`Assigned level effects for level ${level}: ${effects.join(', ')}`)
   }
 
-  nextLevel() {
-    this.stateManager.completeLevel()
+  deleteEffectsLabPreset(presetName: string): void {
+    this.effectsLabPresets = this.effectsLabPresets.filter(preset => preset.name !== presetName)
+    saveToStorage('effectsLabPresets', this.effectsLabPresets)
+    
+    if (this.selectedPresetName === presetName) {
+      this.selectedPresetName = ''
+    }
   }
 
-  update() {
-    if (this.stateManager.isPaused()) return
-    
-    switch (this.stateManager.getGameState()) {
+  update(): void {
+    if (this.paused) return
+    switch (this.gameState) {
       case "start":
+        this.updateGamepadInput()
         break
       case "playing":
         this.updateGame()
@@ -542,356 +655,567 @@ export class GameEngine {
     }
   }
 
-  updateTransition() {
-    this.stateManager.updateTransition()
-  }
-
-  updateGame() {
-    // Update level start invincibility
-    this.stateManager.updateLevelStartInvincibility()
-    
-    // Update level progress
-    this.stateManager.updateLevelProgress(this.player.x, this.stateManager.isReversed())
-    
-    // Update UI displays
-    this.updateLevelDisplay(this.stateManager.getCurrentLevel())
-    
-    // Handle input and update player
+  updateGame(): void {
+    this.updateBGMEffects()
+    this.updateGamepadInput()
+    if (this.player.dashCooldown > 0) this.player.dashCooldown--
+    if (this.player.invulnerable > 0) this.player.invulnerable--
+    if (this.levelStartInvincibility > 0) this.levelStartInvincibility--
     this.handleInput()
-    
-    // Update enemies
+    this.updatePlayer()
     this.updateEnemies()
-    
-    // TODO: Implement effects updates in Phase 4
-    // TODO: Implement remaining game logic in Phase 3
-    console.log('updateGame called - remaining logic to be implemented in Phase 3')
+    this.updateEffects()
+    this.updateDataBleed()
+    this.updateCamera()
+    this.checkCollisions()
+    this.updateUI()
+
+    if (this.isReversed) {
+      this.levelProgress = ((this.levelTarget - this.player.x) / this.levelTarget) * 100
+      if (this.player.x <= 0) this.nextLevel()
+    } else {
+      this.levelProgress = (this.player.x / this.levelTarget) * 100
+      if (this.levelProgress >= 100) this.nextLevel()
+    }
   }
 
-  handleInput() {
-    // Update input manager state
-    this.inputManager.setGameState(this.gameState)
-    this.inputManager.setAudioInitialized(this.audioInitialized)
-    
-    // Get input from input manager
+  updateBGMEffects(): void {
+    if (!this.soundEnabled || this.paused) return
+    const time = Date.now() / 2000
+    const modulation = Math.sin(time)
+    this.bgmTempo = 500 + modulation * 200
+    this.bgmPitchMod = 1.0 + Math.sin(time * 4) * 0.05
+  }
+
+  updateTransition(): void {
+    if (this.transitionPhase === 'zoomIn') {
+      this.transitionProgress++
+      const t = Math.min(1, this.transitionProgress / 60)
+      this.cameraZoom = 1 + 1.5 * t
+      if (t >= 1) {
+        this.currentLevel++
+        this.score += 1000 * this.currentLevel
+        this.resetLevel(false)
+        this.transitionPhase = 'transition'
+        this.transitionProgress = 0
+      }
+    } else if (this.transitionPhase === 'transition') {
+      this.transitionProgress++
+      if (this.transitionProgress >= 60) {
+        this.transitionPhase = 'zoomOut'
+        this.transitionProgress = 0
+      }
+    } else if (this.transitionPhase === 'zoomOut') {
+      this.transitionProgress++
+      const t = Math.min(1, this.transitionProgress / 30)
+      this.cameraZoom = 2.5 - 1.5 * t
+      if (t >= 1) {
+        this.cameraZoom = 1
+        this.transitionPhase = 'none'
+        this.gameState = 'playing'
+        this.startBGM()
+        this.camera.x = this.player.x - this.width / 3
+        this.camera.y = 0
+      }
+    }
+  }
+
+  handleInput(): void {
+    // Use modular InputManager to get current input state
     const input = this.inputManager.getPlayerInput()
+    
+    if (input.left) {
+      this.player.velX = -this.player.speed
+    } else if (input.right) {
+      this.player.velX = this.player.speed
+    } else {
+      this.player.velX *= 0.8
+    }
 
-    // Update player using player manager
-    const updateResult = this.playerManager.updatePlayer(input)
-    
-    // Update player state
-    this.player = updateResult.player
-    
-    // Handle collision results
-    this.handlePlayerCollisions(updateResult.collisionResult)
-    
-    // Add particles from player effects
-    this.particles.push(...updateResult.particles)
-    
-    // Update camera
-    this.camera = this.playerManager.updateCamera()
+    if (this.levelEffects.includes("invert")) this.player.velX *= -1
   }
 
-  jump() {
-    // Play jump sound
-    this.audioWrapper.onPlayerAction('jump')
-    // Handled by PlayerManager
-    console.log('jump called - handled by PlayerManager')
-  }
-
-  dash() {
-    // Play dash sound
-    this.audioWrapper.onPlayerAction('dash')
-    // Handled by PlayerManager
-    console.log('dash called - handled by PlayerManager')
-  }
-
-  updatePlayer() {
-    // Handled by PlayerManager in handleInput method
-    console.log('updatePlayer called - handled by PlayerManager')
-  }
-
-  updateEnemies() {
-    const updateResult = this.enemyManager.updateEnemies()
-    
-    // Update enemies list
-    this.enemies = updateResult.enemies
-    
-    // Add particles from enemy effects
-    this.particles.push(...updateResult.particles)
-    
-    // Handle defeated enemies
-    for (const defeatedEnemy of updateResult.defeatedEnemies) {
-      this.stateManager.addScore(ENEMY_SCORE_VALUE)
-      // TODO: Add defeat sound effect in Phase 6
+  jump(): void {
+    if (this.paused || this.gameState !== "playing") return
+    const jumpDirection = -1
+    if (this.player.grounded) {
+      this.player.velY = jumpDirection * this.player.jumpPower
+      this.player.grounded = false
+      this.player.doubleJump = true
+      this.playSound("jump")
+    } else if (this.player.doubleJump) {
+      this.player.velY = jumpDirection * this.player.jumpPower * 0.8
+      this.player.doubleJump = false
+      this.playSound("jump")
     }
   }
 
-  updateEffects() {
-    // TODO: Implement in Phase 4
-    console.log('updateEffects called - to be implemented in Phase 4')
+  dash(): void {
+    if (this.paused || this.player.dashCooldown !== 0 || this.gameState !== "playing") return
+    this.playSound("dash")
+    const dashPower = 15
+    const input = this.inputManager.getPlayerInput()
+    let direction = input.left ? -1 : 1
+    this.player.velX = direction * dashPower
+    this.player.dashCooldown = 60
   }
 
-  updateDataBleed() {
-    // TODO: Implement in Phase 4
-    console.log('updateDataBleed called - to be implemented in Phase 4')
+  updatePlayer(): void {
+    const gravity = 0.8
+    this.player.velY += gravity
+    this.player.x += this.player.velX
+    this.player.y += this.player.velY
+    this.player.trail.push({ x: this.player.x, y: this.player.y })
+    if (this.player.trail.length > 10) this.player.trail.shift()
+    if (this.player.x < 0) this.player.x = 0
+    if (this.player.x > this.levelTarget) this.player.x = this.levelTarget
+    if (this.player.y > this.height + 100) this.respawn()
   }
 
-  updateCamera() {
-    // TODO: Implement in Phase 4
-    console.log('updateCamera called - to be implemented in Phase 4')
+  updateEnemies(): void {
+    this.enemies.forEach((enemy) => {
+      enemy.x += enemy.velX * enemy.speed
+      const onPlatform = this.platforms.find(
+        (p) =>
+          enemy.x >= p.x &&
+          enemy.x <= p.x + p.width &&
+          enemy.y >= p.y - enemy.height &&
+          enemy.y <= p.y
+      )
+      if (
+        onPlatform &&
+        (enemy.x <= onPlatform.x ||
+          enemy.x + enemy.width >= onPlatform.x + onPlatform.width)
+      )
+        enemy.velX *= -1
+    })
   }
 
-  checkCollisions() {
-    // TODO: Implement in Phase 3
-    console.log('checkCollisions called - to be implemented in Phase 3')
-  }
+  updateEffects(): void {
+    const isCanvasEffectEnabled = (effectName: string) => {
+      if (this.activeCustomEffects) {
+        const effect = this.activeCustomEffects[effectName as keyof typeof this.activeCustomEffects]
+        return effect && typeof effect === 'object' && 'enabled' in effect && (effect as any).enabled
+      } else {
+        return this.levelEffects.includes(effectName)
+      }
+    }
 
-  triggerDataBleed(x: number, y: number) {
-    // TODO: Implement in Phase 4
-    console.log('triggerDataBleed called - to be implemented in Phase 4')
-  }
-
-  respawn() {
-    if (this.stateManager.loseLife()) {
-      // Reset player using player manager
-      this.playerManager.resetPlayer()
-      this.playerManager.makeInvulnerable()
-      this.playerManager.setRespawning(true)
-      
-      // Update player state
-      this.player = this.playerManager.getPlayer()
-      
-      // Reset camera
-      this.camera = this.playerManager.updateCamera()
+    if (isCanvasEffectEnabled("backwards")) {
+      this.isReversed = true
+    } else {
+      this.isReversed = false
     }
   }
 
-  resetLevel(fullReset = true) {
-    this.stateManager.resetLevel(fullReset)
+  updateDataBleed(): void {
+    this.dataBleedEffects = this.dataBleedEffects.filter((effect) => {
+      effect.duration--
+      return effect.duration > 0
+    })
   }
 
-  togglePause() {
-    this.stateManager.togglePause()
+  updateCamera(): void {
+    this.camera.targetX = this.player.x - this.width / 3
+    this.camera.x += (this.camera.targetX - this.camera.x) * this.camera.smoothing
+    this.camera.x = Math.max(0, Math.min(this.camera.x, this.levelTarget - this.width))
   }
 
-  renderBackground() {
-    // TODO: Implement in Phase 4
-    console.log('renderBackground called - to be implemented in Phase 4')
+  checkCollisions(): void {
+    this.player.grounded = false
+    this.platforms.forEach((p) => {
+      if (
+        this.player.x < p.x + p.width &&
+        this.player.x + this.player.width > p.x &&
+        this.player.y + this.player.height > p.y &&
+        this.player.y < p.y
+      ) {
+        if (this.player.velY >= 0) {
+          this.player.y = p.y - this.player.height
+          this.player.velY = 0
+          this.player.grounded = true
+          this.player.doubleJump = false  // Reset double jump when grounded
+          this.combo = 0
+        }
+      }
+    })
+    
+    this.enemies.forEach((enemy, index) => {
+      if (
+        this.player.x < enemy.x + enemy.width &&
+        this.player.x + this.player.width > enemy.x &&
+        this.player.y < enemy.y + enemy.height &&
+        this.player.y + this.player.height > enemy.y
+      ) {
+        if (this.player.invulnerable > 0 || this.levelStartInvincibility > 0) return
+        const isStomping = (this.player.velY > 0 && this.player.y + this.player.height < enemy.y + enemy.height)
+        if (isStomping) {
+          this.triggerDataBleed(enemy.x, enemy.y)
+          this.enemies.splice(index, 1)
+          this.score += 250
+          this.combo++
+          if (this.combo > this.bestCombo) this.bestCombo = this.combo
+          const jumpDirection = -1
+          this.player.velY = jumpDirection * this.player.jumpPower * 0.6
+          this.playSound("stomp")
+        } else {
+          this.respawn()
+        }
+      }
+    })
+    
+    this.collectibles.forEach((c) => {
+      if (
+        !c.collected &&
+        this.player.x < c.x + c.width &&
+        this.player.x + this.player.width > c.x &&
+        this.player.y < c.y + c.height &&
+        this.player.y + this.player.height > c.y
+      ) {
+        c.collected = true
+        this.score += c.value
+        this.playSound("collect")
+      }
+    })
   }
 
-  renderBackgroundLayer(parallaxOffset = 0, tint: string | null = null) {
-    // TODO: Implement in Phase 4
-    console.log('renderBackgroundLayer called - to be implemented in Phase 4')
+  triggerDataBleed(x: number, y: number): void {
+    const duration = this.combo >= 5 ? 60 : 20
+    this.dataBleedEffects.push({
+      x: x,
+      y: y,
+      duration: duration,
+      size: Math.random() * 80 + 50,
+    })
   }
 
-  renderDreamEffects() {
-    // TODO: Implement in Phase 4
-    console.log('renderDreamEffects called - to be implemented in Phase 4')
+  respawn(): void {
+    this.lives--
+    this.combo = 0
+    this.playSound("hit")
+    if (this.lives <= 0) {
+      this.gameState = "gameover"
+      this.inputManager.setGameState(this.gameState)
+      const finalScore = document.getElementById("finalScore")
+      const bestCombo = document.getElementById("bestCombo")
+      const gameOverScreen = document.getElementById("gameOverScreen")
+      if (finalScore) finalScore.textContent = this.score.toString()
+      if (bestCombo) bestCombo.textContent = this.bestCombo.toString()
+      if (gameOverScreen) gameOverScreen.style.display = "flex"
+      this.stopBGM()
+    } else {
+      this.player.x = 100
+      this.player.y = 400
+      this.player.velX = 0
+      this.player.velY = 0
+      this.player.grounded = false
+      this.player.doubleJump = false  // Reset double jump on respawn
+      this.player.invulnerable = 180
+    }
   }
 
-  renderFloatingDreamParticles(now: number, camX: number) {
-    // TODO: Implement in Phase 4
-    console.log('renderFloatingDreamParticles called - to be implemented in Phase 4')
+  resetLevel(fullReset = true): void {
+    if (fullReset) {
+      this.score = 0
+      this.lives = 3
+      this.combo = 0
+      this.currentLevel = 1
+      if (!this.activeCustomEffects?.backwards?.enabled) {
+        this.isReversed = false
+      }
+    }
+    this.player.velX = 0
+    this.player.velY = 0
+    this.generateLevel()
+    this.levelStartInvincibility = 120
   }
 
-  renderDreamWaves(now: number, camX: number) {
-    // TODO: Implement in Phase 4
-    console.log('renderDreamWaves called - to be implemented in Phase 4')
+  togglePause(): void {
+    if (this.gameState !== "playing" && !this.paused) return
+    this.paused = !this.paused
+    this.inputManager.setGameState(this.paused ? "paused" : "playing")
+    const pauseScreen = document.getElementById("pauseScreen")
+    if (pauseScreen) {
+      pauseScreen.style.display = this.paused ? "block" : "none"
+    }
+    if (this.paused) {
+      this.stopBGM()
+    } else {
+      this.startBGM()
+    }
   }
 
-  render() {
-    // TODO: Implement in Phase 4
-    console.log('render called - to be implemented in Phase 4')
+  render(): void {
+    if (this.gameState === "transition") {
+      this.renderTransition()
+      return
+    }
+
+    const isCanvasEffectEnabled = (effectName: string) => {
+      if (this.activeCustomEffects) {
+        const effect = this.activeCustomEffects[effectName as keyof typeof this.activeCustomEffects]
+        return effect && typeof effect === 'object' && 'enabled' in effect && (effect as any).enabled
+      } else {
+        return this.levelEffects.includes(effectName)
+      }
+    }
+
+    this.ctx.save()
+
+    if (isCanvasEffectEnabled("upsideDown")) {
+      this.ctx.translate(0, this.height)
+      this.ctx.scale(1, -1)
+    }
+    
+    if (isCanvasEffectEnabled("backwards")) {
+      this.ctx.translate(this.width, 0)
+      this.ctx.scale(-1, 1)
+    }
+    
+    if (isCanvasEffectEnabled("invert")) {
+      this.ctx.filter = "invert(1) hue-rotate(180deg)"
+    }
+
+    this.renderToContext(this.ctx)
+    
+    this.ctx.restore()
   }
 
-  renderOptimized() {
-    // TODO: Implement in Phase 4
-    console.log('renderOptimized called - to be implemented in Phase 4')
+  renderToContext(ctx: CanvasRenderingContext2D): void {
+    this.renderBackgroundToContext(ctx)
+    this.renderDataBleedToContext(ctx)
+
+    ctx.translate(-this.camera.x, -this.camera.y)
+
+    const now = Date.now()
+    
+    const isCanvasEffectEnabled = (effectName: string) => {
+      if (this.activeCustomEffects) {
+        const effect = this.activeCustomEffects[effectName as keyof typeof this.activeCustomEffects]
+        return effect && typeof effect === 'object' && 'enabled' in effect && (effect as any).enabled
+      } else {
+        return this.levelEffects.includes(effectName)
+      }
+    }
+    
+    const wobbleActive = isCanvasEffectEnabled("wobble")
+    const meltingActive = isCanvasEffectEnabled("melting")
+    
+    const wobbleSettings = this.activeCustomEffects?.wobble || { amplitude: 5, frequency: 0.05, speed: 0.002 }
+    const wobbleAmplitude = wobbleSettings.amplitude || 5
+    const wobbleFrequency = wobbleSettings.frequency || 0.05
+    const wobbleSpeed = wobbleSettings.speed || 0.002
+    
+    const meltingSettings = this.activeCustomEffects?.melting || { intensity: 1, speed: 0.01 }
+    const meltingIntensity = meltingSettings.intensity || 1
+    const meltingSpeed = meltingSettings.speed || 0.01
+
+    // Draw platforms
+    this.platforms.forEach((p) => {
+      let yOffset = 0
+      let width = p.width
+      let height = p.height
+      
+      if (wobbleActive) {
+        yOffset = Math.sin(p.x * wobbleFrequency + now * wobbleSpeed) * wobbleAmplitude
+      }
+      
+      if (meltingActive) {
+        const meltOffset = Math.sin(p.x * 0.02 + now * meltingSpeed) * meltingIntensity * 2
+        yOffset += meltOffset
+        height += Math.abs(meltOffset) * 0.5
+        width += Math.abs(meltOffset) * 0.3
+      }
+      
+      ctx.fillStyle = p.color
+      ctx.fillRect(p.x, p.y + yOffset, width, height)
+    })
+
+    // Draw enemies
+    const drawWithEffects = (obj: any) => {
+      let yOffset = 0
+      let xOffset = 0
+      let width = obj.width
+      let height = obj.height
+      
+      if (wobbleActive) {
+        yOffset = Math.sin(obj.x * wobbleFrequency + now * wobbleSpeed) * wobbleAmplitude
+      }
+      
+      if (meltingActive) {
+        const meltOffset = Math.sin(obj.x * 0.02 + now * meltingSpeed) * meltingIntensity * 2
+        yOffset += meltOffset
+        height += Math.abs(meltOffset) * 0.5
+        width += Math.abs(meltOffset) * 0.3
+      }
+      
+      ctx.fillRect(obj.x + xOffset, obj.y + yOffset, width, height)
+    }
+
+    this.enemies.forEach((e) => {
+      ctx.fillStyle = e.color
+      drawWithEffects(e)
+    })
+    
+    // Draw collectibles
+    this.collectibles.forEach((c) => {
+      if (!c.collected) {
+        ctx.fillStyle = c.color
+        const cx = c.x + c.width / 2
+        const cy = c.y + c.height / 2
+        const size = c.width
+        ctx.beginPath()
+        ctx.moveTo(cx, cy - size / 2)
+        ctx.lineTo(cx - size / 2, cy + size / 2)
+        ctx.lineTo(cx + size / 2, cy + size / 2)
+        ctx.closePath()
+        ctx.fill()
+      }
+    })
+
+    // Draw player trail
+    this.player.trail.forEach((point: { x: number; y: number }, index: number) => {
+      ctx.fillStyle = `rgba(0, 255, 255, ${index * 0.05})`
+      let yOffset = 0
+      let width = this.player.width
+      let height = this.player.height
+      
+      if (wobbleActive) {
+        yOffset = Math.sin(point.x * wobbleFrequency + now * wobbleSpeed) * wobbleAmplitude
+      }
+      
+      if (meltingActive) {
+        const meltOffset = Math.sin(point.x * 0.02 + now * meltingSpeed) * meltingIntensity * 2
+        yOffset += meltOffset
+        height += Math.abs(meltOffset) * 0.5
+        width += Math.abs(meltOffset) * 0.3
+      }
+      
+      ctx.fillRect(point.x, point.y + yOffset, width, height)
+    })
+
+    // Draw player
+    ctx.fillStyle = (this.player.invulnerable > 0 || this.levelStartInvincibility > 0) && Math.floor(now / 100) % 2 === 0
+      ? "white"
+      : this.player.color
+    drawWithEffects(this.player)
   }
 
-  renderBackgroundOptimized() {
-    // TODO: Implement in Phase 4
-    console.log('renderBackgroundOptimized called - to be implemented in Phase 4')
+  renderBackgroundToContext(ctx: CanvasRenderingContext2D): void {
+    ctx.fillStyle = "#0a0a0a"
+    ctx.fillRect(0, 0, this.width, this.height)
+    
+    const camX = this.camera.x
+    this.backgroundStars.forEach((star) => {
+      const drawX = (star.x - camX * star.parallax) % this.width
+      const wrappedX = drawX < 0 ? drawX + this.width : drawX
+      ctx.fillStyle = `hsl(${star.hue}, 80%, 70%)`
+      ctx.fillRect(wrappedX, star.y, star.size, star.size)
+    })
   }
 
-  // Effects rendering is now handled by EffectsRenderer
-  // These methods have been moved to lib/game/EffectsRenderer.ts
-
-  updateUI() {
-    // TODO: Implement in Phase 7
-    console.log('updateUI called - to be implemented in Phase 7')
+  renderDataBleedToContext(ctx: CanvasRenderingContext2D): void {
+    if (this.dataBleedEffects.length === 0) return
+    this.dataBleedEffects.forEach((effect) => {
+      const screenX = effect.x - this.camera.x
+      const screenY = effect.y - this.camera.y
+      if (
+        screenX > -effect.size &&
+        screenX < this.width &&
+        screenY > -effect.size &&
+        screenY < this.height
+      ) {
+        const sx = Math.random() * (this.width - effect.size)
+        const sy = Math.random() * (this.height - effect.size)
+        const opacity = effect.duration / (this.combo >= 5 ? 60 : 20)
+        ctx.save()
+        ctx.globalAlpha = opacity * 0.8
+        ctx.drawImage(
+          this.canvas,
+          sx,
+          sy,
+          effect.size,
+          effect.size,
+          screenX,
+          screenY,
+          effect.size,
+          effect.size
+        )
+        ctx.restore()
+      }
+    })
   }
 
-  gameLoop() {
-    const currentTime = performance.now()
-    this.frameCount++
+  renderTransition(): void {
+    let zoom = this.cameraZoom
+    let rotation = 0
+    
+    const isEffectEnabled = (effectName: string) => {
+      if (this.activeCustomEffects) {
+        const effect = this.activeCustomEffects[effectName as keyof typeof this.activeCustomEffects]
+        return effect && typeof effect === 'object' && 'enabled' in effect && (effect as any).enabled
+      } else {
+        return this.levelEffects.includes(effectName)
+      }
+    }
+    
+    if (this.transitionPhase === 'zoomIn') {
+      const t = Math.min(1, this.transitionProgress / 60)
+      zoom = 1 + 1.5 * t
+    } else if (this.transitionPhase === 'transition') {
+      zoom = 2.5
+      const t = Math.min(1, this.transitionProgress / 60)
+      rotation = t * Math.PI * 2
+    } else if (this.transitionPhase === 'zoomOut') {
+      const t = Math.min(1, this.transitionProgress / 30)
+      zoom = 2.5 - 1.5 * t
+    }
+    
+    this.ctx.save()
+    
+    this.ctx.translate(this.width / 2, this.height / 2)
+    this.ctx.scale(zoom, zoom)
+    this.ctx.rotate(rotation)
+    
+    if (isEffectEnabled("backwards")) {
+      this.ctx.scale(-1, 1)
+    }
+    
+    this.ctx.translate(-this.player.x - this.player.width / 2, -this.player.y - this.player.height / 2)
+    
+    this.renderToContext(this.ctx)
+    
+    this.ctx.restore()
+  }
 
-    // Update game state
-    this.update()
+  updateUI(): void {
+    const lives = document.getElementById("lives")
+    const score = document.getElementById("score")
+    const level = document.getElementById("level")
+    const combo = document.getElementById("combo")
+    
+    if (lives) lives.textContent = this.lives.toString()
+    if (score) score.textContent = this.score.toString()
+    if (level) level.textContent = this.currentLevel.toString()
+    if (combo) combo.textContent = this.combo.toString()
+  }
 
-    // Update renderer state
-    this.renderer.updateState(this.camera, this.effects, this.frameCount)
-
-    // Set entities for rendering
-    this.renderer.setEntities(this.player, this.enemies, this.platforms, this.collectibles)
-
-    // Set effects for rendering
-    this.renderer.setEffects(this.dataBleedEffects, this.particles)
-
-    // Render frame
-    this.renderer.render()
-
-    // Schedule next frame
+  gameLoop(): void {
     this.animationFrameId = requestAnimationFrame(() => this.gameLoop())
-  }
-
-  cleanup() {
-    // Stop renderer
-    this.renderer.stop()
-    
-    // Cancel animation frame
-    if (this.animationFrameId) {
+    this.update()
+    this.render()
+    if (this.gameState === "gameover") {
       cancelAnimationFrame(this.animationFrameId)
       this.animationFrameId = null
     }
-    
-    // Clean up input manager
+  }
+
+  cleanup(): void {
+    // Clean up modular InputManager
     if (this.inputManager) {
       this.inputManager.cleanup()
     }
     
-    // Clean up audio wrapper
-    if (this.audioWrapper) {
-      this.audioWrapper.cleanup()
-    }
-
-    
-    console.log('GameEngine cleanup completed')
-  }
-
-  // Particle effects are now handled by EffectsRenderer
-  // These methods have been moved to lib/game/EffectsRenderer.ts
-
-  getAudioStats() {
-    return this.audioWrapper.getAudioStats()
-  }
-
-  // UI update methods for state manager callbacks
-  private showGameOverScreen() {
-    const gameOverScreen = document.getElementById("gameOverScreen")
-    const finalScore = document.getElementById("finalScore")
-    if (gameOverScreen) gameOverScreen.style.display = "flex"
-    if (finalScore) finalScore.textContent = this.stateManager.getScore().toString()
-  }
-
-  private showPauseScreen(paused: boolean) {
-    const pauseScreen = document.getElementById("pauseScreen")
-    if (pauseScreen) {
-      pauseScreen.style.display = paused ? "flex" : "none"
-    }
-  }
-
-  private updateLivesDisplay(lives: number) {
-    const livesElement = document.getElementById("lives")
-    if (livesElement) livesElement.textContent = lives.toString()
-  }
-
-  private updateScoreDisplay(score: number) {
-    const scoreElement = document.getElementById("score")
-    if (scoreElement) scoreElement.textContent = score.toString()
-  }
-
-  private updateLevelDisplay(level: number) {
-    const levelElement = document.getElementById("level")
-    if (levelElement) levelElement.textContent = level.toString()
-  }
-
-  /**
-   * Handle player collision results
-   */
-  private handlePlayerCollisions(collisionResult: any): void {
-    // Handle collectibles
-    if (collisionResult.collectiblesCollected.length > 0) {
-      for (const collectible of collisionResult.collectiblesCollected) {
-        collectible.collected = true
-        this.stateManager.addScore(collectible.value)
-        // Play collect sound effect
-        this.audioWrapper.onPlayerAction('collect')
-      }
-    }
-
-    // Handle enemy stomps
-    if (collisionResult.enemiesHit.length > 0) {
-      for (const enemy of collisionResult.enemiesHit) {
-        // Defeat enemy using enemy manager
-        const defeatParticles = this.enemyManager.defeatEnemy(enemy)
-        this.particles.push(...defeatParticles)
-        this.stateManager.addScore(ENEMY_SCORE_VALUE)
-        // Play explosion sound effect
-        this.audioWrapper.playGameSound('explosion')
-      }
-    }
-
-    // Handle player damage
-    if (collisionResult.shouldRespawn) {
-      this.respawn()
-    }
-  }
-
-  // Getter methods for state manager properties (for compatibility)
-  get gameState(): string {
-    return this.stateManager.getGameState()
-  }
-
-  get currentLevel(): number {
-    return this.stateManager.getCurrentLevel()
-  }
-
-  get lives(): number {
-    return this.stateManager.getLives()
-  }
-
-  get score(): number {
-    return this.stateManager.getScore()
-  }
-
-  get paused(): boolean {
-    return this.stateManager.isPaused()
-  }
-
-  get isReversed(): boolean {
-    return this.stateManager.isReversed()
-  }
-
-  get levelProgress(): number {
-    return this.stateManager.getLevelProgress()
-  }
-
-  get levelTarget(): number {
-    return this.stateManager.getLevelTarget()
-  }
-
-  get cameraZoom(): number {
-    return this.stateManager.getCameraZoom()
-  }
-
-  get transitionPhase(): 'none' | 'zoomIn' | 'transition' | 'zoomOut' {
-    return this.stateManager.getTransitionPhase()
-  }
-
-  get transitionProgress(): number {
-    return this.stateManager.getTransitionProgress()
-  }
-
-  get levelStartInvincibility(): number {
-    return this.stateManager.getLevelStartInvincibility()
-  }
-
-  get levelEffects(): string[] {
-    return this.stateManager.getLevelEffects()
-  }
-
-  get transitionTimer(): number {
-    return this.stateManager.getState().transitionTimer
+    this.stopBGM()
   }
 } 

@@ -28,6 +28,8 @@ export interface GameState {
   level: number
   soundEnabled: boolean
   finalScore: number
+  combo: number
+  bestCombo: number
 }
 
 /**
@@ -58,6 +60,8 @@ export function useGame(canvasRef: React.RefObject<HTMLCanvasElement>) {
   const [level, setLevel] = useState(1)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [finalScore, setFinalScore] = useState(0)
+  const [combo, setCombo] = useState(0)
+  const [bestCombo, setBestCombo] = useState(0)
 
   // Initialize game engine
   useEffect(() => {
@@ -68,20 +72,23 @@ export function useGame(canvasRef: React.RefObject<HTMLCanvasElement>) {
     // Set up game state update listeners
     const updateGameState = () => {
       if (gameRef.current) {
-        const gameState = gameRef.current.stateManager.getState()
-        setLives(gameState.lives)
-        setScore(gameState.score)
-        setLevel(gameState.currentLevel)
+        setLives(gameRef.current.lives)
+        setScore(gameRef.current.score)
+        setLevel(gameRef.current.currentLevel)
         setSoundEnabled(gameRef.current.soundEnabled)
+        setCombo(gameRef.current.combo)
+        setBestCombo(gameRef.current.bestCombo)
         
         // Update game screen based on game state
-        if (gameState.gameState === 'gameover') {
+        if (gameRef.current.gameState === 'gameover') {
           setGameScreen(GameScreen.GAME_OVER)
-          setFinalScore(gameState.score)
-        } else if (gameState.paused) {
+          setFinalScore(gameRef.current.score)
+        } else if (gameRef.current.paused && gameRef.current.gameState === 'playing') {
           setGameScreen(GameScreen.PAUSED)
-        } else if (gameState.gameState === 'playing') {
+        } else if (gameRef.current.gameState === 'playing') {
           setGameScreen(GameScreen.PLAYING)
+        } else if (gameRef.current.gameState === 'start') {
+          setGameScreen(GameScreen.START)
         }
       }
     }
@@ -106,6 +113,8 @@ export function useGame(canvasRef: React.RefObject<HTMLCanvasElement>) {
       }
     }
   }, [canvasRef])
+
+
 
   // Event handlers
   const handleStartGame = useCallback(() => {
@@ -136,7 +145,6 @@ export function useGame(canvasRef: React.RefObject<HTMLCanvasElement>) {
   const handleSoundToggle = useCallback(() => {
     if (gameRef.current) {
       const newState = !soundEnabled
-      gameRef.current.audioWrapper.setSoundEnabled(newState)
       gameRef.current.soundEnabled = newState
       setSoundEnabled(newState)
     }
@@ -149,7 +157,9 @@ export function useGame(canvasRef: React.RefObject<HTMLCanvasElement>) {
     score,
     level,
     soundEnabled,
-    finalScore
+    finalScore,
+    combo,
+    bestCombo
   }
 
   const gameHandlers: GameHandlers = {

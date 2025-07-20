@@ -221,7 +221,7 @@ body {
   left: 0;
   right: 0;
   height: 120px;
-  display: none;
+  display: none; /* Hidden by default */
   z-index: 15;
   pointer-events: none;
 }

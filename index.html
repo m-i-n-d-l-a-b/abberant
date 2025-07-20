@@ -1147,6 +1147,7 @@
                 this.player.y = p.y - this.player.height;
                 this.player.velY = 0;
                 this.player.grounded = true;
+                this.player.doubleJump = false;  // Reset double jump when grounded
                 this.combo = 0;
               }
             }
@@ -1216,6 +1217,8 @@
             this.player.y = 400;
             this.player.velX = 0;
             this.player.velY = 0;
+            this.player.grounded = false;
+            this.player.doubleJump = false;  // Reset double jump on respawn
             this.player.invulnerable = 120;
           }
         }
