@@ -78,6 +78,19 @@ interface Effects {
   // Canvas effects only - visual effects moved to VFX wrapper
   // This interface is kept for backward compatibility but is no longer used
   // All effect properties are now handled by effectsLabSettings
+  glitchOffset?: { x: number; y: number }
+  meltingFactor?: number
+  colorShift?: number
+  pulseFactor?: number
+  blurFactor?: number
+  noiseFactor?: number
+  rgbShiftFactor?: number
+  waveFactor?: number
+  zoomFactor?: number
+  rotationFactor?: number
+  pixelBleedFactor?: number
+  dreamFactor?: number
+  dreamWaveFactor?: number
 }
 
 interface Camera {
@@ -558,6 +571,16 @@ const Game = forwardRef<GameRef>((props, ref) => {
           glitchOffset: { x: 0, y: 0 },
           colorShift: 0,
           pulseFactor: 1,
+          meltingFactor: 0,
+          blurFactor: 0,
+          noiseFactor: 0,
+          rgbShiftFactor: 0,
+          waveFactor: 0,
+          zoomFactor: 0,
+          rotationFactor: 0,
+          pixelBleedFactor: 0,
+          dreamFactor: 0,
+          dreamWaveFactor: 0,
         }
         this.levelProgress = 0
         this.levelTarget = 1800
@@ -1313,6 +1336,14 @@ const Game = forwardRef<GameRef>((props, ref) => {
         
         // Apply dataBleed effect (canvas effect - affects screen capture)
         // Handled in renderDataBleed() method
+        
+        // Update dream effects based on level effects
+        const hasDreamEffects = isCanvasEffectEnabled("melting") || 
+                               isCanvasEffectEnabled("dataBleed") || 
+                               isCanvasEffectEnabled("wobble")
+        
+        this.effects.dreamFactor = hasDreamEffects ? 1.0 : 0.0
+        this.effects.dreamWaveFactor = hasDreamEffects ? 0.8 : 0.0
       }
 
       

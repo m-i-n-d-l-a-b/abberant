@@ -216,6 +216,8 @@ import { getFromStorage } from '../lib/utils/storage'
           zoomFactor: 0,
           rotationFactor: 0,
           pixelBleedFactor: 0,
+          dreamFactor: 0,
+          dreamWaveFactor: 0,
         }
         this.levelProgress = 0
         this.levelTarget = 1800
@@ -989,6 +991,14 @@ import { getFromStorage } from '../lib/utils/storage'
         
         // Apply dataBleed effect (canvas effect - affects screen capture)
         // Handled in renderDataBleed() method
+        
+        // Update dream effects based on level effects
+        const hasDreamEffects = isCanvasEffectEnabled("melting") || 
+                               isCanvasEffectEnabled("dataBleed") || 
+                               isCanvasEffectEnabled("wobble")
+        
+        this.effects.dreamFactor = hasDreamEffects ? 1.0 : 0.0
+        this.effects.dreamWaveFactor = hasDreamEffects ? 0.8 : 0.0
       }
 
       

@@ -101,6 +101,9 @@ export interface Effects {
   zoomFactor: number
   rotationFactor: number
   pixelBleedFactor: number
+  // Dream effect properties
+  dreamFactor: number
+  dreamWaveFactor: number
   dataBleedEffects?: DataBleedEffect[]
   particles?: Particle[]
 }

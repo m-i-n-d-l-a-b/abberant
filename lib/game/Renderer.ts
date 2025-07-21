@@ -130,6 +130,8 @@ export class Renderer {
         zoomFactor: 0,
         rotationFactor: 0,
         pixelBleedFactor: 0,
+        dreamFactor: 0,
+        dreamWaveFactor: 0,
       },
       ui: {
         score: 0,

@@ -265,7 +265,9 @@ export class GameEngine {
       rotationFactor: 0,
       pixelBleedFactor: 0,
       dataBleedEffects: [],
-      particles: []
+      particles: [],
+      dreamFactor: 0, // Added dreamFactor
+      dreamWaveFactor: 0 // Added dreamWaveFactor
     }
 
     this.levelProgress = 0
@@ -547,6 +549,9 @@ export class GameEngine {
         glowRadius: 2
       })
     }
+    
+    // Update the background renderer with the new stars
+    this.renderer.setBackgroundStars(this.backgroundStars)
   }
 
   assignLevelEffects(): void {
@@ -823,6 +828,15 @@ export class GameEngine {
     } else {
       this.isReversed = false
     }
+
+    // Update dream effects based on level effects
+    // Dream effects are active when certain level effects are present
+    const hasDreamEffects = isCanvasEffectEnabled("melting") || 
+                           isCanvasEffectEnabled("dataBleed") || 
+                           isCanvasEffectEnabled("wobble")
+    
+    this.effects.dreamFactor = hasDreamEffects ? 1.0 : 0.0
+    this.effects.dreamWaveFactor = hasDreamEffects ? 0.8 : 0.0
   }
 
   updateDataBleed(): void {
@@ -982,6 +996,7 @@ export class GameEngine {
       }
     }
 
+    // Apply canvas effects before rendering
     this.ctx.save()
 
     if (isCanvasEffectEnabled("upsideDown")) {
@@ -998,9 +1013,41 @@ export class GameEngine {
       this.ctx.filter = "invert(1) hue-rotate(180deg)"
     }
 
-    this.renderToContext(this.ctx)
+    // Use the new modular renderer system
+    this.renderWithModularRenderer()
     
     this.ctx.restore()
+  }
+
+  /**
+   * Render using the new modular renderer system
+   */
+  renderWithModularRenderer(): void {
+    // Update renderer state with current game state
+    this.renderer.updateState({
+      player: this.player,
+      enemies: this.enemies,
+      platforms: this.platforms,
+      collectibles: this.collectibles,
+      camera: this.camera,
+      effects: this.effects,
+      ui: {
+        score: this.score,
+        lives: this.lives,
+        level: this.currentLevel,
+        soundEnabled: this.soundEnabled
+      },
+      frameCount: this.frameCount,
+      lastTime: this.lastTime,
+      deltaTime: (performance.now() - this.lastTime) / 1000,
+      fps: this.fps
+    })
+
+    // Update background stars in the renderer
+    this.renderer.setBackgroundStars(this.backgroundStars)
+
+    // Render the game using the modular renderer
+    this.renderer.render()
   }
 
   renderToContext(ctx: CanvasRenderingContext2D): void {

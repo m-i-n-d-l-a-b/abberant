@@ -95,12 +95,12 @@ export class BackgroundRenderer {
       this.renderStarField(context)
     })
 
-    // Dream particles layer
+    // Dream particles layer - conditionally visible based on effects
     this.addLayer('dreamParticles', 0.5, true, (context) => {
       this.renderDreamParticles(context)
     })
 
-    // Dream waves layer
+    // Dream waves layer - conditionally visible based on effects
     this.addLayer('dreamWaves', 0.7, true, (context) => {
       this.renderDreamWaves(context)
     })
@@ -223,6 +223,10 @@ export class BackgroundRenderer {
     // Update dream effects
     this.updateDreamParticles(context.deltaTime)
     this.updateDreamWaves(context.deltaTime)
+
+    // Update layer visibility based on effects
+    this.setLayerVisibility('dreamParticles', context.effects.dreamFactor > 0)
+    this.setLayerVisibility('dreamWaves', context.effects.dreamWaveFactor > 0)
 
     // Render layers in parallax order (furthest to closest)
     const sortedLayers = Array.from(this.layers.values())
@@ -349,7 +353,13 @@ export class BackgroundRenderer {
    * Render dream particles layer
    */
   private renderDreamParticles(context: BackgroundRenderContext): void {
-    const { ctx, camera } = context
+    const { ctx, camera, effects } = context
+    
+    // Only render dream particles if dream effects are active
+    if (effects.dreamFactor <= 0) {
+      return
+    }
+    
     const parallaxX = camera.x * 0.5
 
     for (const particle of this.dreamParticles) {
@@ -361,9 +371,9 @@ export class BackgroundRenderer {
         continue
       }
 
-      // Calculate particle opacity with pulsing
+      // Calculate particle opacity with pulsing and dream factor
       const pulse = Math.sin(context.now * 0.003 + particle.phase) * 0.3 + 0.7
-      const opacity = particle.opacity * pulse
+      const opacity = particle.opacity * pulse * effects.dreamFactor
 
       // Set particle color
       ctx.fillStyle = `hsla(${particle.hue}, 80%, 60%, ${opacity})`
@@ -395,7 +405,13 @@ export class BackgroundRenderer {
    * Render dream waves layer
    */
   private renderDreamWaves(context: BackgroundRenderContext): void {
-    const { ctx, camera } = context
+    const { ctx, camera, effects } = context
+    
+    // Only render dream waves if dream wave effects are active
+    if (effects.dreamWaveFactor <= 0) {
+      return
+    }
+    
     const parallaxX = camera.x * 0.7
 
     for (const wave of this.dreamWaves) {
@@ -407,9 +423,9 @@ export class BackgroundRenderer {
         continue
       }
 
-      // Calculate wave opacity with pulsing
+      // Calculate wave opacity with pulsing and dream wave factor
       const pulse = Math.sin(context.now * 0.002 + wave.phase) * 0.2 + 0.8
-      const opacity = wave.opacity * pulse
+      const opacity = wave.opacity * pulse * effects.dreamWaveFactor
 
       // Set wave color
       ctx.strokeStyle = `hsla(${wave.hue}, 80%, 60%, ${opacity})`
