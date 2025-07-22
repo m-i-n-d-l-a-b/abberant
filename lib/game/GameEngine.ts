@@ -614,6 +614,9 @@ export class GameEngine {
     
     this.resetLevel()
     this.startBGM()
+    if (this.animationFrameId == null) {
+      this.gameLoop()
+    }
   }
 
   nextLevel(): void {
@@ -1296,10 +1299,6 @@ export class GameEngine {
     this.animationFrameId = requestAnimationFrame(() => this.gameLoop())
     this.update()
     this.render()
-    if (this.gameState === "gameover") {
-      cancelAnimationFrame(this.animationFrameId)
-      this.animationFrameId = null
-    }
   }
 
   cleanup(): void {
