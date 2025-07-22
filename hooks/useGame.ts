@@ -109,10 +109,6 @@ export function useGame(canvasRef: React.RefObject<HTMLCanvasElement>) {
         if (gameRef.current.gameState === 'gameover') {
           setGameScreen(GameScreen.GAME_OVER)
           setFinalScore(gameRef.current.score)
-          // After a short delay, return to the start screen
-          setTimeout(() => {
-            setGameScreen(GameScreen.START)
-          }, 1000)
         } else if (gameRef.current.paused && gameRef.current.gameState === 'playing') {
           setGameScreen(GameScreen.PAUSED)
         } else if (gameRef.current.gameState === 'playing') {

@@ -106,6 +106,27 @@ npm run build
 - **Graphics**: HTML5 Canvas for rendering
 - **Input**: Keyboard, Gamepad API, and Touch Events
 
+## Project Structure
+
+```
+abberant/
+  app/                # Next.js app entry, layout, and pages
+  components/         # React UI components (Game, UI, Menus, Overlays)
+  constants/          # Game constants (e.g., initial values, config)
+  hooks/              # Custom React hooks (e.g., useGame)
+  lib/
+    game/             # Core game engine modules (engine, managers, systems)
+    utils/            # Utility functions (e.g., storage)
+  styles/             # CSS and CSS modules for styling
+  types/              # TypeScript type definitions
+  legacy/             # Old/experimental game files (not used in main app)
+  public/             # Static assets (if any)
+  ...                # Config, docs, and other project files
+```
+
+- All gameplay, rendering, and UI logic is modularized and imported via the React/Next.js app.
+- The `legacy/` folder contains old or experimental code and is not used in the main game.
+
 ## Contributing
 
 1. Fork the repository
