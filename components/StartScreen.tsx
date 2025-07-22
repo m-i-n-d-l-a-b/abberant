@@ -7,10 +7,6 @@
 
 import React from 'react'
 
-// Import CSS Modules
-import styles from '../styles/common.module.css'
-import menuStyles from '../styles/menu.module.css'
-
 /**
  * Props interface for StartScreen component
  */
@@ -38,16 +34,15 @@ export default function StartScreen({
   }
 
   return (
-    <div id="startScreen" className={menuStyles.startScreen}>
-      <h1 className={menuStyles.startTitle}>Abberant</h1>
+    <div id="startScreen">
+      <h1>Abberant</h1>
       <button 
         id="startButton" 
         onClick={onStartGame}
-        className={menuStyles.startButton}
       >
         Start Game
       </button>
-      <div id="controls" className={menuStyles.controlsInfo}>
+      <div id="controls">
         WASD/Arrow Keys: Move | Space: Jump | Shift: Dash | P: Pause | R: Reset
       </div>
     </div>

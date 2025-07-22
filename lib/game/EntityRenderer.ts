@@ -19,6 +19,7 @@ import {
   COLLECTIBLE_WIDTH,
   COLLECTIBLE_HEIGHT
 } from '../../constants/game'
+import { hexToRgba } from '../utils/storage'
 
 export interface EntityRenderContext {
   ctx: CanvasRenderingContext2D
@@ -382,7 +383,7 @@ export class EntityRenderer {
       collectible.width / 2, collectible.height / 2, 0,
       collectible.width / 2, collectible.height / 2, collectible.width
     )
-    glowGradient.addColorStop(0, `${collectible.color}80`)
+    glowGradient.addColorStop(0, hexToRgba(collectible.color, 0.5))
     glowGradient.addColorStop(1, 'transparent')
 
     ctx.fillStyle = glowGradient

@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import MobileControls from './MobileControls'
 import GameUI from './GameUI'
 import StartScreen from './StartScreen'
@@ -23,6 +23,13 @@ export default function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const { gameState, gameHandlers, gameRef } = useGame(canvasRef)
   const [isEffectsLabOpen, setIsEffectsLabOpen] = useState(false)
+
+  // Debug logging to verify game engine is working
+  useEffect(() => {
+    console.log('Game component mounted')
+    console.log('Game state:', gameState)
+    console.log('Game ref:', gameRef.current)
+  }, [gameState, gameRef])
 
   const handleOpenEffectsLab = () => {
     setIsEffectsLabOpen(true)
@@ -60,26 +67,12 @@ export default function Game() {
   }
 
   return (
-    <div id="gameContainer" style={{
-      position: 'relative',
-      width: '800px',
-      height: '600px',
-      margin: '0 auto',
-      fontFamily: 'Courier New, monospace',
-      overflow: 'hidden',
-      background: '#000011'
-    }}>
+    <div id="gameContainer">
       <canvas 
         ref={canvasRef} 
         id="gameCanvas" 
         width="800" 
-        height="600" 
-        style={{
-          display: 'block',
-          border: '2px solid #00ffff',
-          boxShadow: '0 0 20px rgba(0, 255, 255, 0.5)',
-          background: 'linear-gradient(to bottom, #000033, #000011)'
-        }}
+        height="600"
       ></canvas>
 
       {/* Game UI - only show when playing */}

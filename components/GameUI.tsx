@@ -7,10 +7,6 @@
 
 import React from 'react'
 
-// Import CSS Modules
-import styles from '../styles/common.module.css'
-import uiStyles from '../styles/ui.module.css'
-
 /**
  * Props interface for GameUI component
  */
@@ -48,30 +44,17 @@ export default function GameUI({
   return (
     <>
       {/* Game UI */}
-      <div id="ui" className={uiStyles.gameUi}>
-        <div className={uiStyles.uiItem}>
-          <span className={uiStyles.uiLabel}>Lives</span>
-          <span id="lives" className={uiStyles.uiValue}>{lives}</span>
-        </div>
-        <div className={uiStyles.uiItem}>
-          <span className={uiStyles.uiLabel}>Score</span>
-          <span id="score" className={uiStyles.uiValue}>{score}</span>
-        </div>
-        <div className={uiStyles.uiItem}>
-          <span className={uiStyles.uiLabel}>Level</span>
-          <span id="level" className={uiStyles.uiValue}>{level}</span>
-        </div>
-        <div className={uiStyles.uiItem}>
-          <span className={uiStyles.uiLabel}>Combo</span>
-          <span id="combo" className={uiStyles.uiValue}>{combo}</span>
-        </div>
+      <div id="ui">
+        <div>Lives: <span id="lives">{lives}</span></div>
+        <div>Score: <span id="score">{score}</span></div>
+        <div>Level: <span id="level">{level}</span></div>
+        <div>Combo: <span id="combo">{combo}</span></div>
       </div>
 
       {/* Sound Toggle */}
       <button 
         id="soundToggle" 
         onClick={onSoundToggle}
-        className={`${uiStyles.soundToggle} ${soundEnabled ? uiStyles.soundOn : uiStyles.soundOff}`}
       >
         {soundEnabled ? '🔊 Sound: ON' : '🔇 Sound: OFF'}
       </button>

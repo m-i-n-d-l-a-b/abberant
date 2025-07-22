@@ -134,6 +134,8 @@ export class GameEngine {
   // Development mode
   private readonly DEV_MODE = true
 
+  private callbacks: GameEngineCallbacks
+
   // Managers
   private gameStateManager: GameStateManager
   private playerManager!: PlayerManager
@@ -153,6 +155,7 @@ export class GameEngine {
     this.ctx = canvas.getContext('2d')!
     this.width = CANVAS_WIDTH
     this.height = CANVAS_HEIGHT
+    this.callbacks = callbacks
 
     // Initialize managers
     this.gameStateManager = new GameStateManager(callbacks)
@@ -196,6 +199,9 @@ export class GameEngine {
 
     // Initialize game state
     this.init()
+    
+    // Start the game loop immediately
+    this.gameLoop()
   }
 
   init(): void {
@@ -290,6 +296,7 @@ export class GameEngine {
     // Setup input using modular InputManager
     if (!this.inputSetupDone) {
       this.inputManager.setGameState(this.gameState)
+      this.inputManager.setAudioInitialized(this.audioInitialized)
       this.inputSetupDone = true
     }
 
@@ -298,11 +305,6 @@ export class GameEngine {
 
     // Generate initial level
     this.generateLevel()
-
-    // Start game loop
-    if (!this.animationFrameId) {
-      this.gameLoop()
-    }
   }
 
   setupAudio(): void {
@@ -443,7 +445,7 @@ export class GameEngine {
     this.levelTarget = levelWidth
     this.generateBackground()
 
-    // Set player starting position based on backwards mode
+    // Set player starting position based on backwards mode (after effects are assigned)
     if (this.isReversed) {
       this.player.x = this.levelTarget - 100
     } else {
@@ -557,6 +559,7 @@ export class GameEngine {
   assignLevelEffects(): void {
     const canvasEffectPool = ["wobble", "upsideDown", "invert", "backwards", "melting", "dataBleed"]
     this.levelEffects = []
+    // Always reset isReversed to false at the start of each level
     this.isReversed = false
 
     // Filter out disorienting effects for level 1
@@ -588,17 +591,29 @@ export class GameEngine {
   }
 
   startGame(): void {
-    if (this.gameState !== "start") return
     this.gameState = "playing"
     this.inputManager.setGameState(this.gameState)
-    const startScreen = document.getElementById("startScreen")
-    if (startScreen) startScreen.style.display = "none"
-    this.initAudioContext()
+    
+    // Use callbacks instead of direct DOM manipulation
+    if (this.callbacks.onStateChange) {
+      this.callbacks.onStateChange("start", "playing")
+    }
+    
+    this.resetLevel()
+    this.startBGM()
   }
 
   restart(): void {
-    this.init()
+    this.gameState = "playing"
     this.inputManager.setGameState(this.gameState)
+    
+    // Use callbacks instead of direct DOM manipulation
+    if (this.callbacks.onStateChange) {
+      this.callbacks.onStateChange("gameover", "playing")
+    }
+    
+    this.resetLevel()
+    this.startBGM()
   }
 
   nextLevel(): void {
@@ -694,10 +709,14 @@ export class GameEngine {
 
     if (this.isReversed) {
       this.levelProgress = ((this.levelTarget - this.player.x) / this.levelTarget) * 100
-      if (this.player.x <= 100) this.nextLevel()
+      if (this.player.x <= 100) {
+        this.nextLevel()
+      }
     } else {
       this.levelProgress = (this.player.x / this.levelTarget) * 100
-      if (this.levelProgress >= 100) this.nextLevel()
+      if (this.levelProgress >= 100) {
+        this.nextLevel()
+      }
     }
   }
 
@@ -823,12 +842,6 @@ export class GameEngine {
       }
     }
 
-    if (isCanvasEffectEnabled("backwards")) {
-      this.isReversed = true
-    } else {
-      this.isReversed = false
-    }
-
     // Update dream effects based on level effects
     // Dream effects are active when certain level effects are present
     const hasDreamEffects = isCanvasEffectEnabled("melting") || 
@@ -927,12 +940,15 @@ export class GameEngine {
     if (this.lives <= 0) {
       this.gameState = "gameover"
       this.inputManager.setGameState(this.gameState)
-      const finalScore = document.getElementById("finalScore")
-      const bestCombo = document.getElementById("bestCombo")
-      const gameOverScreen = document.getElementById("gameOverScreen")
-      if (finalScore) finalScore.textContent = this.score.toString()
-      if (bestCombo) bestCombo.textContent = this.bestCombo.toString()
-      if (gameOverScreen) gameOverScreen.style.display = "flex"
+      
+      // Use callbacks instead of direct DOM manipulation
+      if (this.callbacks.onGameOver) {
+        this.callbacks.onGameOver(this.score)
+      }
+      if (this.callbacks.onStateChange) {
+        this.callbacks.onStateChange("playing", "gameover")
+      }
+      
       this.stopBGM()
     } else {
       // Respawn player based on backwards mode
@@ -960,8 +976,10 @@ export class GameEngine {
         this.isReversed = false
       }
     }
+    // Always reset player velocity and Y position on any level reset
     this.player.velX = 0
     this.player.velY = 0
+    this.player.y = 400
     this.generateLevel()
     this.levelStartInvincibility = 120
   }
@@ -970,10 +988,15 @@ export class GameEngine {
     if (this.gameState !== "playing" && !this.paused) return
     this.paused = !this.paused
     this.inputManager.setGameState(this.paused ? "paused" : "playing")
-    const pauseScreen = document.getElementById("pauseScreen")
-    if (pauseScreen) {
-      pauseScreen.style.display = this.paused ? "block" : "none"
+    
+    // Use callbacks instead of direct DOM manipulation
+    if (this.callbacks.onPauseToggle) {
+      this.callbacks.onPauseToggle(this.paused)
     }
+    if (this.callbacks.onStateChange) {
+      this.callbacks.onStateChange(this.gameState, this.paused ? "paused" : "playing")
+    }
+    
     if (this.paused) {
       this.stopBGM()
     } else {
@@ -1013,8 +1036,8 @@ export class GameEngine {
       this.ctx.filter = "invert(1) hue-rotate(180deg)"
     }
 
-    // Use the new modular renderer system
-    this.renderWithModularRenderer()
+    // Use the original rendering approach for compatibility
+    this.renderToContext(this.ctx)
     
     this.ctx.restore()
   }

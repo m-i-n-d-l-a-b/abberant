@@ -65,9 +65,35 @@ export function useGame(canvasRef: React.RefObject<HTMLCanvasElement>) {
 
   // Initialize game engine
   useEffect(() => {
-    if (!canvasRef.current) return
+    if (!canvasRef.current) {
+      console.log('Canvas ref not available')
+      return
+    }
 
-    gameRef.current = new GameEngine(canvasRef.current)
+    console.log('Initializing game engine...')
+    gameRef.current = new GameEngine(canvasRef.current, {
+      onStateChange: (oldState, newState) => {
+        console.log('Game state changed:', oldState, '->', newState)
+        if (newState === 'gameover') {
+          setGameScreen(GameScreen.GAME_OVER)
+        } else if (newState === 'playing') {
+          setGameScreen(GameScreen.PLAYING)
+        }
+      },
+      onGameOver: (finalScore) => {
+        console.log('Game over with score:', finalScore)
+        setFinalScore(finalScore)
+        setGameScreen(GameScreen.GAME_OVER)
+      },
+      onPauseToggle: (paused) => {
+        if (paused) {
+          setGameScreen(GameScreen.PAUSED)
+        } else {
+          setGameScreen(GameScreen.PLAYING)
+        }
+      }
+    })
+    console.log('Game engine created:', gameRef.current)
 
     // Set up game state update listeners
     const updateGameState = () => {
@@ -95,9 +121,11 @@ export function useGame(canvasRef: React.RefObject<HTMLCanvasElement>) {
 
     // Set up periodic state updates
     const stateUpdateInterval = setInterval(updateGameState, 100)
+    console.log('Game state update interval set up')
 
     // Cleanup function
     return () => {
+      console.log('Cleaning up game engine...')
       clearInterval(stateUpdateInterval)
       if (gameRef.current) {
         // Clean up animation frame

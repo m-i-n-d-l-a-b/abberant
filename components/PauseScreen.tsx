@@ -7,10 +7,6 @@
 
 import React from 'react'
 
-// Import CSS Modules
-import styles from '../styles/common.module.css'
-import menuStyles from '../styles/menu.module.css'
-
 /**
  * Props interface for PauseScreen component
  */
@@ -41,14 +37,13 @@ export default function PauseScreen({
   }
 
   return (
-    <div id="pauseScreen" className={menuStyles.pauseScreen}>
-      <h2 className={menuStyles.pauseTitle}>Paused</h2>
-      <p className={menuStyles.pauseMessage}>Press P to continue</p>
+    <div id="pauseScreen">
+      <h2>Paused</h2>
+      <p>Press P to continue</p>
       {onOpenEffectsLab && (
         <button 
           id="effectsLabButton" 
           onClick={onOpenEffectsLab}
-          className={menuStyles.effectsLabButton}
         >
           Effects Lab
         </button>

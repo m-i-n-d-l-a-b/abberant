@@ -7,10 +7,6 @@
 
 import React from 'react'
 
-// Import CSS Modules
-import styles from '../styles/common.module.css'
-import menuStyles from '../styles/menu.module.css'
-
 /**
  * Props interface for GameOverScreen component
  */
@@ -44,18 +40,11 @@ export default function GameOverScreen({
   }
 
   return (
-    <div id="gameOverScreen" className={menuStyles.gameOverScreen}>
-      <h2 className={menuStyles.gameOverTitle}>Game Over!</h2>
-      <p className={menuStyles.finalScore}>
-        Final Score: <span id="finalScore">{finalScore}</span>
-      </p>
-      <p className={menuStyles.bestCombo}>
-        Best Combo: <span id="bestCombo">{bestCombo}</span>
-      </p>
-      <button 
-        onClick={onRestart}
-        className={menuStyles.restartButton}
-      >
+    <div id="gameOverScreen">
+      <h2>Game Over!</h2>
+      <p>Final Score: <span id="finalScore">{finalScore}</span></p>
+      <p>Best Combo: <span id="bestCombo">{bestCombo}</span></p>
+      <button onClick={onRestart}>
         Play Again
       </button>
     </div>
