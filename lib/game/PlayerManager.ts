@@ -168,7 +168,8 @@ export class PlayerManager {
 
     // Dash
     if (input.dash) {
-      this.dash()
+      const direction = input.left ? -1 : input.right ? 1 : this.player.velX >= 0 ? 1 : -1
+      this.dash(direction)
     }
   }
 
@@ -221,13 +222,10 @@ export class PlayerManager {
   /**
    * Handle dash mechanics
    */
-  private dash(): void {
-    if (this.player.dashCooldown <= 0) {
-      const dashDirection = this.player.velX > 0 ? 1 : this.player.velX < 0 ? -1 : 0
-      if (dashDirection !== 0) {
-        this.player.velX = dashDirection * PLAYER_DASH_POWER
-        this.player.dashCooldown = PLAYER_DASH_COOLDOWN
-      }
+  private dash(direction: number): void {
+    if (this.player.dashCooldown <= 0 && direction !== 0) {
+      this.player.velX = direction * PLAYER_DASH_POWER
+      this.player.dashCooldown = PLAYER_DASH_COOLDOWN
     }
   }
 

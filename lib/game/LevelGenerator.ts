@@ -285,8 +285,11 @@ export class LevelGenerator {
    * Adjust color brightness
    */
   private adjustColorBrightness(color: string, factor: number): string {
-    // Simple brightness adjustment - in a real implementation, you'd use HSL
-    return color
+    if (!color.startsWith('#') || color.length !== 7) return color
+    const r = Math.min(255, Math.max(0, Math.floor(parseInt(color.slice(1, 3), 16) * factor)))
+    const g = Math.min(255, Math.max(0, Math.floor(parseInt(color.slice(3, 5), 16) * factor)))
+    const b = Math.min(255, Math.max(0, Math.floor(parseInt(color.slice(5, 7), 16) * factor)))
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
   }
 
   /**

@@ -77,6 +77,8 @@ export class InputManager {
   private gamepadIndex: number | null = null
   private gamepadDeadzone: number = 0.3
   private gamepadButtonPressed: { [key: string]: boolean } = {}
+  private gamepadConnectedHandler?: (e: GamepadEvent) => void
+  private gamepadDisconnectedHandler?: (e: GamepadEvent) => void
 
   // Event handlers
   private keydownHandler!: (e: KeyboardEvent) => void
@@ -199,7 +201,13 @@ export class InputManager {
    * Setup mobile/touch controls
    */
   private setupMobileControls(): void {
+    // Clean up any existing handlers before reinitializing
+    for (const handler of this.mobileHandlers) {
+      handler.button.removeEventListener("touchstart", handler.handleStart)
+      handler.button.removeEventListener("touchend", handler.handleEnd)
+    }
     this.mobileHandlers = []
+
     const mobileButtons = document.querySelectorAll(".mobile-button")
     
     mobileButtons.forEach((button) => {
@@ -247,9 +255,11 @@ export class InputManager {
         this.touchInput.right = pressed
         break
       case "jump":
+        this.touchInput.jump = pressed
         if (pressed) this.callbacks.onJump()
         break
       case "dash":
+        this.touchInput.dash = pressed
         if (pressed) this.callbacks.onDash()
         break
       case "pause":
@@ -265,14 +275,16 @@ export class InputManager {
     this.gamepadIndex = null
     this.gamepadDeadzone = 0.3
     this.gamepadButtonPressed = {}
-    
-    window.addEventListener("gamepadconnected", (e: any) => {
+    this.gamepadConnectedHandler = (e: any) => {
       this.gamepadIndex = e.gamepad.index
-    })
-    
-    window.addEventListener("gamepaddisconnected", () => {
+    }
+
+    this.gamepadDisconnectedHandler = () => {
       this.gamepadIndex = null
-    })
+    }
+
+    window.addEventListener("gamepadconnected", this.gamepadConnectedHandler)
+    window.addEventListener("gamepaddisconnected", this.gamepadDisconnectedHandler)
   }
 
   /**
@@ -354,7 +366,7 @@ export class InputManager {
       left: this.keys['a'] || this.keys['A'] || this.keys['ArrowLeft'] || this.touchInput.left || this.gamepadInput.left,
       right: this.keys['d'] || this.keys['D'] || this.keys['ArrowRight'] || this.touchInput.right || this.gamepadInput.right,
       jump: this.keys['w'] || this.keys['W'] || this.keys['ArrowUp'] || this.keys[' '] || this.touchInput.jump || this.gamepadInput.jump,
-      dash: this.keys['Shift'] || this.touchInput.dash || this.gamepadInput.dash
+      dash: this.keys['shift'] || this.touchInput.dash || this.gamepadInput.dash
     }
     
 
@@ -427,6 +439,13 @@ export class InputManager {
       if (soundToggle) {
         soundToggle.removeEventListener("click", this.soundToggleHandler)
       }
+    }
+
+    if (this.gamepadConnectedHandler) {
+      window.removeEventListener("gamepadconnected", this.gamepadConnectedHandler)
+    }
+    if (this.gamepadDisconnectedHandler) {
+      window.removeEventListener("gamepaddisconnected", this.gamepadDisconnectedHandler)
     }
 
     // Clear arrays
