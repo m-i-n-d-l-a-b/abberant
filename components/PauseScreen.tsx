@@ -37,9 +37,12 @@ export default function PauseScreen({
   }
 
   return (
-    <div id="pauseScreen">
+    <div id="pauseScreen" className={className}>
       <h2>Paused</h2>
       <p>Press P to continue</p>
+      <button id="resumeButton" onClick={onResume}>
+        Resume
+      </button>
       {onOpenEffectsLab && (
         <button 
           id="effectsLabButton" 

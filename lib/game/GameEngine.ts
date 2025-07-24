@@ -124,7 +124,7 @@ export class GameEngine {
     wobble: { enabled: boolean; amplitude: number; frequency: number; speed: number }
     upsideDown: { enabled: boolean }
     invert: { enabled: boolean }
-    backwards: { enabled: boolean }
+    mirrored: { enabled: boolean }
     melting: { enabled: boolean; intensity: number; speed: number }
     dataBleed: { enabled: boolean; intensity: number; duration: number }
   }
@@ -228,7 +228,7 @@ export class GameEngine {
       wobble: { enabled: false, amplitude: 5, frequency: 0.05, speed: 0.002 },
       upsideDown: { enabled: false },
       invert: { enabled: false },
-      backwards: { enabled: false },
+      mirrored: { enabled: false },
       melting: { enabled: false, intensity: 1, speed: 0.01 },
       dataBleed: { enabled: false, intensity: 1, duration: 20 }
     }
@@ -445,42 +445,23 @@ export class GameEngine {
     this.levelTarget = levelWidth
     this.generateBackground()
 
-    // Set player starting position based on backwards mode (after effects are assigned)
-    if (this.isReversed) {
-      this.player.x = this.levelTarget - 100
-    } else {
-      this.player.x = 100
-    }
+    // Always use normal spawn position, regardless of mirrored effect
+    this.player.x = 100
     this.player.y = 400
 
     const platformCount = 15 + this.currentLevel * 3
     
-    // Add spawn platform based on backwards mode
-    if (this.isReversed) {
-      // In backwards mode, add a platform near the player spawn point (right side)
-      this.platforms.push({
-        x: this.levelTarget - 150,
-        y: 550,
-        width: 200,
-        height: 50,
-        color: "#ff00ff",
-        type: "normal",
-        liquidPixels: [],
-        distortionOffset: 0
-      })
-    } else {
-      // Normal mode - platform at left side
-      this.platforms.push({
-        x: 0,
-        y: 550,
-        width: 200,
-        height: 50,
-        color: "#ff00ff",
-        type: "normal",
-        liquidPixels: [],
-        distortionOffset: 0
-      })
-    }
+    // Always add platform at left side
+    this.platforms.push({
+      x: 0,
+      y: 550,
+      width: 200,
+      height: 50,
+      color: "#ff00ff",
+      type: "normal",
+      liquidPixels: [],
+      distortionOffset: 0
+    })
     
     for (let i = 1; i < platformCount; i++) {
       const x = (i * levelWidth) / platformCount + Math.random() * 100 - 50
@@ -557,16 +538,15 @@ export class GameEngine {
   }
 
   assignLevelEffects(): void {
-    const canvasEffectPool = ["wobble", "upsideDown", "invert", "backwards", "melting", "dataBleed"]
+    const canvasEffectPool = ["wobble", "upsideDown", "invert", "mirrored", "melting", "dataBleed"]
     this.levelEffects = []
-    // Always reset isReversed to false at the start of each level
-    this.isReversed = false
+    // Remove isReversed logic entirely for mirrored effect
 
     // Filter out disorienting effects for level 1
     let availableEffects = [...canvasEffectPool]
     if (this.currentLevel === 1) {
       availableEffects = availableEffects.filter(effect => 
-        effect !== "upsideDown" && effect !== "backwards"
+        effect !== "upsideDown" && effect !== "mirrored"
       )
     }
 
@@ -583,11 +563,7 @@ export class GameEngine {
     for (let i = 0; i < effectCount && i < availableEffects.length; i++) {
       this.levelEffects.push(availableEffects[i])
     }
-
-    // Set the reversed flag if 'backwards' is chosen
-    if (this.levelEffects.includes("backwards")) {
-      this.isReversed = true
-    }
+    // No isReversed logic here
   }
 
   startGame(): void {
@@ -710,16 +686,10 @@ export class GameEngine {
     this.checkCollisions()
     this.updateUI()
 
-    if (this.isReversed) {
-      this.levelProgress = ((this.levelTarget - this.player.x) / this.levelTarget) * 100
-      if (this.player.x <= 100) {
-        this.nextLevel()
-      }
-    } else {
-      this.levelProgress = (this.player.x / this.levelTarget) * 100
-      if (this.levelProgress >= 100) {
-        this.nextLevel()
-      }
+    // Always use normal progress calculation
+    this.levelProgress = (this.player.x / this.levelTarget) * 100
+    if (this.levelProgress >= 100) {
+      this.nextLevel()
     }
   }
 
@@ -767,16 +737,16 @@ export class GameEngine {
   handleInput(): void {
     // Use modular InputManager to get current input state
     const input = this.inputManager.getPlayerInput()
-    
     if (input.left) {
-      this.player.velX = -this.player.speed
+      this.player.velX = -this.player.speed;
     } else if (input.right) {
-      this.player.velX = this.player.speed
+      this.player.velX = this.player.speed;
     } else {
-      this.player.velX *= 0.8
+      this.player.velX *= 0.8;
     }
-
-    if (this.levelEffects.includes("invert")) this.player.velX *= -1
+    // Invert (reverse controls)
+    if (this.levelEffects.includes("invert")) this.player.velX *= -1;
+    // Remove mirrored/isReversed logic from controls
   }
 
   jump(): void {
@@ -954,12 +924,8 @@ export class GameEngine {
       
       this.stopBGM()
     } else {
-      // Respawn player based on backwards mode
-      if (this.isReversed) {
-        this.player.x = this.levelTarget - 100
-      } else {
-        this.player.x = 100
-      }
+      // Always respawn player at normal position
+      this.player.x = 100
       this.player.y = 400
       this.player.velX = 0
       this.player.velY = 0
@@ -975,7 +941,7 @@ export class GameEngine {
       this.lives = 3
       this.combo = 0
       this.currentLevel = 1
-      if (!this.activeCustomEffects?.backwards?.enabled) {
+      if (!this.activeCustomEffects?.mirrored?.enabled) {
         this.isReversed = false
       }
     }
@@ -1030,7 +996,7 @@ export class GameEngine {
       this.ctx.scale(1, -1)
     }
     
-    if (isCanvasEffectEnabled("backwards")) {
+    if (isCanvasEffectEnabled("mirrored")) {
       this.ctx.translate(this.width, 0)
       this.ctx.scale(-1, 1)
     }
@@ -1272,7 +1238,7 @@ export class GameEngine {
     this.ctx.scale(zoom, zoom)
     this.ctx.rotate(rotation)
     
-    if (isEffectEnabled("backwards")) {
+    if (isEffectEnabled("mirrored")) {
       this.ctx.scale(-1, 1)
     }
     

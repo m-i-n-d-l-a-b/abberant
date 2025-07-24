@@ -13,7 +13,7 @@ export interface CanvasEffectSettings {
   };
   upsideDown: { enabled: boolean };
   invert: { enabled: boolean };
-  backwards: { enabled: boolean };
+  mirrored: { enabled: boolean };
   melting: { 
     enabled: boolean;
     intensity: number;
@@ -52,7 +52,7 @@ export default function EffectsLab({
     },
     upsideDown: { enabled: false },
     invert: { enabled: false },
-    backwards: { enabled: false },
+    mirrored: { enabled: false },
     melting: { 
       enabled: false,
       intensity: 1,
@@ -353,24 +353,24 @@ export default function EffectsLab({
               }}
               style={{ marginRight: '10px' }}
             />
-            Invert (Canvas)
+            Invert (Canvas + Controls)
           </label>
         </div>
 
-        {/* Backwards Effect - Canvas Effect */}
+        {/* Mirrored Effect - Canvas Effect */}
         <div className="effect-control" style={{ marginBottom: '20px' }}>
           <label style={{ display: 'flex', alignItems: 'center' }}>
             <input 
               type="checkbox" 
-              checked={effectsLabSettings.backwards.enabled}
+              checked={effectsLabSettings.mirrored.enabled}
               onChange={(e) => {
                 const newSettings = {...effectsLabSettings}
-                newSettings.backwards.enabled = e.target.checked
+                newSettings.mirrored.enabled = e.target.checked
                 setEffectsLabSettings(newSettings)
               }}
               style={{ marginRight: '10px' }}
             />
-            Backwards (Canvas)
+            Mirrored (Canvas)
           </label>
         </div>
       </div>
@@ -420,7 +420,7 @@ export default function EffectsLab({
                 wobble: { enabled: true, amplitude: 8, frequency: 0.08, speed: 0.003 },
                 upsideDown: { enabled: false },
                 invert: { enabled: false },
-                backwards: { enabled: false },
+                mirrored: { enabled: false },
                 melting: { enabled: false, intensity: 1, speed: 0.01 },
                 dataBleed: { enabled: false, intensity: 1, duration: 20 }
               }
@@ -441,7 +441,7 @@ export default function EffectsLab({
                 wobble: { enabled: true, amplitude: 15, frequency: 0.12, speed: 0.005 },
                 upsideDown: { enabled: true },
                 invert: { enabled: false },
-                backwards: { enabled: false },
+                mirrored: { enabled: false },
                 melting: { enabled: false, intensity: 1, speed: 0.01 },
                 dataBleed: { enabled: false, intensity: 1, duration: 20 }
               }
@@ -462,7 +462,7 @@ export default function EffectsLab({
                 wobble: { enabled: false, amplitude: 5, frequency: 0.05, speed: 0.002 },
                 upsideDown: { enabled: false },
                 invert: { enabled: true },
-                backwards: { enabled: true },
+                mirrored: { enabled: true },
                 melting: { enabled: true, intensity: 2, speed: 0.02 },
                 dataBleed: { enabled: true, intensity: 2, duration: 40 }
               }
