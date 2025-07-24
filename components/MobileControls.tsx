@@ -17,7 +17,7 @@ interface MobileControlsProps {
 
 export default function MobileControls({ className = '' }: MobileControlsProps) {
   return (
-    <div id="mobileControls">
+    <div id="mobileControls" className={`mobile-controls ${className}`}>
       <div className="dpad">
         <div className="dpad-center"></div>
         <div className="mobile-button dpad-up" data-action="up">↑</div>

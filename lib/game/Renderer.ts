@@ -465,63 +465,136 @@ export class Renderer {
    * Apply melting effect
    */
   private applyMeltingEffect(context: RenderContext): void {
-    // Melting effect implementation
+    const { ctx, effects, width, height } = context
+    const offset = Math.sin(context.frameCount * 0.05) * effects.meltingFactor * 5
+    ctx.save()
+    ctx.drawImage(this._canvas, 0, offset, width, height, 0, 0, width, height)
+    ctx.restore()
   }
 
   /**
    * Apply color shift effect
    */
   private applyColorShiftEffect(context: RenderContext): void {
-    // Color shift effect implementation
+    const { ctx, effects, width, height } = context
+    ctx.save()
+    ctx.globalCompositeOperation = 'screen'
+    ctx.fillStyle = `rgba(255,0,0,${effects.colorShift * 0.3})`
+    ctx.fillRect(0, 0, width, height)
+    ctx.fillStyle = `rgba(0,0,255,${effects.colorShift * 0.3})`
+    ctx.fillRect(0, 0, width, height)
+    ctx.restore()
   }
 
   /**
    * Apply blur effect
    */
   private applyBlurEffect(context: RenderContext): void {
-    // Blur effect implementation
+    const { ctx, effects, width, height } = context
+    ctx.save()
+    ctx.filter = `blur(${effects.blurFactor * 2}px)`
+    ctx.drawImage(this._canvas, 0, 0, width, height)
+    ctx.filter = 'none'
+    ctx.restore()
   }
 
   /**
    * Apply noise effect
    */
   private applyNoiseEffect(context: RenderContext): void {
-    // Noise effect implementation
+    const { ctx, effects, width, height } = context
+    const imageData = ctx.getImageData(0, 0, width, height)
+    const data = imageData.data
+    for (let i = 0; i < data.length; i += 4) {
+      const rand = (Math.random() - 0.5) * effects.noiseFactor * 255
+      data[i] = Math.min(255, Math.max(0, data[i] + rand))
+      data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + rand))
+      data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + rand))
+    }
+    ctx.putImageData(imageData, 0, 0)
   }
 
   /**
    * Apply RGB shift effect
    */
   private applyRGBShiftEffect(context: RenderContext): void {
-    // RGB shift effect implementation
+    const { ctx, effects, width, height } = context
+    const shift = effects.rgbShiftFactor * 2
+    ctx.save()
+    ctx.drawImage(this._canvas, shift, 0, width, height, 0, 0, width, height)
+    ctx.globalCompositeOperation = 'lighten'
+    ctx.drawImage(this._canvas, -shift, 0, width, height, 0, 0, width, height)
+    ctx.restore()
   }
 
   /**
    * Apply wave effect
    */
   private applyWaveEffect(context: RenderContext): void {
-    // Wave effect implementation
+    const { ctx, effects, width, height } = context
+    const amplitude = effects.waveFactor * 5
+    const imageData = ctx.getImageData(0, 0, width, height)
+    const tempCanvas = document.createElement('canvas')
+    tempCanvas.width = width
+    tempCanvas.height = height
+    const tempCtx = tempCanvas.getContext('2d')!
+    tempCtx.putImageData(imageData, 0, 0)
+    ctx.clearRect(0, 0, width, height)
+    for (let y = 0; y < height; y++) {
+      const xOffset = Math.sin((y / 10) + context.frameCount * 0.05) * amplitude
+      ctx.drawImage(tempCanvas, 0, y, width, 1, xOffset, y, width, 1)
+    }
   }
 
   /**
    * Apply zoom effect
    */
   private applyZoomEffect(context: RenderContext): void {
-    // Zoom effect implementation
+    const { ctx, effects, width, height } = context
+    const zoom = 1 + effects.zoomFactor * 0.1
+    ctx.save()
+    ctx.translate(width / 2, height / 2)
+    ctx.scale(zoom, zoom)
+    ctx.translate(-width / 2, -height / 2)
+    ctx.drawImage(this._canvas, 0, 0)
+    ctx.restore()
   }
 
   /**
    * Apply rotation effect
    */
   private applyRotationEffect(context: RenderContext): void {
-    // Rotation effect implementation
+    const { ctx, effects, width, height } = context
+    const rot = effects.rotationFactor * 0.1
+    ctx.save()
+    ctx.translate(width / 2, height / 2)
+    ctx.rotate(rot)
+    ctx.translate(-width / 2, -height / 2)
+    ctx.drawImage(this._canvas, 0, 0)
+    ctx.restore()
   }
 
   /**
    * Apply pixel bleed effect
    */
   private applyPixelBleedEffect(context: RenderContext): void {
-    // Pixel bleed effect implementation
+    const { ctx, effects, width, height } = context
+    const bleed = Math.floor(effects.pixelBleedFactor * 3)
+    if (bleed <= 0) return
+    const imageData = ctx.getImageData(0, 0, width, height)
+    const data = imageData.data
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width - bleed; x++) {
+        const src = (y * width + x) * 4
+        for (let i = 1; i <= bleed; i++) {
+          const dst = (y * width + x + i) * 4
+          data[dst] = data[src]
+          data[dst + 1] = data[src + 1]
+          data[dst + 2] = data[src + 2]
+        }
+      }
+    }
+    ctx.putImageData(imageData, 0, 0)
   }
 
   /**

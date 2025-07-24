@@ -41,13 +41,27 @@ export default function GameOverScreen({
   }
 
   return (
-    <div className={`${menuStyles.gameOverScreen} ${className}`}>
-      <h2 className={menuStyles.gameOverTitle}>Game Over!</h2>
-      <p className={menuStyles.finalScore}>Final Score: <span id="finalScore">{finalScore}</span></p>
-      <p className={menuStyles.bestCombo}>Best Combo: <span id="bestCombo">{bestCombo}</span></p>
-      <button className={menuStyles.restartButton} onClick={onRestart}>
-        Play Again
-      </button>
+    <div className={`${menuStyles.gameOverScreen} game-over-screen ${className}`}>
+      <div className="menu-screen">
+        <div className="menu-background" />
+        <div className="menu-content">
+          <div className="title-container">
+            <h2 className={`${menuStyles.gameOverTitle} title-glow`}>GAME OVER</h2>
+          </div>
+          <div className="score-display">
+            <p className="score-label">FINAL SCORE</p>
+            <p className="final-score">
+              <span data-testid="finalScore" id="finalScore" className="score-value">{finalScore}</span>
+            </p>
+          </div>
+          <div className="menu-buttons">
+            <button className={`${menuStyles.restartButton} menu-button`} onClick={onRestart}>
+              <span className="button-text">PLAY AGAIN</span>
+              <span className="button-glow" />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   )
-} 
+}

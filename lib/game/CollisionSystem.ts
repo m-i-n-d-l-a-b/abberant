@@ -442,10 +442,12 @@ export class CollisionSystem {
     averageEntitiesPerNode: number
   } {
     const allEntities = this.quadtree.getAllEntities()
+    const avgData = this.getAverageEntitiesPerNode(this.quadtree)
+    const avg = avgData.totalNodes > 0 ? avgData.totalEntities / avgData.totalNodes : 0
     return {
       totalEntities: allEntities.length,
       quadtreeDepth: this.getMaxDepth(this.quadtree),
-      averageEntitiesPerNode: this.getAverageEntitiesPerNode(this.quadtree)
+      averageEntitiesPerNode: avg
     }
   }
 
@@ -456,17 +458,17 @@ export class CollisionSystem {
     return Math.max(...node.children.map(child => this.getMaxDepth(child)))
   }
 
-  private getAverageEntitiesPerNode(node: QuadTreeNode): number {
+  private getAverageEntitiesPerNode(node: QuadTreeNode): { totalEntities: number; totalNodes: number } {
     let totalEntities = node.entities.length
     let totalNodes = 1
 
     for (const child of node.children) {
       const childStats = this.getAverageEntitiesPerNode(child)
-      totalEntities += childStats * childStats // This is a simplified calculation
-      totalNodes += childStats
+      totalEntities += childStats.totalEntities
+      totalNodes += childStats.totalNodes
     }
 
-    return totalNodes > 0 ? totalEntities / totalNodes : 0
+    return { totalEntities, totalNodes }
   }
 
   /**

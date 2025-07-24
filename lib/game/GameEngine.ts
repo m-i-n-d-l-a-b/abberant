@@ -132,7 +132,7 @@ export class GameEngine {
   selectedPresetName!: string
 
   // Development mode
-  private readonly DEV_MODE = true
+  private readonly DEV_MODE = false
 
   private callbacks: GameEngineCallbacks
 

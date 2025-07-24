@@ -261,6 +261,19 @@ describe('CollisionSystem', () => {
       const stats = collisionSystem.getStats()
       expect(stats.totalEntities).toBe(10)
       expect(stats.quadtreeDepth).toBeGreaterThan(0)
+      expect(stats.averageEntitiesPerNode).toBeGreaterThan(0)
+    })
+
+    test('should calculate average entities per node correctly', () => {
+      const entities = [
+        { id: 'e1', bounds: { x: 10, y: 10, width: 20, height: 20 }, type: 'player' as const },
+        { id: 'e2', bounds: { x: 40, y: 40, width: 20, height: 20 }, type: 'player' as const }
+      ]
+
+      entities.forEach(e => collisionSystem.addEntity(e))
+      const stats = collisionSystem.getStats()
+      expect(stats.totalEntities).toBe(2)
+      expect(stats.averageEntitiesPerNode).toBeCloseTo(2, 1)
     })
 
     test('should handle large numbers of entities efficiently', () => {
