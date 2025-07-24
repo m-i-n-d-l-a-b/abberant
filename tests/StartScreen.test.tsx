@@ -6,7 +6,7 @@
 
 import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
-import StartScreen, { StartScreenProps } from './StartScreen'
+import StartScreen, { StartScreenProps } from '../components/StartScreen'
 
 describe('StartScreen', () => {
   const defaultProps: StartScreenProps = {

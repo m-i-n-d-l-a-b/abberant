@@ -4,15 +4,15 @@
  * Tests for the rendering system that handles all game visual output.
  */
 
-import { Renderer, RenderConfig, RenderState } from './Renderer'
-import { Player, Enemy, Platform, Collectible, Camera, Effects } from '../../types/game'
+import { Renderer, RenderConfig, RenderState } from '../lib/game/Renderer'
+import { Player, Enemy, Platform, Collectible, Camera, Effects } from '../types/game'
 import {
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
   CAMERA_SMOOTHING,
   CAMERA_ZOOM_MIN,
   CAMERA_ZOOM_MAX,
-} from '../../constants/game'
+} from '../constants/game'
 
 // Mock canvas context
 const mockCanvasContext = {

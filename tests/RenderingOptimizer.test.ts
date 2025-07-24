@@ -1,4 +1,4 @@
-import { RenderingOptimizer, RenderBatch, OptimizedTransform } from './RenderingOptimizer'
+import { RenderingOptimizer, RenderBatch, OptimizedTransform } from '../lib/game/RenderingOptimizer'
 
 // Mock canvas context for testing
 class MockCanvasRenderingContext2D {

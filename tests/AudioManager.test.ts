@@ -8,7 +8,7 @@
  * - Resource management
  */
 
-import { AudioManager, AudioEffect } from './AudioManager'
+import { AudioManager, AudioEffect } from '../lib/game/AudioManager'
 
 // Simple mock for testing
 const mockAudioContext = {

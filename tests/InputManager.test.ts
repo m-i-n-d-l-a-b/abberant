@@ -4,7 +4,7 @@
  * Tests for the InputManager class to ensure proper input handling.
  */
 
-import { InputManager, InputCallbacks } from './InputManager'
+import { InputManager, InputCallbacks } from '../lib/game/InputManager'
 
 // Mock DOM elements
 const mockStartButton = {

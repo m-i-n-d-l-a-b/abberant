@@ -4,9 +4,9 @@
  * Tests for the enemy management system that handles enemy spawning, movement, and AI behavior.
  */
 
-import { EnemyManager, EnemySpawnConfig, EnemyUpdateResult } from './EnemyManager'
-import { Enemy, Platform } from '../../types/game'
-import { CollisionSystem } from './CollisionSystem'
+import { EnemyManager, EnemySpawnConfig, EnemyUpdateResult } from '../lib/game/EnemyManager'
+import { Enemy, Platform } from '../types/game'
+import { CollisionSystem } from '../lib/game/CollisionSystem'
 import {
   ENEMY_WIDTH,
   ENEMY_HEIGHT,
@@ -18,7 +18,7 @@ import {
   ENEMY_SCORE_VALUE,
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
-} from '../../constants/game'
+} from '../constants/game'
 
 describe('EnemyManager', () => {
   let enemyManager: EnemyManager

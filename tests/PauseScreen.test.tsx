@@ -6,7 +6,7 @@
 
 import React from 'react'
 import { render, screen } from '@testing-library/react'
-import PauseScreen, { PauseScreenProps } from './PauseScreen'
+import PauseScreen, { PauseScreenProps } from '../components/PauseScreen'
 
 describe('PauseScreen', () => {
   const defaultProps: PauseScreenProps = {

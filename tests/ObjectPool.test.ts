@@ -1,4 +1,4 @@
-import { ObjectPool, ParticlePool, AudioNodePool, Particle, AudioNodeWrapper } from './ObjectPool'
+import { ObjectPool, ParticlePool, AudioNodePool, Particle, AudioNodeWrapper } from '../lib/game/ObjectPool'
 
 // Mock AudioContext for testing
 class MockAudioContext {

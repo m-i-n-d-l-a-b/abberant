@@ -106,6 +106,82 @@ npm run build
 - **Graphics**: HTML5 Canvas for rendering
 - **Input**: Keyboard, Gamepad API, and Touch Events
 
+## Three.js & React-Three-Fiber Setup
+
+This project uses [Three.js](https://threejs.org/), [@react-three/fiber](https://docs.pmnd.rs/react-three-fiber/), and [@react-three/drei](https://github.com/pmndrs/drei) for advanced 3D and VFX rendering.
+
+### Installation
+
+These dependencies are already included in `package.json`:
+- `three`
+- `@react-three/fiber`
+- `@react-three/drei`
+
+To install (if needed):
+```bash
+npm install three @react-three/fiber @react-three/drei
+```
+
+### Compatibility
+- `@react-three/fiber` v9+ is required for React 19 compatibility.
+- `@react-three/drei` 10+ is compatible with React 19 and Fiber v9.
+- **Note:** There is a known runtime issue with Next.js 15 and React Three Fiber (see [Next.js issue #71836](https://github.com/vercel/next.js/issues/71836)). If you encounter errors like `TypeError: Cannot read properties of undefined (reading 'ReactCurrentOwner')`, monitor upstream for fixes.
+
+### Testing the Setup
+A minimal test component is provided at `components/VFXCanvasTest.tsx`. To verify your setup:
+1. Import and render `<VFXCanvasTest />` in your app (e.g., in `app/page.tsx`).
+2. You should see a spinning orange cube rendered in 3D.
+
+### Troubleshooting
+- If you see blank output or errors, ensure all dependencies are installed and versions match those in `package.json`.
+- For Next.js 15, if you encounter issues, try downgrading to Next.js 14 or monitor the upstream issue for updates.
+- For untranspiled module errors with Three.js, add `transpilePackages: ['three']` to your `next.config.js` if needed.
+
+## VFX Shader Parameters & Usage
+
+The following custom GLSL fragment shaders are used for 2D post-processing effects:
+- `glitch.glsl`: Horizontal glitch offset
+  - **Uniforms:**
+    - `uTexture` (sampler2D): Source texture
+    - `uTime` (float): Animation time
+    - `uIntensity` (float): Glitch strength
+- `chromatic.glsl`: Chromatic aberration (RGB channel split)
+  - **Uniforms:**
+    - `uTexture` (sampler2D): Source texture
+    - `uIntensity` (float): Aberration strength
+- `scanlines.glsl`: Horizontal scanlines overlay
+  - **Uniforms:**
+    - `uTexture` (sampler2D): Source texture
+    - `uIntensity` (float): Scanline strength
+- `pulse.glsl`: Pulsing brightness
+  - **Uniforms:**
+    - `uTexture` (sampler2D): Source texture
+    - `uTime` (float): Animation time
+    - `uIntensity` (float): Pulse strength
+
+### Usage
+- Shaders are loaded and mapped by effect name in `lib/vfx/utils.ts`.
+- In `VFXCanvas`, the appropriate shader is selected based on the `effect` prop and used in a `ShaderMaterial`.
+- Uniforms are set from props and animation state.
+- To add new effects, create a new `.glsl` file in `lib/vfx/shaders/`, add it to the map in `utils.ts`, and document its parameters here.
+
+## VFX Utility Functions
+
+The following utility functions are provided in `lib/vfx/utils.ts`:
+
+- **Shader Mapping & Loading**
+  - `shaderMap`: Maps effect names (e.g., 'glitch', 'chromatic') to GLSL shader source files.
+  - `loadShader(effect: string)`: Returns the GLSL source for a given effect name.
+
+- **Debouncing**
+  - `debounce(fn, delay)`: Returns a debounced version of a function, useful for limiting rapid parameter changes (e.g., slider input).
+
+- **Canvas/Texture Handling**
+  - `isCanvasValid(canvas)`: Checks if a canvas element is valid and usable.
+  - `updateTextureFromCanvas(texture, canvas)`: Safely updates a THREE.Texture from a canvas element, ensuring correct image assignment and update flag.
+
+These utilities help ensure robust, efficient, and safe VFX pipeline operations.
+
 ## Project Structure
 
 ```

@@ -6,7 +6,7 @@
 
 import React from 'react'
 import { render, screen } from '@testing-library/react'
-import MobileControls from './MobileControls'
+import MobileControls from '../components/MobileControls'
 
 describe('MobileControls', () => {
   test('should render mobile controls with all buttons', () => {

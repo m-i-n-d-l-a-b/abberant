@@ -30,9 +30,12 @@
   },
   "homepage": "https://github.com/aliendabz/abberant#readme",
   "dependencies": {
+    "@react-three/drei": "^10.6.0",
+    "@react-three/fiber": "^9.2.0",
     "next": "^15.4.1",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "three": "^0.178.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",
@@ -44,7 +47,7 @@
     "eslint": "^8.0.0",
     "eslint-config-next": "^15.4.1",
     "identity-obj-proxy": "^3.0.0",
-    "jest": "^30.0.4",
+    "jest": "^30.0.5",
     "jest-environment-jsdom": "^30.0.4",
     "ts-jest": "^29.4.0",
     "typescript": "^5.0.0"

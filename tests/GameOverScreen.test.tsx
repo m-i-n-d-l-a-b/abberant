@@ -6,7 +6,7 @@
 
 import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
-import GameOverScreen, { GameOverScreenProps } from './GameOverScreen'
+import GameOverScreen, { GameOverScreenProps } from '../components/GameOverScreen'
 
 describe('GameOverScreen', () => {
   const defaultProps: GameOverScreenProps = {

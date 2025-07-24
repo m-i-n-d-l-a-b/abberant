@@ -1,4 +1,4 @@
-import { CollisionSystem, CollisionEntity, BoundingBox, QuadTreeNode } from './CollisionSystem'
+import { CollisionSystem, CollisionEntity, BoundingBox, QuadTreeNode } from '../lib/game/CollisionSystem'
 
 describe('CollisionSystem', () => {
   let collisionSystem: CollisionSystem

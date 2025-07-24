@@ -4,14 +4,14 @@
  * Tests for the core game engine class that orchestrates all game systems.
  */
 
-import { GameEngine } from './GameEngine'
-import { GameStateManager } from './GameStateManager'
-import { PlayerManager } from './PlayerManager'
-import { EnemyManager } from './EnemyManager'
-import { LevelGenerator } from './LevelGenerator'
-import { Renderer } from './Renderer'
-import { InputManager } from './InputManager'
-import { AudioManagerWrapper } from './AudioManagerWrapper'
+import { GameEngine } from '../lib/game/GameEngine'
+import { GameStateManager } from '../lib/game/GameStateManager'
+import { PlayerManager } from '../lib/game/PlayerManager'
+import { EnemyManager } from '../lib/game/EnemyManager'
+import { LevelGenerator } from '../lib/game/LevelGenerator'
+import { Renderer } from '../lib/game/Renderer'
+import { InputManager } from '../lib/game/InputManager'
+import { AudioManagerWrapper } from '../lib/game/AudioManagerWrapper'
 
 // Mock canvas
 const mockCanvas = {

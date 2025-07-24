@@ -4,8 +4,8 @@
  * Tests for the player management system that handles player movement, physics, and state.
  */
 
-import { PlayerManager, PlayerInput, PlayerUpdateResult } from './PlayerManager'
-import { Player } from '../../types/game'
+import { PlayerManager, PlayerInput, PlayerUpdateResult } from '../lib/game/PlayerManager'
+import { Player } from '../types/game'
 import {
   PLAYER_START_X,
   PLAYER_START_Y,
@@ -21,7 +21,7 @@ import {
   PLAYER_GRAVITY,
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
-} from '../../constants/game'
+} from '../constants/game'
 
 describe('PlayerManager', () => {
   let playerManager: PlayerManager

@@ -6,7 +6,7 @@
 
 import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
-import GameUI, { GameUIProps } from './GameUI'
+import GameUI, { GameUIProps } from '../components/GameUI'
 
 describe('GameUI', () => {
   const defaultProps: GameUIProps = {

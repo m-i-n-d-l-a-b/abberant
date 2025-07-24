@@ -4,7 +4,7 @@
  * Tests for the AudioManagerWrapper class to ensure proper audio management.
  */
 
-import { AudioManagerWrapper, GameSoundType } from './AudioManagerWrapper'
+import { AudioManagerWrapper, GameSoundType } from '../lib/game/AudioManagerWrapper'
 
 // Mock AudioManager
 jest.mock('./AudioManager', () => {
