@@ -332,7 +332,12 @@ export class RenderingOptimizer {
     if (group.length === 0) return
     
     const firstItem = group[0]
-    
+
+    // Scope the group's shared state so the trailing restore() below is
+    // balanced. Without this save() the restore popped a state this method
+    // never pushed, corrupting the caller's canvas state.
+    this.ctx.save()
+
     // Set common properties once for the group
     this.ctx.fillStyle = firstItem.color
     this.ctx.globalAlpha = firstItem.alpha || 1
@@ -359,8 +364,14 @@ export class RenderingOptimizer {
    * Render a single batch item
    */
   private renderBatchItem(item: RenderBatch): void {
-    this.applyTransform()
-    
+    // Only pay for a save/transform/restore when there is a transform to
+    // apply. Doing it unconditionally cost one state change per item and
+    // defeated the whole point of grouping items by shared properties.
+    const needsTransform = this.hasActiveTransform()
+    if (needsTransform) {
+      this.applyTransform()
+    }
+
     switch (item.type) {
       case 'rect':
         this.ctx.fillRect(item.x!, item.y!, item.width!, item.height!)
@@ -391,7 +402,25 @@ export class RenderingOptimizer {
     }
     
     this.drawCalls++
-    this.ctx.restore()
+    if (needsTransform) {
+      this.ctx.restore()
+    }
+  }
+
+  /**
+   * Whether the current transform differs from identity and therefore needs
+   * to be applied to the context.
+   */
+  private hasActiveTransform(): boolean {
+    const { x, y, rotation, scaleX, scaleY, alpha } = this.currentTransform
+    return (
+      x !== 0 ||
+      y !== 0 ||
+      rotation !== 0 ||
+      scaleX !== 1 ||
+      scaleY !== 1 ||
+      alpha !== 1
+    )
   }
 
   /**
