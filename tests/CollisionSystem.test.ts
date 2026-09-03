@@ -451,3 +451,31 @@ describe('QuadTreeNode', () => {
     })
   })
 }) 
+
+describe('Production tuning defaults', () => {
+  // GameEngine constructs `new CollisionSystem({ ...bounds })` with no tuning
+  // arguments, so these defaults are the values the game actually runs on.
+  test('QuadTreeNode defaults to 10 entities per node at depth 8', () => {
+    const node = new QuadTreeNode({ x: 0, y: 0, width: 100, height: 100 })
+
+    expect(node.maxEntities).toBe(10)
+    expect(node.maxDepth).toBe(8)
+  })
+
+  test('a default node holds 10 entities before splitting on the 11th', () => {
+    const node = new QuadTreeNode({ x: 0, y: 0, width: 100, height: 100 })
+    const entityAt = (i: number) => ({
+      id: `entity${i}`,
+      bounds: { x: i * 5, y: i * 5, width: 5, height: 5 },
+      type: 'player' as const
+    })
+
+    for (let i = 0; i < 10; i++) {
+      node.insert(entityAt(i))
+    }
+    expect(node.children).toHaveLength(0)
+
+    node.insert(entityAt(10))
+    expect(node.children).toHaveLength(4)
+  })
+})
