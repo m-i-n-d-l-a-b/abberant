@@ -68,11 +68,11 @@ export default function Game() {
 
   return (
     <div id="gameContainer">
-      <canvas 
-        ref={canvasRef} 
-        id="gameCanvas" 
-        width="800" 
-        height="600"
+      <canvas
+        ref={canvasRef}
+        id="gameCanvas"
+        width="1024"
+        height="576"
       ></canvas>
 
       {/* Game UI - only show when playing */}

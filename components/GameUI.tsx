@@ -83,7 +83,7 @@ export default function GameUI({
         aria-pressed={soundEnabled}
         onClick={onSoundToggle}
       >
-        {soundEnabled ? '🔊 SOUND: ON' : '🔇 SOUND: OFF'}
+        {soundEnabled ? '🔊' : '🔇'}
       </button>
     </>
   )

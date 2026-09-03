@@ -10,6 +10,7 @@ import { PlayerManager } from '../lib/game/PlayerManager'
 import { EnemyManager } from '../lib/game/EnemyManager'
 import { LevelGenerator } from '../lib/game/LevelGenerator'
 import { Renderer } from '../lib/game/Renderer'
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../constants/game'
 import { InputManager } from '../lib/game/InputManager'
 import { AudioManagerWrapper } from '../lib/game/AudioManagerWrapper'
 
@@ -333,8 +334,8 @@ describe('GameEngine', () => {
     test('should initialize with canvas', () => {
       expect(gameEngine.canvas).toBe(mockCanvas)
       expect(gameEngine.ctx).toBeDefined()
-      expect(gameEngine.width).toBe(800)
-      expect(gameEngine.height).toBe(600)
+      expect(gameEngine.width).toBe(CANVAS_WIDTH)
+      expect(gameEngine.height).toBe(CANVAS_HEIGHT)
     })
 
     test('should construct all managers', () => {

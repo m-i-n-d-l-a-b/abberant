@@ -3,8 +3,10 @@
 /* Main Game Container */
 .gameContainer {
   position: relative;
-  width: 800px;
-  height: 600px;
+  width: 1024px;
+  height: 576px;
+  max-width: 100vw;
+  aspect-ratio: 16 / 9;
   margin: 0 auto;
   font-family: 'Courier New', monospace;
   overflow: hidden;

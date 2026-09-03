@@ -13,6 +13,8 @@ import { CollisionSystem } from './CollisionSystem'
 import { AudioManager } from './AudioManager'
 import { InputManager } from './InputManager'
 import { Renderer } from './Renderer'
+import { EffectsRenderer } from './EffectsRenderer'
+import { EffectsDirector } from './EffectsDirector'
 import { LevelGenerator } from './LevelGenerator'
 import { ObjectPool } from './ObjectPool'
 import { saveToStorage, getFromStorage } from '../utils/storage'
@@ -144,6 +146,8 @@ export class GameEngine {
   private audioManager: AudioManager
   private inputManager: InputManager
   private renderer: Renderer
+  private effectsRenderer: EffectsRenderer
+  private effectsDirector: EffectsDirector
   private levelGenerator: LevelGenerator
   private objectPool: ObjectPool<any>
 
@@ -190,6 +194,12 @@ export class GameEngine {
       fps: FPS,
       enableOptimization: true
     })
+    // Post-processing runs as a pass over the finished frame, so it only needs
+    // canvas dimensions. Its own dataBleed layer is switched off because
+    // renderDataBleedToContext already draws those.
+    this.effectsRenderer = new EffectsRenderer(this.width, this.height)
+    this.effectsRenderer.setLayerVisibility('dataBleed', false)
+    this.effectsDirector = new EffectsDirector()
     this.levelGenerator = new LevelGenerator(this.width, this.height)
     this.objectPool = new ObjectPool({
       initialSize: 10,
@@ -564,6 +574,10 @@ export class GameEngine {
       this.levelEffects.push(availableEffects[i])
     }
     // No isReversed logic here
+
+    // Post-processing effects are picked separately: they stack on top of the
+    // canvas effects rather than competing with them for the same slots.
+    this.effectsDirector.selectForLevel(this.currentLevel)
   }
 
   startGame(): void {
@@ -1007,8 +1021,35 @@ export class GameEngine {
 
     // Use the original rendering approach for compatibility
     this.renderToContext(this.ctx)
-    
+
     this.ctx.restore()
+
+    // Post-processing runs after restore so it works on the finished frame in
+    // normal coordinates, unaffected by the transforms above.
+    this.applyPostProcessing()
+  }
+
+  /**
+   * Drive this frame's post-processing factors and apply them.
+   *
+   * EffectsDirector writes the factors; EffectsRenderer reads them and skips
+   * anything still at neutral, so an empty active set costs one no-op pass.
+   */
+  private applyPostProcessing(): void {
+    const now = performance.now()
+
+    this.effectsDirector.update(this.effects, now)
+
+    this.effectsRenderer.render({
+      ctx: this.ctx,
+      width: this.width,
+      height: this.height,
+      camera: this.camera,
+      effects: this.effects,
+      frameCount: this.frameCount,
+      deltaTime: (now - this.lastTime) / 1000,
+      now
+    })
   }
 
   /**

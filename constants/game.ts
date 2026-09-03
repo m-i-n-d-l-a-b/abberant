@@ -6,8 +6,8 @@
  */
 
 // Canvas and Display Constants
-export const CANVAS_WIDTH = 800
-export const CANVAS_HEIGHT = 600
+export const CANVAS_WIDTH = 1024
+export const CANVAS_HEIGHT = 576
 export const FPS = 60
 
 // Game State Constants
@@ -155,3 +155,50 @@ export const TRANSITION_DURATION = 30
 export const TRANSITION_ZOOM_IN_DURATION = 30
 export const TRANSITION_ZOOM_OUT_DURATION = 30
 export const LEVEL_COMPLETION_SCORE_MULTIPLIER = 1000
+
+
+// Post-Processing Effects Constants
+//
+// These drive EffectsDirector, which writes the factors EffectsRenderer reads.
+// Kept as a single tuning table rather than loose constants so a value cannot
+// sit here unread while the code uses a different one.
+
+/** Highest number of post-processing effects allowed to run at once. */
+export const POST_EFFECT_MAX_CONCURRENT = 2
+
+/**
+ * Per-effect intensity and oscillation speed.
+ *
+ * `intensity` is the 0-1 factor EffectsRenderer scales its own coefficients by
+ * (pulse swings either side of 1 instead). `speed` multiplies elapsed ms.
+ */
+export const POST_EFFECT_TUNING = {
+  colorShift: { intensity: 0.6, speed: 0.0011 },
+  pulse: { intensity: 0.08, speed: 0.0032 },
+  blur: { intensity: 0.5, speed: 0.0007 },
+  noise: { intensity: 0.35, speed: 0.0021 },
+  rgbShift: { intensity: 0.7, speed: 0.0015 },
+  wave: { intensity: 0.5, speed: 0.0009 },
+  zoom: { intensity: 0.4, speed: 0.0006 },
+  rotation: { intensity: 0.3, speed: 0.0005 },
+  pixelBleed: { intensity: 0.4, speed: 0.0013 }
+} as const
+
+/**
+ * Which effects each level tier may auto-select.
+ *
+ * Deliberately limited to the composite-blend effects, whose per-frame cost is
+ * a couple of full-canvas fills. The remaining three in POST_EFFECT_TUNING —
+ * noise, wave and pixelBleed — read and rewrite every pixel every frame
+ * (wave alone is a ~590k-iteration loop plus a getImageData/putImageData pair
+ * at 1024x576) and their frame cost has not been measured. They stay reachable
+ * through EffectsDirector.setActiveEffects, but nothing turns them on
+ * automatically until someone profiles them on real hardware.
+ */
+export const POST_EFFECTS_BY_LEVEL = {
+  LEVEL_1: ['colorShift'],
+  LEVEL_2_3: ['colorShift', 'pulse'],
+  LEVEL_4_6: ['colorShift', 'pulse', 'blur'],
+  LEVEL_7_10: ['colorShift', 'pulse', 'blur', 'rgbShift'],
+  LEVEL_11_PLUS: ['colorShift', 'pulse', 'blur', 'rgbShift', 'zoom', 'rotation']
+} as const

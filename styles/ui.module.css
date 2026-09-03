@@ -3,10 +3,10 @@
 /* Main Game UI Container */
 .gameUi {
   position: absolute;
-  top: 20px;
-  left: 20px;
+  top: 12px;
+  left: 12px;
   display: flex;
-  gap: 30px;
+  gap: 18px;
   z-index: 10;
   color: #ffffff;
   font-family: 'Courier New', monospace;
@@ -27,24 +27,27 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
-  padding: 10px;
+  gap: 2px;
+  padding: 0;
 }
 
 /* UI Labels */
 .uiLabel {
-  font-size: 12px;
+  font-size: 9px;
+  letter-spacing: 0.5px;
   color: #ffffff;
   font-weight: bold;
+  opacity: 0.7;
 }
 
 /* UI Values */
 .uiValue {
-  font-size: 24px;
+  font-size: 16px;
   color: #ffffff;
   font-weight: bold;
-  min-width: 40px;
+  min-width: 28px;
   text-align: center;
+  line-height: 1.1;
 }
 
 /* Lives Display Special Styling */
@@ -68,13 +71,15 @@
 /* Sound Toggle Button - Simple styling to match original */
 .soundToggle {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: 12px;
+  right: 12px;
   background: none;
   border: none;
+  padding: 2px;
   color: #ffffff;
   font-family: 'Courier New', monospace;
-  font-size: 14px;
+  font-size: 18px;
+  line-height: 1;
   cursor: pointer;
   z-index: 10;
 }
@@ -152,26 +157,25 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .gameUi {
-    top: 10px;
-    left: 10px;
-    gap: 20px;
+    top: 8px;
+    left: 8px;
+    gap: 14px;
   }
 
   .uiLabel {
-    font-size: 10px;
+    font-size: 8px;
   }
 
   .uiValue {
-    font-size: 20px;
+    font-size: 14px;
   }
 
   .soundToggle {
-    top: 10px;
-    right: 10px;
-    padding: 8px 12px;
-    font-size: 12px;
+    top: 8px;
+    right: 8px;
+    font-size: 16px;
   }
-  
+
   .ui-notification {
     width: 80%;
     padding: 15px;
@@ -186,21 +190,20 @@
 
   .uiItem {
     flex-direction: row;
-    gap: 10px;
-    padding: 8px;
+    gap: 6px;
+    padding: 0;
   }
 
   .uiLabel {
-    font-size: 9px;
+    font-size: 8px;
   }
 
   .uiValue {
-    font-size: 18px;
+    font-size: 13px;
   }
-  
+
   .soundToggle {
-    font-size: 10px;
-    padding: 6px 10px;
+    font-size: 15px;
   }
 }
 

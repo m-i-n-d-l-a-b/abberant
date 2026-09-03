@@ -42,13 +42,19 @@ describe('GameUI', () => {
       expect(screen.getByText('COMBO')).toBeInTheDocument()
       expect(screen.getByTestId('combo')).toHaveTextContent('0')
 
-      // Check sound toggle
-      expect(screen.getByText('🔊 SOUND: ON')).toBeInTheDocument()
+      // Check sound toggle — icon only, labelled for screen readers
+      expect(screen.getByText('🔊')).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: /disable sound/i })
+      ).toBeInTheDocument()
     })
 
     test('should render sound toggle with correct state when disabled', () => {
       render(<GameUI {...defaultProps} soundEnabled={false} />)
-      expect(screen.getByText('🔇 SOUND: OFF')).toBeInTheDocument()
+      expect(screen.getByText('🔇')).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: /enable sound/i })
+      ).toBeInTheDocument()
     })
 
     test('should apply custom className when provided', () => {

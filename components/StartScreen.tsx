@@ -56,7 +56,8 @@ export default function StartScreen({
 
       <div className={menuStyles.menuContent}>
         <div className={menuStyles.titleContainer}>
-          <h1 className={menuStyles.titleGlow}>ABBERANT</h1>
+          <span className={menuStyles.titleGlow} aria-hidden="true" />
+          <h1 className={menuStyles.gameTitle}>ABBERANT</h1>
         </div>
 
         <div className={menuStyles.menuButtons}>
