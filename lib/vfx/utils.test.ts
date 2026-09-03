@@ -43,10 +43,16 @@ describe('VFX Utilities', () => {
     canvas.width = 10;
     canvas.height = 10;
     const texture = new THREE.Texture();
+    const versionBefore = texture.version;
+
     const result = updateTextureFromCanvas(texture, canvas);
+
     expect(result).toBe(true);
     expect(texture.image).toBe(canvas);
-    expect(texture.needsUpdate).toBe(true);
+    // three.js declares needsUpdate as a write-only accessor (a setter with no
+    // getter), so reading it back is always undefined. Bumping `version` is the
+    // observable effect of setting it.
+    expect(texture.version).toBeGreaterThan(versionBefore);
   });
 
   it('updateTextureFromCanvas returns false if invalid', () => {

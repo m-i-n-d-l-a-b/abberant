@@ -2,14 +2,19 @@
 
 import type * as THREE from 'three';
 
+import chromatic from './shaders/chromatic.glsl';
+import glitch from './shaders/glitch.glsl';
+import pulse from './shaders/pulse.glsl';
+import scanlines from './shaders/scanlines.glsl';
+
 /**
- * Maps effect names to shader file paths.
+ * Maps effect names to their GLSL source.
  */
 export const shaderMap: Record<string, string> = {
-  glitch: require('./shaders/glitch.glsl').default,
-  chromatic: require('./shaders/chromatic.glsl').default,
-  scanlines: require('./shaders/scanlines.glsl').default,
-  pulse: require('./shaders/pulse.glsl').default,
+  glitch,
+  chromatic,
+  scanlines,
+  pulse,
 };
 
 /**
@@ -36,7 +41,10 @@ export function debounce<T extends (...args: any[]) => void>(fn: T, delay: numbe
  * Check if a canvas element is valid and usable.
  */
 export function isCanvasValid(canvas: any): canvas is HTMLCanvasElement {
-  return (
+  // Boolean() matters: without it a null/undefined argument returns the falsy
+  // value itself rather than `false`, which breaks the type-predicate contract
+  // and any caller doing a strict === false comparison.
+  return Boolean(
     canvas &&
     typeof canvas.getContext === 'function' &&
     canvas.width > 0 &&
