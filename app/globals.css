@@ -13,70 +13,24 @@ body {
 }
 
 body {
-  background: linear-gradient(
-    135deg,
-    #0a0a0a 0%,
-    #1a1a2e 25%,
-    #16213e 50%,
-    #0f3460 75%,
-    #0a0a0a 100%
-  );
+  background: #000000;
   font-family: "Orbitron", monospace;
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  animation: backgroundShift 20s ease-in-out infinite;
-}
-
-@keyframes backgroundShift {
-  0%,
-  100% {
-    background: linear-gradient(
-      135deg,
-      #0a0a0a 0%,
-      #1a1a2e 25%,
-      #16213e 50%,
-      #0f3460 75%,
-      #0a0a0a 100%
-    );
-  }
-  50% {
-    background: linear-gradient(
-      135deg,
-      #0f3460 0%,
-      #0a0a0a 25%,
-      #1a1a2e 50%,
-      #16213e 75%,
-      #0f3460 100%
-    );
-  }
 }
 
 #gameContainer {
   position: relative;
-  width: 1024px;
-  height: 576px;
-  max-width: 100vw;
-  aspect-ratio: 16 / 9;
-  border: 3px solid #00ffff;
-  border-radius: 15px;
+  /* Largest 16:9 box that fits the viewport. Filling the pane outright would
+     stretch a fixed 1024x576 canvas on any window that is not 16:9.
+     Resolved with min() rather than a max-* clamp so the box reports a real
+     size to the flex centring on body. */
+  width: min(100vw, calc(100vh * 16 / 9));
+  height: min(100vh, calc(100vw * 9 / 16));
   overflow: hidden;
   background: #0a0a0a;
-  box-shadow: 0 0 30px rgba(0, 255, 255, 0.5),
-    inset 0 0 30px rgba(0, 255, 255, 0.1);
-  animation: containerGlow 3s ease-in-out infinite alternate;
-}
-
-@keyframes containerGlow {
-  0% {
-    box-shadow: 0 0 30px rgba(0, 255, 255, 0.5),
-      inset 0 0 30px rgba(0, 255, 255, 0.1);
-  }
-  100% {
-    box-shadow: 0 0 50px rgba(0, 255, 255, 0.8),
-      inset 0 0 50px rgba(0, 255, 255, 0.2);
-  }
 }
 
 #gameCanvas {
@@ -386,12 +340,8 @@ body {
 }
 
 @media (max-width: 768px) {
-  #gameContainer {
-    width: 100vw;
-    height: 100vh;
-    border: none;
-    border-radius: 0;
-  }
+  /* The base rule already fills the viewport and keeps 16:9; overriding the
+     size here would stretch the canvas on portrait screens. */
   #mobileControls {
     display: block !important;
   }
