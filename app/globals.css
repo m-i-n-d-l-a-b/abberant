@@ -1,5 +1,19 @@
 @import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap");
 
+/* Monochrome tokens
+ *
+ * The chrome runs the same ink-on-paper hierarchy as the canvas
+ * (lib/game/palette.ts). Nothing carries meaning through hue any more, so a
+ * control or a stat earns attention by sitting lighter than what surrounds it.
+ */
+:root {
+  --paper: #080808;
+  --ink: #f5f5f5;
+  --ink-dim: #c9c9c9;
+  --ink-muted: #8f8f8f;
+  --ink-faint: #4a4a4a;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -13,7 +27,7 @@ body {
 }
 
 body {
-  background: #000000;
+  background: var(--paper);
   font-family: "Orbitron", monospace;
   display: flex;
   justify-content: center;
@@ -30,7 +44,7 @@ body {
   width: min(100vw, calc(100vh * 16 / 9));
   height: min(100vh, calc(100vw * 9 / 16));
   overflow: hidden;
-  background: #0a0a0a;
+  background: var(--paper);
 }
 
 #gameCanvas {
@@ -44,7 +58,7 @@ body {
   position: absolute;
   top: 12px;
   left: 12px;
-  color: #00ffff;
+  color: var(--ink);
   font-size: 12px;
   font-weight: 700;
   z-index: 10;
@@ -53,7 +67,7 @@ body {
      alone leaves light-on-light text unreadable. */
   text-shadow: -1px -1px 0 rgba(0, 0, 0, 0.85), 1px -1px 0 rgba(0, 0, 0, 0.85),
     -1px 1px 0 rgba(0, 0, 0, 0.85), 1px 1px 0 rgba(0, 0, 0, 0.85),
-    0 0 8px rgba(0, 255, 255, 0.6);
+    0 0 8px rgba(245, 245, 245, 0.6);
 }
 
 #soundToggle {
@@ -62,32 +76,32 @@ body {
   right: 12px;
   background: none;
   border: none;
-  color: #00ffff;
+  color: var(--ink);
   font-size: 18px;
   line-height: 1;
   padding: 2px;
   cursor: pointer;
   z-index: 10;
   opacity: 0.85;
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.8));
+  filter: grayscale(1) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.8));
   transition: opacity 0.2s ease, filter 0.2s ease;
 }
 
 #soundToggle:hover {
   opacity: 1;
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.8))
-    drop-shadow(0 0 6px rgba(0, 255, 255, 0.9));
+  filter: grayscale(1) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.8))
+    drop-shadow(0 0 6px rgba(245, 245, 245, 0.9));
 }
 
 #controls {
-  color: #ffff00;
+  color: var(--ink-dim);
   font-size: 12px;
   font-weight: 400;
-  text-shadow: 0 0 8px rgba(255, 255, 0, 0.8);
-  background: rgba(255, 255, 0, 0.1);
+  text-shadow: 0 0 8px rgba(245, 245, 245, 0.8);
+  background: rgba(245, 245, 245, 0.1);
   padding: 15px 20px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 0, 0.3);
+  border: 1px solid rgba(245, 245, 245, 0.3);
   margin-top: 20px;
   line-height: 1.6;
 }
@@ -105,14 +119,14 @@ body {
   justify-content: center;
   align-items: center;
   text-align: center;
-  color: #00ffff;
+  color: var(--ink);
   z-index: 100;
 }
 
 #startScreen h1 {
   font-size: 48px;
   font-weight: 900;
-  text-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+  text-shadow: 0 0 20px rgba(245, 245, 245, 0.8);
   margin-bottom: 20px;
 }
 
@@ -121,8 +135,8 @@ body {
   padding: 20px 40px;
   font-size: 20px;
   font-weight: 700;
-  background: linear-gradient(45deg, #00ffff, #ff00ff);
-  color: white;
+  background: linear-gradient(45deg, var(--ink), var(--ink-muted));
+  color: var(--paper);
   border: none;
   border-radius: 10px;
   cursor: pointer;
@@ -133,8 +147,68 @@ body {
 
 #startScreen button:hover {
   transform: scale(1.05);
-  box-shadow: 0 0 30px rgba(0, 255, 255, 0.6),
-    0 0 30px rgba(255, 0, 255, 0.6);
+  box-shadow: 0 0 30px rgba(245, 245, 245, 0.6),
+    0 0 30px rgba(245, 245, 245, 0.6);
+}
+
+/* Mode Picker
+ *
+ * Scoped to #startScreen so it outranks the blanket `#startScreen button`
+ * gradient above, which would otherwise turn both cards into start buttons.
+ */
+#startScreen .mode-picker {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+#startScreen .mode-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 180px;
+  margin: 0;
+  padding: 12px 18px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(245, 245, 245, 0.3);
+  border-radius: 6px;
+  font-family: "Orbitron", monospace;
+  text-shadow: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+#startScreen .mode-option:hover {
+  transform: none;
+  border-color: rgba(245, 245, 245, 0.7);
+  box-shadow: 0 0 12px rgba(245, 245, 245, 0.25);
+}
+
+#startScreen .mode-option[aria-pressed="true"] {
+  background: rgba(245, 245, 245, 0.1);
+  border-color: var(--ink);
+  box-shadow: 0 0 18px rgba(245, 245, 245, 0.35);
+}
+
+#startScreen .mode-label {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--ink);
+}
+
+#startScreen .mode-option[aria-pressed="false"] .mode-label {
+  color: rgba(245, 245, 245, 0.6);
+}
+
+#startScreen .mode-tagline {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 #gameOverScreen {
@@ -147,13 +221,13 @@ body {
   padding: 40px;
   border-radius: 20px;
   text-align: center;
-  color: #ff0000;
+  color: var(--ink);
   font-size: 24px;
   font-weight: 900;
   z-index: 100;
   display: none;
-  border: 2px solid #ff0000;
-  box-shadow: 0 0 30px rgba(255, 0, 0, 0.5);
+  border: 2px solid var(--ink);
+  box-shadow: 0 0 30px rgba(245, 245, 245, 0.5);
 }
 
 #gameOverScreen button {
@@ -161,8 +235,8 @@ body {
   padding: 15px 25px;
   font-size: 16px;
   font-weight: 700;
-  background: linear-gradient(45deg, #ff0000, #ff6600);
-  color: white;
+  background: linear-gradient(45deg, var(--ink), var(--ink-muted));
+  color: var(--paper);
   border: none;
   border-radius: 10px;
   cursor: pointer;
@@ -172,7 +246,7 @@ body {
 
 #gameOverScreen button:hover {
   transform: scale(1.05);
-  box-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
+  box-shadow: 0 0 20px rgba(245, 245, 245, 0.8);
 }
 
 #pauseScreen {
@@ -185,12 +259,12 @@ body {
   padding: 40px;
   border-radius: 20px;
   text-align: center;
-  color: #00ffff;
+  color: var(--ink);
   font-size: 24px;
   font-weight: 900;
   z-index: 100;
-  border: 2px solid #00ffff;
-  box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+  border: 2px solid var(--ink);
+  box-shadow: 0 0 30px rgba(245, 245, 245, 0.5);
 }
 
 #pauseScreen button {
@@ -198,8 +272,8 @@ body {
   padding: 15px 25px;
   font-size: 16px;
   font-weight: 700;
-  background: linear-gradient(45deg, #00ffff, #ff00ff);
-  color: white;
+  background: linear-gradient(45deg, var(--ink), var(--ink-muted));
+  color: var(--paper);
   border: none;
   border-radius: 10px;
   cursor: pointer;
@@ -209,7 +283,7 @@ body {
 
 #pauseScreen button:hover {
   transform: scale(1.05);
-  box-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+  box-shadow: 0 0 20px rgba(245, 245, 245, 0.8);
 }
 
 #mobileControls {
@@ -223,12 +297,14 @@ body {
   pointer-events: none;
 }
 
+/* Light ink on a dark plate, so a control stays legible whichever polarity the
+   canvas behind it is currently running. */
 .mobile-button {
   position: absolute;
-  background: rgba(0, 255, 255, 0.2);
-  border: 2px solid #00ffff;
+  background: rgba(8, 8, 8, 0.55);
+  border: 2px solid var(--ink);
   border-radius: 50%;
-  color: #00ffff;
+  color: var(--ink);
   font-size: 16px;
   font-weight: bold;
   display: flex;
@@ -239,13 +315,13 @@ body {
   pointer-events: all;
   transition: all 0.1s ease;
   backdrop-filter: blur(10px);
-  box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+  box-shadow: 0 0 15px rgba(245, 245, 245, 0.3);
 }
 
 .mobile-button:active {
-  background: rgba(0, 255, 255, 0.5);
+  background: rgba(245, 245, 245, 0.5);
   transform: scale(0.95);
-  box-shadow: 0 0 25px rgba(0, 255, 255, 0.6);
+  box-shadow: 0 0 25px rgba(245, 245, 245, 0.6);
 }
 
 .dpad {
@@ -262,8 +338,8 @@ body {
   left: 40px;
   width: 40px;
   height: 40px;
-  background: rgba(0, 255, 255, 0.1);
-  border: 2px solid #00ffff;
+  background: rgba(245, 245, 245, 0.1);
+  border: 2px solid var(--ink);
   border-radius: 50%;
   backdrop-filter: blur(10px);
 }
@@ -309,9 +385,9 @@ body {
   width: 60px;
   height: 60px;
   font-size: 12px;
-  background: rgba(0, 255, 0, 0.2);
-  border-color: #00ff00;
-  color: #00ff00;
+  background: rgba(8, 8, 8, 0.6);
+  border-color: var(--ink);
+  color: var(--ink);
 }
 
 .dash-button {
@@ -321,9 +397,9 @@ body {
   width: 50px;
   height: 50px;
   font-size: 10px;
-  background: rgba(255, 0, 255, 0.2);
-  border-color: #ff00ff;
-  color: #ff00ff;
+  background: rgba(8, 8, 8, 0.55);
+  border-color: var(--ink-dim);
+  color: var(--ink-dim);
 }
 
 .pause-button {
@@ -334,9 +410,9 @@ body {
   width: 40px;
   height: 40px;
   font-size: 12px;
-  background: rgba(255, 255, 0, 0.2);
-  border-color: #ffff00;
-  color: #ffff00;
+  background: rgba(8, 8, 8, 0.55);
+  border-color: var(--ink-muted);
+  color: var(--ink-muted);
 }
 
 @media (max-width: 768px) {
@@ -358,7 +434,7 @@ body {
   width: 200px;
   height: 20px;
   background: rgba(0, 0, 0, 0.5);
-  border: 1px solid #00ffff;
+  border: 1px solid var(--ink);
   border-radius: 10px;
   overflow: hidden;
   backdrop-filter: blur(10px);
@@ -366,7 +442,7 @@ body {
 
 #progressFill {
   height: 100%;
-  background: linear-gradient(90deg, #00ffff, #ff00ff);
+  background: linear-gradient(90deg, var(--ink), var(--ink-muted));
   width: 0%;
   transition: width 0.3s ease;
   border-radius: 10px;

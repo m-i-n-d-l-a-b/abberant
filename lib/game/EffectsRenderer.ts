@@ -11,9 +11,19 @@
  */
 
 import { DataBleedEffect, Particle, Effects, Camera } from '../../types/game'
+import { tone } from './palette'
 
 /** Blur radius in pixels at a factor of 1. */
 const BLUR_MAX_RADIUS_PX = 8
+
+/** How far either side of mid grey the contrast push swings. */
+const COLOR_SHIFT_CONTRAST_SWING = 0.14
+
+/** Furthest the ghost passes are offset at a factor of 1, in pixels. */
+const RGB_SHIFT_MAX_OFFSET_PX = 6
+
+/** Opacity of each ghost pass at a factor of 1. */
+const RGB_SHIFT_GHOST_ALPHA = 0.22
 
 export interface EffectsRenderContext {
   ctx: CanvasRenderingContext2D
@@ -159,8 +169,8 @@ export class EffectsRenderer {
 
     // Create radial gradient for data bleed effect
     const gradient = ctx.createRadialGradient(x, y, 0, x, y, effect.size)
-    gradient.addColorStop(0, `rgba(255, 0, 255, ${alpha})`)
-    gradient.addColorStop(0.5, `rgba(255, 0, 255, ${alpha * 0.5})`)
+    gradient.addColorStop(0, tone(1, alpha))
+    gradient.addColorStop(0.5, tone(1, alpha * 0.5))
     gradient.addColorStop(1, 'transparent')
 
     ctx.fillStyle = gradient
@@ -223,9 +233,15 @@ export class EffectsRenderer {
     // Set particle color
     ctx.fillStyle = particle.color
 
-    // Draw particle with glow effect
+    // Draw particle with glow effect.
+    //
+    // The inner stop is the particle's own colour, unmodified. It used to have
+    // a two-digit hex alpha concatenated onto it, which only parses when the
+    // colour happens to be a 6-digit hex literal - an `rgb(...)` colour came
+    // out as `rgb(242, 242, 242)ff` and threw. The fade is already applied by
+    // globalAlpha above, so the suffix was double-counting it anyway.
     const glowGradient = ctx.createRadialGradient(x, y, 0, x, y, particle.size * 2)
-    glowGradient.addColorStop(0, `${particle.color}${Math.floor(alpha * 255).toString(16).padStart(2, '0')}`)
+    glowGradient.addColorStop(0, particle.color)
     glowGradient.addColorStop(1, 'transparent')
 
     ctx.fillStyle = glowGradient
@@ -361,22 +377,19 @@ export class EffectsRenderer {
    * Apply color shift effect
    */
   private applyColorShiftEffect(ctx: CanvasRenderingContext2D, factor: number, context: EffectsRenderContext): void {
-    // Create color shift overlay
-    ctx.globalCompositeOperation = 'screen'
-    ctx.globalAlpha = factor * 0.3
-    
-    const shift = Math.sin(context.now * 0.01) * factor * 10
-    
-    // Red channel
-    ctx.fillStyle = `rgba(255, 0, 0, ${factor * 0.2})`
-    ctx.fillRect(shift, 0, this.width, this.height)
-    
-    // Blue channel
-    ctx.fillStyle = `rgba(0, 0, 255, ${factor * 0.2})`
-    ctx.fillRect(-shift, 0, this.width, this.height)
-    
-    ctx.globalCompositeOperation = 'source-over'
-    ctx.globalAlpha = 1.0
+    // A colour tint has no meaning on a monochrome frame, so this breathes
+    // contrast instead. An `overlay` blend against a grey either side of mid
+    // pushes lights and darks apart or together, which reads the same whether
+    // the frame is ink-on-paper or the inverted polarity - a flat overlay fill
+    // would simply wash out whichever polarity matched its own value.
+    const swing = Math.sin(context.now * 0.01)
+    const grey = 0.5 + swing * factor * COLOR_SHIFT_CONTRAST_SWING
+
+    ctx.save()
+    ctx.globalCompositeOperation = 'overlay'
+    ctx.fillStyle = tone(grey)
+    ctx.fillRect(0, 0, this.width, this.height)
+    ctx.restore()
   }
 
   /**
@@ -499,26 +512,16 @@ export class EffectsRenderer {
    * Apply RGB shift effect
    */
   private applyRGBShiftEffect(ctx: CanvasRenderingContext2D, factor: number, context: EffectsRenderContext): void {
-    // Create RGB channel separation
-    const shift = factor * 5
-    
-    ctx.globalCompositeOperation = 'screen'
-    ctx.globalAlpha = factor * 0.2
-    
-    // Red channel
-    ctx.fillStyle = 'rgba(255, 0, 0, 0.3)'
-    ctx.fillRect(shift, 0, this.width, this.height)
-    
-    // Green channel
-    ctx.fillStyle = 'rgba(0, 255, 0, 0.3)'
-    ctx.fillRect(0, 0, this.width, this.height)
-    
-    // Blue channel
-    ctx.fillStyle = 'rgba(0, 0, 255, 0.3)'
-    ctx.fillRect(-shift, 0, this.width, this.height)
-    
-    ctx.globalCompositeOperation = 'source-over'
-    ctx.globalAlpha = 1.0
+    // Channel separation with no channels to separate: ghost the finished
+    // frame against itself instead, which is what the aberration reads as
+    // anyway. Two blits of an already-rasterised canvas, no per-pixel work.
+    const shift = Math.max(1, Math.round(factor * RGB_SHIFT_MAX_OFFSET_PX))
+
+    ctx.save()
+    ctx.globalAlpha = factor * RGB_SHIFT_GHOST_ALPHA
+    ctx.drawImage(ctx.canvas, shift, 0)
+    ctx.drawImage(ctx.canvas, -shift, 0)
+    ctx.restore()
   }
 
   /**

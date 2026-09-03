@@ -14,8 +14,9 @@
 
 import { EffectsRenderer, EffectsRenderContext } from '../lib/game/EffectsRenderer'
 import { EffectsDirector, poolForLevel, PostEffectName } from '../lib/game/EffectsDirector'
-import { Effects } from '../types/game'
+import { Effects, Particle } from '../types/game'
 import { POST_EFFECT_TUNING } from '../constants/game'
+import { TONE, tone } from '../lib/game/palette'
 
 const WIDTH = 1024
 const HEIGHT = 576
@@ -186,5 +187,130 @@ describe('EffectsRenderer cost', () => {
     renderer.render(makeContext(ctx, effects))
 
     expect(counts.getImageData).toBeGreaterThan(0)
+  })
+})
+
+describe('EffectsRenderer colour handling', () => {
+  /**
+   * A gradient stub that rejects what the browser rejects.
+   *
+   * The stub above accepts any string, which is how a colour stop built by
+   * concatenating a hex alpha onto an `rgb(...)` colour reached the browser as
+   * `rgb(242, 242, 242)ff` and threw at runtime.
+   */
+  const makeStrictCtx = () => {
+    const stops: string[] = []
+    const gradient = {
+      addColorStop: (_offset: number, color: string) => {
+        if (!isParseableColor(color)) {
+          throw new SyntaxError(
+            `Failed to execute 'addColorStop': '${color}' could not be parsed as a color.`
+          )
+        }
+        stops.push(color)
+      }
+    }
+
+    const ctx: Record<string, unknown> = {
+      canvas: { width: WIDTH, height: HEIGHT },
+      save: () => undefined,
+      restore: () => undefined,
+      translate: () => undefined,
+      scale: () => undefined,
+      rotate: () => undefined,
+      beginPath: () => undefined,
+      moveTo: () => undefined,
+      lineTo: () => undefined,
+      stroke: () => undefined,
+      fill: () => undefined,
+      fillRect: () => undefined,
+      clearRect: () => undefined,
+      arc: () => undefined,
+      closePath: () => undefined,
+      createRadialGradient: () => gradient,
+      createLinearGradient: () => gradient,
+      drawImage: () => undefined,
+      fillStyle: '',
+      strokeStyle: '',
+      lineWidth: 1,
+      globalAlpha: 1,
+      globalCompositeOperation: 'source-over',
+      filter: 'none',
+      shadowBlur: 0,
+      shadowColor: ''
+    }
+
+    return { ctx: ctx as unknown as CanvasRenderingContext2D, stops }
+  }
+
+  /** The colour forms a canvas gradient stop actually accepts. */
+  const isParseableColor = (color: string): boolean =>
+    /^[a-z]+$/i.test(color) || // named colours, including `transparent`
+    /^#[0-9a-f]{3,8}$/i.test(color) ||
+    /^rgba?\([^)]*\)$/.test(color) ||
+    /^hsla?\([^)]*\)$/.test(color)
+
+  const makeParticle = (color: string): Particle => ({
+    x: 100,
+    y: 100,
+    vx: 0,
+    vy: 0,
+    life: 60,
+    color,
+    size: 3
+  })
+
+  const contextFor = (ctx: CanvasRenderingContext2D): EffectsRenderContext => ({
+    ctx,
+    width: WIDTH,
+    height: HEIGHT,
+    camera: { x: 0, y: 0, targetX: 0, targetY: 0, smoothing: 0.1, zoom: 1 },
+    effects: {
+      glitchOffset: { x: 0, y: 0 },
+      meltingFactor: 0,
+      colorShift: 0,
+      pulseFactor: 1,
+      blurFactor: 0,
+      noiseFactor: 0,
+      rgbShiftFactor: 0,
+      waveFactor: 0,
+      zoomFactor: 0,
+      rotationFactor: 0,
+      pixelBleedFactor: 0,
+      dreamFactor: 0,
+      dreamWaveFactor: 0
+    } as Effects,
+    frameCount: 1,
+    deltaTime: 1 / 60,
+    now: 0
+  })
+
+  test.each([
+    ['a palette tone', tone(TONE.PICKUP)],
+    ['a translucent palette tone', tone(TONE.PLAYER, 0.5)],
+    ['a hex literal', '#f5f5f5'],
+    ['a named colour', 'white']
+  ])('renders a particle coloured with %s', (_label, color) => {
+    const { ctx } = makeStrictCtx()
+    const renderer = new EffectsRenderer(WIDTH, HEIGHT)
+    renderer.setEffects([], [makeParticle(color)])
+
+    expect(() => renderer.render(contextFor(ctx))).not.toThrow()
+  })
+
+  test('never builds a colour stop by concatenating onto a colour', () => {
+    const { ctx, stops } = makeStrictCtx()
+    const renderer = new EffectsRenderer(WIDTH, HEIGHT)
+    renderer.setEffects(
+      [{ x: 50, y: 50, duration: 500, size: 40 }],
+      [makeParticle(tone(TONE.PICKUP))]
+    )
+
+    renderer.render(contextFor(ctx))
+
+    expect(stops.length).toBeGreaterThan(0)
+    for (const stop of stops) {
+      expect(stop).not.toMatch(/\)[^)]/)
+    }
   })
 })

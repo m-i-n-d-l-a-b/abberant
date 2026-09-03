@@ -12,7 +12,6 @@ describe('GameUI', () => {
   const defaultProps: GameUIProps = {
     lives: 3,
     score: 1500,
-    level: 2,
     combo: 0,
     soundEnabled: true,
     onSoundToggle: jest.fn()
@@ -34,9 +33,8 @@ describe('GameUI', () => {
       expect(screen.getByText('SCORE')).toBeInTheDocument()
       expect(screen.getByText('1500')).toBeInTheDocument()
 
-      // Check level display
-      expect(screen.getByText('LEVEL')).toBeInTheDocument()
-      expect(screen.getByText('2')).toBeInTheDocument()
+      // Neither mode has levels, so the HUD carries no level stat.
+      expect(screen.queryByText('LEVEL')).toBeNull()
 
       // Check combo display
       expect(screen.getByText('COMBO')).toBeInTheDocument()
@@ -107,7 +105,6 @@ describe('GameUI', () => {
 
       expect(screen.getByText('3')).toHaveAttribute('id', 'lives')
       expect(screen.getByText('1500')).toHaveAttribute('id', 'score')
-      expect(screen.getByText('2')).toHaveAttribute('id', 'level')
       expect(screen.getByRole('button', { name: /disable sound/i })).toHaveAttribute('id', 'soundToggle')
     })
 
@@ -118,15 +115,15 @@ describe('GameUI', () => {
       const gameUI = container.querySelector('.game-ui')
       expect(gameUI).toBeInTheDocument()
 
-      // Check UI items: lives, score, level, combo
+      // Check UI items: lives, score, combo
       const uiItems = container.querySelectorAll('.ui-item')
-      expect(uiItems).toHaveLength(4)
+      expect(uiItems).toHaveLength(3)
 
       // Check labels and values
       const labels = container.querySelectorAll('.ui-label')
       const values = container.querySelectorAll('.ui-value')
-      expect(labels).toHaveLength(4)
-      expect(values).toHaveLength(4)
+      expect(labels).toHaveLength(3)
+      expect(values).toHaveLength(3)
 
       // Check sound toggle
       const soundToggle = container.querySelector('.sound-toggle')
@@ -136,15 +133,15 @@ describe('GameUI', () => {
 
   describe('Props Validation', () => {
     test('should handle zero values correctly', () => {
-      render(<GameUI {...defaultProps} lives={0} score={0} level={1} />)
+      render(<GameUI {...defaultProps} lives={0} score={0} combo={0} />)
 
       expect(screen.getByTestId('lives')).toHaveTextContent('0')
       expect(screen.getByTestId('score')).toHaveTextContent('0')
-      expect(screen.getByTestId('level')).toHaveTextContent('1')
+      expect(screen.getByTestId('combo')).toHaveTextContent('0')
     })
 
     test('should handle large numbers correctly', () => {
-      render(<GameUI {...defaultProps} lives={99} score={999999} level={100} />)
+      render(<GameUI {...defaultProps} lives={99} score={999999} combo={100} />)
 
       expect(screen.getByText('99')).toBeInTheDocument()
       expect(screen.getByText('999999')).toBeInTheDocument()

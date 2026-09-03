@@ -193,4 +193,57 @@ describe('StartScreen', () => {
       })
     })
   })
-}) 
+
+  describe('Mode Picker', () => {
+    test('is hidden when no mode change handler is supplied', () => {
+      render(<StartScreen {...defaultProps} />)
+      expect(screen.queryByRole('group', { name: 'Game mode' })).toBeNull()
+    })
+
+    test('renders one button per mode when a handler is supplied', () => {
+      render(<StartScreen {...defaultProps} onModeChange={jest.fn()} />)
+
+      expect(screen.getByRole('group', { name: 'Game mode' })).toBeInTheDocument()
+      expect(screen.getByText('SIDE-SCROLLER')).toBeInTheDocument()
+      expect(screen.getByText('SNAKE')).toBeInTheDocument()
+    })
+
+    test('marks the selected mode as pressed', () => {
+      render(
+        <StartScreen {...defaultProps} mode="snake" onModeChange={jest.fn()} />
+      )
+
+      const snake = screen.getByText('SNAKE').closest('button')
+      const sideScroller = screen.getByText('SIDE-SCROLLER').closest('button')
+
+      expect(snake).toHaveAttribute('aria-pressed', 'true')
+      expect(sideScroller).toHaveAttribute('aria-pressed', 'false')
+    })
+
+    test('reports the picked mode', () => {
+      const onModeChange = jest.fn()
+      render(<StartScreen {...defaultProps} onModeChange={onModeChange} />)
+
+      fireEvent.click(screen.getByText('SNAKE'))
+
+      expect(onModeChange).toHaveBeenCalledWith('snake')
+    })
+  })
+
+  describe('Mode-specific controls', () => {
+    test('shows the side-scroller controls by default', () => {
+      render(<StartScreen {...defaultProps} />)
+      expect(screen.getByText('Jump')).toBeInTheDocument()
+      expect(screen.getByText('Dash')).toBeInTheDocument()
+    })
+
+    test('shows turning controls in snake mode', () => {
+      render(<StartScreen {...defaultProps} mode="snake" />)
+
+      expect(screen.getByText('WASD / ARROWS')).toBeInTheDocument()
+      expect(screen.getByText('Turn')).toBeInTheDocument()
+      expect(screen.queryByText('Jump')).toBeNull()
+      expect(screen.queryByText('Dash')).toBeNull()
+    })
+  })
+})

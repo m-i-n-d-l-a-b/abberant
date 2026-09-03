@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState } from 'react'
 import MobileControls from './MobileControls'
 import GameUI from './GameUI'
 import StartScreen from './StartScreen'
@@ -8,28 +8,31 @@ import GameOverScreen from './GameOverScreen'
 import PauseScreen from './PauseScreen'
 import EffectsLab from './EffectsLab'
 import { useGame, GameScreen } from '../hooks/useGame'
-
-// Import CSS Modules
-import styles from '../styles/common.module.css'
-import gameStyles from '../styles/game.module.css'
+import { GameMode } from '../lib/game/ArcadeEngine'
+import { GameEngine } from '../lib/game/GameEngine'
 
 /**
  * Main Game Component
- * 
+ *
  * Orchestrates the game engine and UI components, managing the overall game flow.
  * Refactored to use modular components and custom hooks for better maintainability.
+ *
+ * Mode is owned here rather than in the hook, because it is only switchable
+ * from the start screen and switching it rebuilds the engine.
  */
 export default function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const { gameState, gameHandlers, gameRef } = useGame(canvasRef)
+  const [mode, setMode] = useState<GameMode>('abberant')
+  const { gameState, gameHandlers, gameRef } = useGame(canvasRef, mode)
   const [isEffectsLabOpen, setIsEffectsLabOpen] = useState(false)
 
-  // Debug logging to verify game engine is working
-  useEffect(() => {
-    console.log('Game component mounted')
-    console.log('Game state:', gameState)
-    console.log('Game ref:', gameRef.current)
-  }, [gameState, gameRef])
+  // The Effects Lab drives the side-scroller's canvas effects directly, so it
+  // is only offered in that mode. The instanceof narrowing below happens in the
+  // handlers rather than during render, where reading a ref is not safe.
+  const isPlatformer = mode === 'abberant'
+
+  const platformerEngine = (): GameEngine | null =>
+    gameRef.current instanceof GameEngine ? gameRef.current : null
 
   const handleOpenEffectsLab = () => {
     setIsEffectsLabOpen(true)
@@ -40,29 +43,27 @@ export default function Game() {
   }
 
   const handleApplyEffects = (effects: any) => {
-    if (gameRef.current) {
-      // Save current settings to activeCustomEffects
-      gameRef.current.activeCustomEffects = JSON.parse(JSON.stringify(effects))
-      // Save to localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('activeCustomEffects', JSON.stringify(effects))
-      }
+    const engine = platformerEngine()
+    if (!engine) return
+    // Save current settings to activeCustomEffects
+    engine.activeCustomEffects = JSON.parse(JSON.stringify(effects))
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('activeCustomEffects', JSON.stringify(effects))
     }
   }
 
   const handleResetToDefault = () => {
-    if (gameRef.current) {
-      gameRef.current.resetEffectsLabToLevelDefault?.()
-    }
+    platformerEngine()?.resetEffectsLabToLevelDefault?.()
   }
 
   const handleClearAllEffects = () => {
-    if (gameRef.current) {
-      // Clear all custom effects
-      gameRef.current.activeCustomEffects = null
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('activeCustomEffects')
-      }
+    const engine = platformerEngine()
+    if (!engine) return
+    // Clear all custom effects
+    engine.activeCustomEffects = null
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('activeCustomEffects')
     }
   }
 
@@ -80,7 +81,6 @@ export default function Game() {
         <GameUI
           lives={gameState.lives}
           score={gameState.score}
-          level={gameState.level}
           combo={gameState.combo}
           soundEnabled={gameState.soundEnabled}
           onSoundToggle={gameHandlers.handleSoundToggle}
@@ -91,6 +91,8 @@ export default function Game() {
       <StartScreen
         onStartGame={gameHandlers.handleStartGame}
         visible={gameState.gameScreen === GameScreen.START}
+        mode={mode}
+        onModeChange={setMode}
       />
 
       {/* Game Over Screen */}
@@ -105,21 +107,25 @@ export default function Game() {
       <PauseScreen
         onResume={gameHandlers.handleResume}
         visible={gameState.gameScreen === GameScreen.PAUSED}
-        onOpenEffectsLab={handleOpenEffectsLab}
+        onOpenEffectsLab={isPlatformer ? handleOpenEffectsLab : undefined}
       />
 
       {/* Effects Lab */}
-      <EffectsLab
-        isOpen={isEffectsLabOpen}
-        onClose={handleCloseEffectsLab}
-        onApplyEffects={handleApplyEffects}
-        onResetToDefault={handleResetToDefault}
-        onClearAllEffects={handleClearAllEffects}
-        gameRef={gameRef}
-      />
+      {isPlatformer && (
+        <EffectsLab
+          isOpen={isEffectsLabOpen}
+          onClose={handleCloseEffectsLab}
+          onApplyEffects={handleApplyEffects}
+          onResetToDefault={handleResetToDefault}
+          onClearAllEffects={handleClearAllEffects}
+          gameRef={gameRef}
+        />
+      )}
 
       {/* Mobile Controls - only show when playing */}
-      {gameState.gameScreen === GameScreen.PLAYING && <MobileControls />}
+      {gameState.gameScreen === GameScreen.PLAYING && (
+        <MobileControls mode={mode} />
+      )}
     </div>
   )
 }

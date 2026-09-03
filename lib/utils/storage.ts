@@ -37,19 +37,29 @@ export function getFromStorage<T>(key: string, defaultValue?: T): T | null {
 } 
 
 /**
- * Convert a hex color string to an rgba() string with alpha
- * Supports 3-digit and 6-digit hex, with or without '#'.
- * @param hex - The hex color string (e.g. '#fff', '#ff0000')
+ * Convert a color string to an rgba() string with alpha.
+ *
+ * Accepts 3- and 6-digit hex with or without '#', and passes an `rgb()` or
+ * `rgba()` input through with the requested alpha. The palette emits `rgb()`,
+ * and a helper that only understood hex would throw on every colour the game
+ * actually draws with.
+ *
+ * @param color - The color string (e.g. '#fff', '#ff0000', 'rgb(8, 8, 8)')
  * @param alpha - Alpha value (0-1)
  * @returns rgba(r,g,b,a) string
  */
-export function hexToRgba(hex: string, alpha: number = 1): string {
-  let c = hex.replace('#', '')
+export function hexToRgba(color: string, alpha: number = 1): string {
+  const rgb = color.match(/^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/i)
+  if (rgb) {
+    return `rgba(${rgb[1]},${rgb[2]},${rgb[3]},${alpha})`
+  }
+
+  let c = color.replace('#', '')
   if (c.length === 3) {
     c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2]
   }
   if (c.length !== 6) {
-    throw new Error('Invalid hex color: ' + hex)
+    throw new Error('Invalid color: ' + color)
   }
   const r = parseInt(c.substring(0, 2), 16)
   const g = parseInt(c.substring(2, 4), 16)

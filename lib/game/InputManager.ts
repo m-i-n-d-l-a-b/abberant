@@ -20,6 +20,26 @@ export interface InputCallbacks {
   onValidateCollisionSystem: () => void
   onAudioContextResume: () => void
   onSoundToggle?: () => void
+  /**
+   * A direction key going down, as a unit vector.
+   *
+   * Edge-triggered, unlike the held state in getPlayerInput. Grid modes need
+   * the press itself, because a tap shorter than a frame never shows up in a
+   * poll of what is currently held.
+   */
+  onDirection?: (x: number, y: number) => void
+}
+
+/** Direction keys, mapped to the unit vector each one means. */
+const DIRECTION_KEYS: Record<string, { x: number; y: number }> = {
+  arrowup: { x: 0, y: -1 },
+  w: { x: 0, y: -1 },
+  arrowdown: { x: 0, y: 1 },
+  s: { x: 0, y: 1 },
+  arrowleft: { x: -1, y: 0 },
+  a: { x: -1, y: 0 },
+  arrowright: { x: 1, y: 0 },
+  d: { x: 1, y: 0 }
 }
 
 /**
@@ -28,6 +48,9 @@ export interface InputCallbacks {
 export interface PlayerInput {
   left: boolean
   right: boolean
+  /** Held up. Distinct from `jump`, which is edge-triggered by the same keys. */
+  up: boolean
+  down: boolean
   jump: boolean
   dash: boolean
 }
@@ -35,6 +58,8 @@ export interface PlayerInput {
 export interface GamepadInput {
   left: boolean
   right: boolean
+  up: boolean
+  down: boolean
   jump: boolean
   dash: boolean
 }
@@ -59,12 +84,16 @@ export class InputManager {
   private touchInput: TouchInput = {
     left: false,
     right: false,
+    up: false,
+    down: false,
     jump: false,
     dash: false
   }
   private gamepadInput: GamepadInput = {
     left: false,
     right: false,
+    up: false,
+    down: false,
     jump: false,
     dash: false
   }
@@ -144,6 +173,12 @@ export class InputManager {
         this.keys["ArrowDown"] = true
       } else {
         this.keys[e.key.toLowerCase()] = true
+      }
+
+      const direction = DIRECTION_KEYS[e.key.toLowerCase()]
+      if (direction && this.callbacks.onDirection) {
+        this.callbacks.onDirection(direction.x, direction.y)
+        e.preventDefault()
       }
 
       // Handle specific key actions
@@ -254,6 +289,12 @@ export class InputManager {
       case "right":
         this.touchInput.right = pressed
         break
+      case "up":
+        this.touchInput.up = pressed
+        break
+      case "down":
+        this.touchInput.down = pressed
+        break
       case "jump":
         this.touchInput.jump = pressed
         if (pressed) this.callbacks.onJump()
@@ -302,11 +343,16 @@ export class InputManager {
     }
     
     const leftStickX = gamepad.axes[0]
+    const leftStickY = gamepad.axes[1]
+    const dpadUp = gamepad.buttons[12]?.pressed || false
+    const dpadDown = gamepad.buttons[13]?.pressed || false
     const dpadLeft = gamepad.buttons[14]?.pressed || false
     const dpadRight = gamepad.buttons[15]?.pressed || false
     
     this.gamepadInput.left = leftStickX < -this.gamepadDeadzone || dpadLeft
     this.gamepadInput.right = leftStickX > this.gamepadDeadzone || dpadRight
+    this.gamepadInput.up = leftStickY < -this.gamepadDeadzone || dpadUp
+    this.gamepadInput.down = leftStickY > this.gamepadDeadzone || dpadDown
     
     const jumpButton = gamepad.buttons[0]
     if (jumpButton.pressed && !this.gamepadButtonPressed.jump) {
@@ -365,6 +411,8 @@ export class InputManager {
     const input = {
       left: this.keys['a'] || this.keys['A'] || this.keys['ArrowLeft'] || this.touchInput.left || this.gamepadInput.left,
       right: this.keys['d'] || this.keys['D'] || this.keys['ArrowRight'] || this.touchInput.right || this.gamepadInput.right,
+      up: this.keys['w'] || this.keys['W'] || this.keys['ArrowUp'] || this.touchInput.up || this.gamepadInput.up,
+      down: this.keys['s'] || this.keys['S'] || this.keys['ArrowDown'] || this.touchInput.down || this.gamepadInput.down,
       jump: this.keys['w'] || this.keys['W'] || this.keys['ArrowUp'] || this.keys[' '] || this.touchInput.jump || this.gamepadInput.jump,
       dash: this.keys['shift'] || this.touchInput.dash || this.gamepadInput.dash
     }
@@ -396,12 +444,16 @@ export class InputManager {
     this.touchInput = {
       left: false,
       right: false,
+      up: false,
+      down: false,
       jump: false,
       dash: false
     }
     this.gamepadInput = {
       left: false,
       right: false,
+      up: false,
+      down: false,
       jump: false,
       dash: false
     }

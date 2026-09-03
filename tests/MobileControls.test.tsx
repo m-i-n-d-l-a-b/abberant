@@ -71,4 +71,21 @@ describe('MobileControls', () => {
     const actionButtons = screen.getByText('JUMP').closest('.action-buttons')
     expect(actionButtons).toBeInTheDocument()
   })
-}) 
+
+  test('hides the platformer actions in snake mode', () => {
+    render(<MobileControls mode="snake" />)
+
+    expect(screen.queryByText('JUMP')).toBeNull()
+    expect(screen.queryByText('DASH')).toBeNull()
+    expect(screen.getByText('⏸')).toHaveAttribute('data-action', 'pause')
+  })
+
+  test('keeps the d-pad in snake mode', () => {
+    render(<MobileControls mode="snake" />)
+
+    expect(screen.getByText('↑')).toHaveAttribute('data-action', 'up')
+    expect(screen.getByText('↓')).toHaveAttribute('data-action', 'down')
+    expect(screen.getByText('←')).toHaveAttribute('data-action', 'left')
+    expect(screen.getByText('→')).toHaveAttribute('data-action', 'right')
+  })
+})

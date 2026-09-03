@@ -104,6 +104,8 @@ describe('InputManager', () => {
       expect(input).toEqual({
         left: false,
         right: false,
+        up: false,
+        down: false,
         jump: false,
         dash: false
       })
@@ -115,6 +117,8 @@ describe('InputManager', () => {
       expect(input).toEqual({
         left: false,
         right: false,
+        up: false,
+        down: false,
         jump: false,
         dash: false
       })
@@ -144,4 +148,80 @@ describe('InputManager', () => {
       expect(input).toBeDefined()
     })
   })
-}) 
+
+  describe('Direction Keys', () => {
+    /** Pull the keydown listener the manager registered on construction. */
+    const keydown = (): ((e: any) => void) => {
+      const calls = (document.addEventListener as jest.Mock).mock.calls
+      const entry = calls.find((call) => call[0] === 'keydown')
+      return entry[1]
+    }
+
+    const press = (key: string) =>
+      keydown()({ key, preventDefault: jest.fn() })
+
+    test.each([
+      ['ArrowUp', 0, -1],
+      ['w', 0, -1],
+      ['ArrowDown', 0, 1],
+      ['s', 0, 1],
+      ['ArrowLeft', -1, 0],
+      ['a', -1, 0],
+      ['ArrowRight', 1, 0],
+      ['d', 1, 0]
+    ])('reports %s as a direction press', (key, x, y) => {
+      const onDirection = jest.fn()
+      const manager = new InputManager({ ...mockCallbacks, onDirection })
+
+      const calls = (document.addEventListener as jest.Mock).mock.calls
+      const handler = calls.filter((call) => call[0] === 'keydown').pop()![1]
+      handler({ key, preventDefault: jest.fn() })
+
+      expect(onDirection).toHaveBeenCalledWith(x, y)
+      manager.cleanup()
+    })
+
+    test('stays silent for keys that are not directions', () => {
+      const onDirection = jest.fn()
+      const manager = new InputManager({ ...mockCallbacks, onDirection })
+
+      const calls = (document.addEventListener as jest.Mock).mock.calls
+      const handler = calls.filter((call) => call[0] === 'keydown').pop()![1]
+      handler({ key: 'p', preventDefault: jest.fn() })
+
+      expect(onDirection).not.toHaveBeenCalled()
+      manager.cleanup()
+    })
+
+    test('is optional, so the side-scroller needs no handler', () => {
+      expect(() => press('ArrowUp')).not.toThrow()
+    })
+  })
+
+  describe('Four-Way Input State', () => {
+    test('exposes up and down alongside left and right', () => {
+      const input = inputManager.getPlayerInput()
+      expect(input).toHaveProperty('up', false)
+      expect(input).toHaveProperty('down', false)
+    })
+
+    test('reads held direction keys', () => {
+      const calls = (document.addEventListener as jest.Mock).mock.calls
+      const handler = calls.find((call) => call[0] === 'keydown')![1]
+
+      handler({ key: 'ArrowDown', preventDefault: jest.fn() })
+
+      expect(inputManager.getPlayerInput().down).toBe(true)
+    })
+
+    test('clears them on reset', () => {
+      const calls = (document.addEventListener as jest.Mock).mock.calls
+      const handler = calls.find((call) => call[0] === 'keydown')![1]
+      handler({ key: 'ArrowUp', preventDefault: jest.fn() })
+
+      inputManager.resetInput()
+
+      expect(inputManager.getPlayerInput().up).toBe(false)
+    })
+  })
+})

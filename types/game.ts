@@ -125,6 +125,8 @@ export interface Keys {
 export interface TouchInput {
   left: boolean
   right: boolean
+  up: boolean
+  down: boolean
   jump: boolean
   dash: boolean
 }
@@ -137,4 +139,16 @@ export interface Particle {
   life: number
   color: string
   size: number
+}
+
+/** A position on the Snake board, in grid cells rather than pixels. */
+export interface GridCell {
+  x: number
+  y: number
+}
+
+/** A direction of travel on the Snake board. One axis is always zero. */
+export interface GridDirection {
+  x: number
+  y: number
 }

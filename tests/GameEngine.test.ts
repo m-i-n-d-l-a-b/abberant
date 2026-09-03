@@ -10,7 +10,12 @@ import { PlayerManager } from '../lib/game/PlayerManager'
 import { EnemyManager } from '../lib/game/EnemyManager'
 import { LevelGenerator } from '../lib/game/LevelGenerator'
 import { Renderer } from '../lib/game/Renderer'
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../constants/game'
+import {
+  CANVAS_WIDTH,
+  CANVAS_HEIGHT,
+  EFFECT_ROLL_INTERVAL_MS,
+  EFFECT_TIER_DISTANCE
+} from '../constants/game'
 import { InputManager } from '../lib/game/InputManager'
 import { AudioManagerWrapper } from '../lib/game/AudioManagerWrapper'
 
@@ -360,10 +365,9 @@ describe('GameEngine', () => {
       expect(mockInputManager).toBeDefined()
     })
 
-    test('should generate an initial level during construction', () => {
-      // Built by GameEngine.generateLevel(), not by the LevelGenerator instance.
+    test('should stream an opening stretch of world during construction', () => {
+      // Built by the WorldStreamer, not by the LevelGenerator instance.
       expect(gameEngine.platforms.length).toBeGreaterThan(0)
-      expect(gameEngine.levelTarget).toBeGreaterThan(0)
       expect(mockLevelGenerator.generateLevel).not.toHaveBeenCalled()
     })
   })
@@ -411,8 +415,7 @@ describe('GameEngine', () => {
       expect(gameEngine.gameState).toBe('start')
     })
 
-    test('should start on level 1 with full lives and no score', () => {
-      expect(gameEngine.currentLevel).toBe(1)
+    test('should start with full lives and no score', () => {
       expect(gameEngine.lives).toBe(3)
       expect(gameEngine.score).toBe(0)
     })
@@ -478,28 +481,58 @@ describe('GameEngine', () => {
     })
   })
 
-  describe('Level Management', () => {
-    test('should generate a level inline rather than via LevelGenerator', () => {
-      gameEngine.generateLevel()
+  describe('Endless World', () => {
+    test('should build the world inline rather than via LevelGenerator', () => {
+      gameEngine.resetWorld()
 
       expect(gameEngine.platforms.length).toBeGreaterThan(0)
       expect(mockLevelGenerator.generateLevel).not.toHaveBeenCalled()
     })
 
-    test('should enter the transition state on next level', () => {
-      gameEngine.nextLevel()
-      expect(gameEngine.gameState).toBe('transition')
+    test('should never enter a transition state', () => {
+      gameEngine.startGame()
+      gameEngine.updateGame()
+
+      expect(gameEngine.gameState).toBe('playing')
     })
 
-    test('should ignore a repeated nextLevel call while transitioning', () => {
-      // Guards the infinite-transition loop the engine warns about.
-      gameEngine.nextLevel()
-      const levelAfterFirst = gameEngine.currentLevel
+    test('should extend the world as the player advances', () => {
+      gameEngine.startGame()
+      const before = gameEngine.platforms.length
 
-      gameEngine.nextLevel()
+      gameEngine.player.x = 6000
+      gameEngine.updateGame()
 
-      expect(gameEngine.gameState).toBe('transition')
-      expect(gameEngine.currentLevel).toBe(levelAfterFirst)
+      expect(gameEngine.platforms.length).toBeGreaterThan(0)
+      // The window is fixed, so travelling does not grow the entity count.
+      expect(gameEngine.platforms.length).toBeLessThanOrEqual(before * 2)
+    })
+
+    test('should raise the effect tier with distance travelled', () => {
+      expect(gameEngine.effectTier).toBe(1)
+
+      gameEngine.furthestX = EFFECT_TIER_DISTANCE * 3
+      expect(gameEngine.effectTier).toBe(4)
+    })
+
+    test('should re-roll effects on the clock', () => {
+      gameEngine.startGame()
+      const rolledAt = gameEngine.lastEffectRollAt
+
+      gameEngine.rollEffects(rolledAt + EFFECT_ROLL_INTERVAL_MS)
+
+      expect(gameEngine.lastEffectRollAt).toBeGreaterThan(rolledAt)
+      expect(gameEngine.activeEffects.length).toBeGreaterThan(0)
+    })
+
+    test('should hold the screen-flipping effects back at the start of a run', () => {
+      gameEngine.furthestX = 0
+
+      for (let i = 0; i < 25; i++) {
+        gameEngine.rollEffects(i * EFFECT_ROLL_INTERVAL_MS)
+        expect(gameEngine.activeEffects).not.toContain('upsideDown')
+        expect(gameEngine.activeEffects).not.toContain('mirrored')
+      }
     })
   })
 

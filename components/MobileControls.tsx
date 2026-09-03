@@ -1,21 +1,28 @@
 /**
  * Mobile Controls Component
- * 
+ *
  * Provides touch-based controls for mobile devices.
  * Extracted from Game.tsx for better modularity and reusability.
  */
 
 import React from 'react'
 
-// Import CSS Modules
-import styles from '../styles/common.module.css'
-import mobileStyles from '../styles/mobile.module.css'
+import { GameMode } from '../lib/game/ArcadeEngine'
 
 interface MobileControlsProps {
   className?: string
+  /** Which mode's action buttons to show. */
+  mode?: GameMode
 }
 
-export default function MobileControls({ className = '' }: MobileControlsProps) {
+export default function MobileControls({
+  className = '',
+  mode = 'abberant'
+}: MobileControlsProps) {
+  // Snake turns with the d-pad alone, so its action column is pause only -
+  // a jump button that does nothing reads as a broken control.
+  const showPlatformerActions = mode !== 'snake'
+
   return (
     <div id="mobileControls" className={`mobile-controls ${className}`}>
       <div className="dpad">
@@ -27,10 +34,14 @@ export default function MobileControls({ className = '' }: MobileControlsProps) 
       </div>
 
       <div className="action-buttons">
-        <div className="mobile-button jump-button" data-action="jump">JUMP</div>
-        <div className="mobile-button dash-button" data-action="dash">DASH</div>
+        {showPlatformerActions && (
+          <>
+            <div className="mobile-button jump-button" data-action="jump">JUMP</div>
+            <div className="mobile-button dash-button" data-action="dash">DASH</div>
+          </>
+        )}
         <div className="mobile-button pause-button" data-action="pause">⏸</div>
       </div>
     </div>
   )
-} 
+}

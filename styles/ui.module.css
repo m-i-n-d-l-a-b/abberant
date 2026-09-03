@@ -1,6 +1,11 @@
 /* Game UI Elements */
 
 /* Main Game UI Container */
+/*
+ * The canvas underneath can be either polarity - the invert effect flips it
+ * mid-run - so the chrome carries its own dark plate and never depends on what
+ * it happens to be sitting on.
+ */
 .gameUi {
   position: absolute;
   top: 12px;
@@ -8,7 +13,10 @@
   display: flex;
   gap: 18px;
   z-index: 10;
-  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: rgba(8, 8, 8, 0.55);
+  color: var(--ink);
   font-family: 'Courier New', monospace;
 }
 
@@ -35,7 +43,7 @@
 .uiLabel {
   font-size: 9px;
   letter-spacing: 0.5px;
-  color: #ffffff;
+  color: var(--ink);
   font-weight: bold;
   opacity: 0.7;
 }
@@ -43,29 +51,17 @@
 /* UI Values */
 .uiValue {
   font-size: 16px;
-  color: #ffffff;
+  color: var(--ink-dim);
   font-weight: bold;
   min-width: 28px;
   text-align: center;
   line-height: 1.1;
 }
 
-/* Lives Display Special Styling */
+/* Lives reads brightest: it is the only stat that can end the run. */
 .uiItem:first-child .uiValue {
-  color: #ff6b6b;
-  text-shadow: 0 0 15px #ff6b6b;
-}
-
-/* Score Display Special Styling */
-.uiItem:nth-child(2) .uiValue {
-  color: #4ecdc4;
-  text-shadow: 0 0 15px #4ecdc4;
-}
-
-/* Level Display Special Styling */
-.uiItem:nth-child(3) .uiValue {
-  color: #ffe66d;
-  text-shadow: 0 0 15px #ffe66d;
+  color: var(--ink);
+  text-shadow: 0 0 15px rgba(245, 245, 245, 0.5);
 }
 
 /* Sound Toggle Button - Simple styling to match original */
@@ -76,7 +72,7 @@
   background: none;
   border: none;
   padding: 2px;
-  color: #ffffff;
+  color: var(--ink);
   font-family: 'Courier New', monospace;
   font-size: 18px;
   line-height: 1;
@@ -86,13 +82,13 @@
 
 /* Sound Toggle States */
 .soundOn {
-  border-color: #4ecdc4;
-  color: #4ecdc4;
+  border-color: var(--ink);
+  color: var(--ink);
 }
 
 .soundOff {
-  border-color: #ff6b6b;
-  color: #ff6b6b;
+  border-color: var(--ink-muted);
+  color: var(--ink-muted);
 }
 
 /* UI Animations */
@@ -113,8 +109,8 @@
   left: 50%;
   transform: translate(-50%, -50%);
   background: rgba(0, 0, 0, 0.9);
-  border: 2px solid #00ffff;
-  color: #00ffff;
+  border: 2px solid var(--ink);
+  color: var(--ink);
   padding: 20px;
   border-radius: 10px;
   text-align: center;
@@ -123,18 +119,18 @@
 }
 
 .ui-notification.success {
-  border-color: #4ecdc4;
-  color: #4ecdc4;
+  border-color: var(--ink-dim);
+  color: var(--ink-dim);
 }
 
 .ui-notification.warning {
-  border-color: #ffe66d;
-  color: #ffe66d;
+  border-color: var(--ink-dim);
+  color: var(--ink-dim);
 }
 
 .ui-notification.error {
-  border-color: #ff6b6b;
-  color: #ff6b6b;
+  border-color: var(--ink);
+  color: var(--ink);
 }
 
 /* Progress Bars */
@@ -142,7 +138,7 @@
   width: 100px;
   height: 8px;
   background: rgba(0, 0, 0, 0.5);
-  border: 1px solid #00ffff;
+  border: 1px solid var(--ink);
   border-radius: 4px;
   overflow: hidden;
   margin-top: 5px;
@@ -150,7 +146,7 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #00ffff, #4ecdc4);
+  background: linear-gradient(90deg, var(--ink), var(--ink-dim));
   transition: width 0.3s ease;
 }
 
@@ -211,18 +207,18 @@
 @media (prefers-contrast: high) {
   .uiItem {
     background: rgba(0, 0, 0, 0.9);
-    border-color: #ffffff;
+    border-color: var(--ink);
   }
   
   .uiLabel,
   .uiValue {
-    color: #ffffff;
-    text-shadow: 2px 2px 0px #000000;
+    color: var(--ink);
+    text-shadow: 2px 2px 0px var(--paper);
   }
   
   .soundToggle {
-    border-color: #ffffff;
-    color: #ffffff;
+    border-color: var(--ink);
+    color: var(--ink);
   }
 }
 

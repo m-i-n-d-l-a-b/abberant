@@ -27,7 +27,8 @@ export const PLAYER_JUMP_POWER = 16
 export const PLAYER_DASH_POWER = 15
 export const PLAYER_DASH_COOLDOWN = 60
 export const PLAYER_INVULNERABLE_TIME = 30
-export const PLAYER_COLOR = "#00ffff"
+/** The player is the brightest mark on the page. See lib/game/palette.ts. */
+export const PLAYER_COLOR = "#f5f5f5"
 export const PLAYER_FRICTION = 0.8
 export const PLAYER_GRAVITY = 0.8
 
@@ -67,6 +68,61 @@ export const ENEMY_SCORE_VALUE = 250
 export const COLLECTIBLE_WIDTH = 12
 export const COLLECTIBLE_HEIGHT = 12
 export const COLLECTIBLE_VALUE = 100
+
+// Endless World Constants
+//
+// The side-scroller has no levels. The world is generated in fixed-width
+// chunks as the player advances and pruned behind them, so the number of live
+// entities stays flat no matter how far a run goes.
+
+/** Width of one world chunk. One screen, so a chunk is a screen of geometry. */
+export const CHUNK_WIDTH = 1024
+
+/** Chunks generated past the one the player is in. */
+export const CHUNKS_AHEAD = 2
+
+/**
+ * Chunks kept behind the player before pruning.
+ *
+ * Chunks regenerate identically from their index, so walking back past this
+ * window costs a regeneration rather than an empty void.
+ */
+export const CHUNKS_BEHIND = 1
+
+// Contents of one chunk.
+export const CHUNK_PLATFORM_COUNT = 6
+export const CHUNK_ENEMY_COUNT = 2
+export const CHUNK_COLLECTIBLE_COUNT = 3
+
+/**
+ * The band platforms are laid out in.
+ *
+ * Height follows a slow sine of world x plus bounded jitter, so the terrain is
+ * continuous across a chunk seam without either chunk knowing about the other,
+ * and every gap stays inside a jump.
+ */
+export const PLATFORM_BAND_CENTER = 360
+export const PLATFORM_BAND_AMPLITUDE = 120
+export const PLATFORM_BAND_JITTER = 60
+export const PLATFORM_BAND_WAVELENGTH = 1400
+export const PLATFORM_BAND_MIN_Y = 150
+export const PLATFORM_BAND_MAX_Y = 500
+
+/** How often the active effects are re-rolled, in milliseconds. */
+export const EFFECT_ROLL_INTERVAL_MS = 30000
+
+/**
+ * World distance per effect-intensity tier.
+ *
+ * Stands in for the level number that used to drive how hard the effects hit.
+ */
+export const EFFECT_TIER_DISTANCE = 4000
+
+/** Distance a run must reach to unlock the Effects Lab. */
+export const EFFECTS_LAB_UNLOCK_DISTANCE = 120000
+
+/** Frames of invulnerability granted on respawn. */
+export const RESPAWN_INVULNERABLE_FRAMES = 180
 
 // Background Constants
 export const STAR_COUNT = 100
@@ -202,3 +258,107 @@ export const POST_EFFECTS_BY_LEVEL = {
   LEVEL_7_10: ['colorShift', 'pulse', 'blur', 'rgbShift'],
   LEVEL_11_PLUS: ['colorShift', 'pulse', 'blur', 'rgbShift', 'zoom', 'rotation']
 } as const
+
+
+// Snake Mode Constants
+//
+// Snake runs on the same 1024x576 canvas as the side-scroller, quantised to a
+// square grid. Every board dimension is derived from the cell size so the grid
+// and the canvas can never disagree.
+//
+// There is no level in Snake. The board is built once when a run starts and
+// again only when the snake dies; difficulty rides on the snake's own length,
+// which is the one thing a snake player is already watching.
+
+/** Side of one grid cell in pixels. Divides both canvas dimensions exactly. */
+export const SNAKE_CELL_SIZE = 16
+
+export const SNAKE_COLS = CANVAS_WIDTH / SNAKE_CELL_SIZE
+export const SNAKE_ROWS = CANVAS_HEIGHT / SNAKE_CELL_SIZE
+
+/** Segments the snake starts each life with. */
+export const SNAKE_START_LENGTH = 5
+
+/** Segments added per food eaten. */
+export const SNAKE_GROWTH_PER_FOOD = 2
+
+// Movement pacing. The snake advances one cell per step, and the gap between
+// steps shrinks with every segment it gains, down to a floor.
+export const SNAKE_BASE_STEP_MS = 130
+export const SNAKE_STEP_MS_PER_SEGMENT = 1.5
+export const SNAKE_MIN_STEP_MS = 55
+
+/**
+ * Turns buffered while a step is pending.
+ *
+ * Without a buffer a quick double turn (up then right inside one step) loses
+ * the second input. Two is enough to chain a corner without letting a player
+ * queue a whole path.
+ */
+export const SNAKE_TURN_BUFFER = 2
+
+// Scoring
+export const SNAKE_FOOD_SCORE = 100
+/** Added per unbroken food in the current streak, on top of the base score. */
+export const SNAKE_COMBO_BONUS = 25
+
+/**
+ * Segments between difficulty tiers.
+ *
+ * Stands in for the level a side-scroller would use: it drives which visual
+ * effects run, and it falls back to one when the snake dies and shortens.
+ */
+export const SNAKE_SEGMENTS_PER_TIER = 6
+
+/** Frames the board is frozen after a crash, before the snake respawns. */
+export const SNAKE_CRASH_FREEZE_FRAMES = 45
+
+/**
+ * The explosion thrown when the snake eats.
+ *
+ * Two passes, because one random scatter of the same particle count reads as a
+ * puff rather than a blast: an evenly spaced ring that carries outward as a
+ * shockwave, and a scattered core whose wide speed range keeps the debris from
+ * all arriving at the same radius at the same moment.
+ */
+export const SNAKE_EAT_RING_PARTICLES = 16
+export const SNAKE_EAT_RING_SPEED = 6
+export const SNAKE_EAT_CORE_PARTICLES = 24
+export const SNAKE_EAT_CORE_SPEED_MIN = 1
+export const SNAKE_EAT_CORE_SPEED_MAX = 9
+
+/** The bright glitch flash left at the moment of the bite. */
+export const SNAKE_EAT_FLASH_DURATION = 380
+export const SNAKE_EAT_FLASH_SIZE = 46
+
+/** Particles thrown by a crash, and the debris that follows them out. */
+export const SNAKE_CRASH_PARTICLES = 26
+export const SNAKE_CRASH_DEBRIS_PARTICLES = 12
+
+/** Duration a crash's data-bleed smear starts with, in EffectsRenderer units. */
+export const SNAKE_CRASH_BLEED_DURATION = 900
+
+export const SNAKE_STAR_COUNT = 140
+
+/** Pixels the starfield drifts per frame, giving the static board some motion. */
+export const SNAKE_BACKGROUND_DRIFT = 0.35
+
+/**
+ * Canvas-transform effects Snake may run, by difficulty tier.
+ *
+ * These distort what the player sees without touching the controls, so they
+ * stay fair on a grid. A short snake runs clean; the disorienting flips are
+ * held back until the player has the board figured out.
+ */
+export const SNAKE_CANVAS_EFFECTS_BY_TIER = {
+  TIER_1: [],
+  TIER_2_3: ['wobble'],
+  TIER_4_PLUS: ['wobble', 'invert', 'mirrored', 'upsideDown']
+} as const
+
+/** Snake runs at most one canvas transform at a time. */
+export const SNAKE_CANVAS_EFFECT_MAX_CONCURRENT = 1
+
+/** Wobble amplitude in pixels and its oscillation speed per ms. */
+export const SNAKE_WOBBLE_AMPLITUDE = 4
+export const SNAKE_WOBBLE_SPEED = 0.003
