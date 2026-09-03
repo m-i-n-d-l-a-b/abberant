@@ -1,5 +1,7 @@
 // utils.ts - VFX utility functions
 
+import type * as THREE from 'three';
+
 /**
  * Maps effect names to shader file paths.
  */
