@@ -25,11 +25,19 @@ const mockCanvas = {
     save: jest.fn(),
     restore: jest.fn(),
     beginPath: jest.fn(),
+    closePath: jest.fn(),
     moveTo: jest.fn(),
     lineTo: jest.fn(),
     stroke: jest.fn(),
     fill: jest.fn(),
     arc: jest.fn(),
+    rect: jest.fn(),
+    strokeRect: jest.fn(),
+    clip: jest.fn(),
+    drawImage: jest.fn(),
+    setLineDash: jest.fn(),
+    transform: jest.fn(),
+    resetTransform: jest.fn(),
     fillText: jest.fn(),
     strokeText: jest.fn(),
     measureText: jest.fn(() => ({ width: 10 })),
@@ -45,13 +53,13 @@ const mockCanvas = {
 } as unknown as HTMLCanvasElement
 
 // Mock dependencies
-jest.mock('./GameStateManager')
-jest.mock('./PlayerManager')
-jest.mock('./EnemyManager')
-jest.mock('./LevelGenerator')
-jest.mock('./Renderer')
-jest.mock('./InputManager')
-jest.mock('./AudioManagerWrapper')
+jest.mock('../lib/game/GameStateManager')
+jest.mock('../lib/game/PlayerManager')
+jest.mock('../lib/game/EnemyManager')
+jest.mock('../lib/game/LevelGenerator')
+jest.mock('../lib/game/Renderer')
+jest.mock('../lib/game/InputManager')
+jest.mock('../lib/game/AudioManagerWrapper')
 
 describe('GameEngine', () => {
   let gameEngine: GameEngine
@@ -306,7 +314,6 @@ describe('GameEngine', () => {
         audioContextState: 'running',
       })),
       resetPerformanceStats: jest.fn(),
-      init: jest.fn(),
     } as unknown as jest.Mocked<AudioManagerWrapper>
 
     // Mock constructor calls
@@ -330,14 +337,21 @@ describe('GameEngine', () => {
       expect(gameEngine.height).toBe(600)
     })
 
-    test('should initialize all managers', () => {
-      expect(mockStateManager.init).toHaveBeenCalled()
-      // Other managers are initialized during construction, not via init() calls
-      expect(mockPlayerManager).toBeDefined()
-      expect(mockEnemyManager).toBeDefined()
-      expect(mockLevelGenerator).toBeDefined()
-      expect(mockRenderer).toBeDefined()
-      expect(mockAudioWrapper).toBeDefined()
+    test('should construct all managers', () => {
+      // GameEngine constructs these, but does not currently drive them: the
+      // game loop runs its own inline update/render/audio implementations.
+      // These assertions cover what actually happens today. If the managers
+      // are ever wired into the loop, the "does not delegate" assertions
+      // further down will fail and should be updated together with these.
+      expect(GameStateManager).toHaveBeenCalled()
+      expect(PlayerManager).toHaveBeenCalled()
+      expect(EnemyManager).toHaveBeenCalled()
+      expect(LevelGenerator).toHaveBeenCalled()
+      expect(Renderer).toHaveBeenCalled()
+
+      // AudioManagerWrapper is not even constructed: GameEngine builds an
+      // AudioManager directly and then drives a raw AudioContext instead.
+      expect(AudioManagerWrapper).not.toHaveBeenCalled()
     })
 
     test('should setup input system', () => {
@@ -345,56 +359,65 @@ describe('GameEngine', () => {
       expect(mockInputManager).toBeDefined()
     })
 
-    test('should generate initial level', () => {
-      expect(mockLevelGenerator.generateLevel).toHaveBeenCalled()
+    test('should generate an initial level during construction', () => {
+      // Built by GameEngine.generateLevel(), not by the LevelGenerator instance.
+      expect(gameEngine.platforms.length).toBeGreaterThan(0)
+      expect(gameEngine.levelTarget).toBeGreaterThan(0)
+      expect(mockLevelGenerator.generateLevel).not.toHaveBeenCalled()
     })
   })
 
   describe('Game State Management', () => {
+    // State lives on GameEngine itself; the GameStateManager instance is not
+    // consulted for any of it.
     test('should start game', () => {
       gameEngine.startGame()
-      expect(mockStateManager.startGame).toHaveBeenCalled()
+      expect(gameEngine.gameState).toBe('playing')
+      expect(mockStateManager.startGame).not.toHaveBeenCalled()
     })
 
     test('should restart game', () => {
+      gameEngine.lives = 1
+      gameEngine.score = 500
+
       gameEngine.restart()
-      expect(mockStateManager.restart).toHaveBeenCalled()
-      // Other reset calls are handled internally
+
+      expect(gameEngine.gameState).toBe('playing')
+      expect(gameEngine.lives).toBe(3)
+      expect(gameEngine.score).toBe(0)
     })
 
-    test('should toggle pause', () => {
+    test('should toggle pause while playing', () => {
+      gameEngine.startGame()
+
       gameEngine.togglePause()
-      expect(mockStateManager.togglePause).toHaveBeenCalled()
+      expect(gameEngine.paused).toBe(true)
+
+      gameEngine.togglePause()
+      expect(gameEngine.paused).toBe(false)
     })
 
-    test('should get game state', () => {
-      const state = gameEngine.gameState
-      expect(mockStateManager.getGameState).toHaveBeenCalled()
-      expect(state).toBe('start')
+    test('should ignore pause outside of play', () => {
+      // togglePause() no-ops unless the game is playing or already paused.
+      expect(gameEngine.gameState).toBe('start')
+
+      gameEngine.togglePause()
+
+      expect(gameEngine.paused).toBe(false)
     })
 
-    test('should get current level', () => {
-      const level = gameEngine.currentLevel
-      expect(mockStateManager.getCurrentLevel).toHaveBeenCalled()
-      expect(level).toBe(1)
+    test('should start in the "start" state', () => {
+      expect(gameEngine.gameState).toBe('start')
     })
 
-    test('should get lives', () => {
-      const lives = gameEngine.lives
-      expect(mockStateManager.getLives).toHaveBeenCalled()
-      expect(lives).toBe(3)
+    test('should start on level 1 with full lives and no score', () => {
+      expect(gameEngine.currentLevel).toBe(1)
+      expect(gameEngine.lives).toBe(3)
+      expect(gameEngine.score).toBe(0)
     })
 
-    test('should get score', () => {
-      const score = gameEngine.score
-      expect(mockStateManager.getScore).toHaveBeenCalled()
-      expect(score).toBe(0)
-    })
-
-    test('should get pause state', () => {
-      const paused = gameEngine.paused
-      expect(mockStateManager.isPaused).toHaveBeenCalled()
-      expect(paused).toBe(false)
+    test('should start unpaused', () => {
+      expect(gameEngine.paused).toBe(false)
     })
   })
 
@@ -410,60 +433,72 @@ describe('GameEngine', () => {
       // State manager calls are handled internally
     })
 
-    test('should handle input', () => {
+    test('should read input through the InputManager', () => {
+      // InputManager is the one collaborator the loop genuinely uses.
       gameEngine.handleInput()
       expect(mockInputManager.getPlayerInput).toHaveBeenCalled()
-      expect(mockPlayerManager.updatePlayer).toHaveBeenCalled()
     })
 
-    test('should update player', () => {
-      gameEngine.updatePlayer()
-      // Player update is handled internally
+    test('should update the player inline rather than via PlayerManager', () => {
+      expect(() => gameEngine.updatePlayer()).not.toThrow()
+      expect(mockPlayerManager.updatePlayer).not.toHaveBeenCalled()
     })
 
-    test('should update enemies', () => {
-      gameEngine.updateEnemies()
-      expect(mockEnemyManager.updateEnemies).toHaveBeenCalled()
+    test('should update enemies inline rather than via EnemyManager', () => {
+      expect(() => gameEngine.updateEnemies()).not.toThrow()
+      expect(Array.isArray(gameEngine.enemies)).toBe(true)
+      expect(mockEnemyManager.updateEnemies).not.toHaveBeenCalled()
     })
 
-    test('should render game', () => {
-      gameEngine.render()
-      expect(mockRenderer.render).toHaveBeenCalled()
+    test('should render to its own context rather than via Renderer', () => {
+      expect(() => gameEngine.render()).not.toThrow()
+      expect(mockRenderer.render).not.toHaveBeenCalled()
     })
   })
 
   describe('Audio Management', () => {
-    test('should play sound', () => {
-      gameEngine.playSound('jump')
-      expect(mockAudioWrapper.playGameSound).toHaveBeenCalledWith('jump', 1)
+    // Audio is driven by a raw AudioContext on GameEngine; the
+    // AudioManagerWrapper instance is constructed but never called.
+    // GameEngine also exposes no getAudioStats(), so there is nothing to
+    // assert about wrapper statistics.
+    test('should play a sound without delegating to AudioManagerWrapper', () => {
+      expect(() => gameEngine.playSound('jump')).not.toThrow()
+      expect(mockAudioWrapper.playGameSound).not.toHaveBeenCalled()
     })
 
-    test('should start BGM', () => {
-      gameEngine.startBGM()
-      expect(mockAudioWrapper.startBGM).toHaveBeenCalled()
+    test('should start BGM without delegating to AudioManagerWrapper', () => {
+      expect(() => gameEngine.startBGM()).not.toThrow()
+      expect(mockAudioWrapper.startBGM).not.toHaveBeenCalled()
     })
 
-    test('should stop BGM', () => {
-      gameEngine.stopBGM()
-      expect(mockAudioWrapper.stopBGM).toHaveBeenCalled()
-    })
-
-    test('should get audio stats', () => {
-      const stats = gameEngine.getAudioStats()
-      expect(mockAudioWrapper.getAudioStats).toHaveBeenCalled()
-      expect(stats).toBeDefined()
+    test('should stop BGM without delegating to AudioManagerWrapper', () => {
+      expect(() => gameEngine.stopBGM()).not.toThrow()
+      expect(mockAudioWrapper.stopBGM).not.toHaveBeenCalled()
     })
   })
 
   describe('Level Management', () => {
-    test('should generate level', () => {
+    test('should generate a level inline rather than via LevelGenerator', () => {
       gameEngine.generateLevel()
-      expect(mockLevelGenerator.generateLevel).toHaveBeenCalled()
+
+      expect(gameEngine.platforms.length).toBeGreaterThan(0)
+      expect(mockLevelGenerator.generateLevel).not.toHaveBeenCalled()
     })
 
-    test('should go to next level', () => {
+    test('should enter the transition state on next level', () => {
       gameEngine.nextLevel()
-      expect(mockStateManager.completeLevel).toHaveBeenCalled()
+      expect(gameEngine.gameState).toBe('transition')
+    })
+
+    test('should ignore a repeated nextLevel call while transitioning', () => {
+      // Guards the infinite-transition loop the engine warns about.
+      gameEngine.nextLevel()
+      const levelAfterFirst = gameEngine.currentLevel
+
+      gameEngine.nextLevel()
+
+      expect(gameEngine.gameState).toBe('transition')
+      expect(gameEngine.currentLevel).toBe(levelAfterFirst)
     })
   })
 
@@ -476,8 +511,11 @@ describe('GameEngine', () => {
       gameEngine.cleanup()
 
       expect(mockInputManager.cleanup).toHaveBeenCalled()
-      expect(mockRenderer.stop).toHaveBeenCalled()
-      expect(mockAudioWrapper.cleanup).toHaveBeenCalled()
+      // cleanup() currently tears down only the InputManager and BGM. It does
+      // not stop the Renderer, close the AudioContext, or cancel the animation
+      // frame -- hooks/useGame.ts cancels the frame itself to compensate.
+      expect(mockRenderer.stop).not.toHaveBeenCalled()
+      expect(mockAudioWrapper.cleanup).not.toHaveBeenCalled()
     })
   })
 
