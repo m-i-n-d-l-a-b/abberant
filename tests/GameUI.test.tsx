@@ -13,6 +13,7 @@ describe('GameUI', () => {
     lives: 3,
     score: 1500,
     level: 2,
+    combo: 0,
     soundEnabled: true,
     onSoundToggle: jest.fn()
   }
@@ -36,6 +37,10 @@ describe('GameUI', () => {
       // Check level display
       expect(screen.getByText('LEVEL')).toBeInTheDocument()
       expect(screen.getByText('2')).toBeInTheDocument()
+
+      // Check combo display
+      expect(screen.getByText('COMBO')).toBeInTheDocument()
+      expect(screen.getByTestId('combo')).toHaveTextContent('0')
 
       // Check sound toggle
       expect(screen.getByText('🔊 SOUND: ON')).toBeInTheDocument()
@@ -107,15 +112,15 @@ describe('GameUI', () => {
       const gameUI = container.querySelector('.game-ui')
       expect(gameUI).toBeInTheDocument()
 
-      // Check UI items
+      // Check UI items: lives, score, level, combo
       const uiItems = container.querySelectorAll('.ui-item')
-      expect(uiItems).toHaveLength(3)
+      expect(uiItems).toHaveLength(4)
 
       // Check labels and values
       const labels = container.querySelectorAll('.ui-label')
       const values = container.querySelectorAll('.ui-value')
-      expect(labels).toHaveLength(3)
-      expect(values).toHaveLength(3)
+      expect(labels).toHaveLength(4)
+      expect(values).toHaveLength(4)
 
       // Check sound toggle
       const soundToggle = container.querySelector('.sound-toggle')
@@ -142,18 +147,15 @@ describe('GameUI', () => {
   })
 
   describe('Styling', () => {
-    test('should render with styled-jsx styles', () => {
+    // See the note in GameOverScreen.test.tsx: CSS Modules are stubbed by
+    // identity-obj-proxy under jsdom, so the layout declarations in
+    // styles/ui.module.css are not observable via getComputedStyle here.
+    test('should apply CSS Module and global hook classes to the container', () => {
       const { container } = render(<GameUI {...defaultProps} />)
-      
-      // Check that styled-jsx styles are applied
+
       const gameUI = container.querySelector('.game-ui')
-      expect(gameUI).toHaveStyle({
-        position: 'absolute',
-        top: '20px',
-        left: '20px',
-        display: 'flex',
-        zIndex: '10'
-      })
+      expect(gameUI).toBeInTheDocument()
+      expect(gameUI?.className).toMatch(/gameUi/)
     })
   })
 }) 

@@ -1,11 +1,13 @@
 /**
  * StartScreen Component
- * 
- * Displays the game start screen with title, start button, and controls information.
- * Extracted from the main Game component for better modularity.
+ *
+ * Displays the game start screen with title, start button, and controls
+ * information. Extracted from the main Game component for better modularity.
  */
 
 import React from 'react'
+
+import menuStyles from '../styles/menu.module.css'
 
 /**
  * Props interface for StartScreen component
@@ -19,10 +21,22 @@ export interface StartScreenProps {
   className?: string
 }
 
+/** Keyboard mappings shown in the controls panel */
+const CONTROL_MAPPINGS = [
+  { key: 'WASD', action: 'Move' },
+  { key: 'SPACE', action: 'Jump' },
+  { key: 'SHIFT', action: 'Dash' },
+  { key: 'P', action: 'Pause' },
+  { key: 'R', action: 'Reset' }
+] as const
+
 /**
  * StartScreen Component
- * 
+ *
  * Renders the game start screen with cyberpunk styling and animations.
+ *
+ * The start button keeps id `startButton` so existing selectors continue to
+ * resolve it.
  */
 export default function StartScreen({
   onStartGame,
@@ -34,17 +48,44 @@ export default function StartScreen({
   }
 
   return (
-    <div id="startScreen">
-      <h1>Abberant</h1>
-      <button 
-        id="startButton" 
-        onClick={onStartGame}
-      >
-        Start Game
-      </button>
-      <div id="controls">
-        WASD/Arrow Keys: Move | Space: Jump | Shift: Dash | P: Pause | R: Reset
+    <div
+      id="startScreen"
+      className={`${menuStyles.menuScreen} ${menuStyles.startScreen} ${className}`.trim()}
+    >
+      <div className={menuStyles.menuBackground} />
+
+      <div className={menuStyles.menuContent}>
+        <div className={menuStyles.titleContainer}>
+          <h1 className={menuStyles.titleGlow}>ABBERANT</h1>
+        </div>
+
+        <div className={menuStyles.menuButtons}>
+          <button
+            id="startButton"
+            type="button"
+            className={menuStyles.menuButton}
+            aria-label="Start the game"
+            onClick={onStartGame}
+          >
+            <span className={menuStyles.buttonText}>START GAME</span>
+            <span className={menuStyles.buttonGlow} aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className={menuStyles.controlsInfo}>
+          <section className={menuStyles.controlsSection}>
+            <h3>CONTROLS</h3>
+            <div className={menuStyles.controlGrid}>
+              {CONTROL_MAPPINGS.map(({ key, action }) => (
+                <div key={key} className={menuStyles.controlItem}>
+                  <span className={menuStyles.key}>{key}</span>
+                  <span className={menuStyles.action}>{action}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   )
-} 
+}
