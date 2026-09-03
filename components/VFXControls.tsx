@@ -95,7 +95,7 @@ const VFXControls: React.FC<VFXControlsProps> = ({ initialEffects = defaultVFXEf
               checked={state.enabled}
               onChange={e => handleEffectChange(effect, { ...state, enabled: e.target.checked })}
               aria-checked={state.enabled}
-              aria-label={`Enable ${effect} effect`}
+              aria-label={`Enable ${effect.charAt(0).toUpperCase() + effect.slice(1)} effect`}
               style={{ marginRight: 8 }}
             />
             Enable

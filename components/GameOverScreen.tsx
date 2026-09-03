@@ -14,8 +14,8 @@ import menuStyles from '../styles/menu.module.css'
 export interface GameOverScreenProps {
   /** Final score to display */
   finalScore: number
-  /** Best combo to display */
-  bestCombo: number
+  /** Best combo to display. Omitted when the run tracked no combo. */
+  bestCombo?: number
   /** Callback function for restarting the game */
   onRestart: () => void
   /** Whether the game over screen is visible */
@@ -53,6 +53,12 @@ export default function GameOverScreen({
             <p className="final-score">
               <span data-testid="finalScore" id="finalScore" className="score-value">{finalScore}</span>
             </p>
+            {bestCombo !== undefined && (
+              <p className={`${menuStyles.bestCombo} best-combo`}>
+                <span className="score-label">BEST COMBO</span>{' '}
+                <span data-testid="bestCombo" id="bestCombo" className="score-value">{bestCombo}</span>
+              </p>
+            )}
           </div>
           <div className="menu-buttons">
             <button className={`${menuStyles.restartButton} menu-button`} onClick={onRestart}>

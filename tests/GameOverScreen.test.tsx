@@ -150,14 +150,17 @@ describe('GameOverScreen', () => {
   })
 
   describe('Styling', () => {
-    test('should render with styled-jsx styles', () => {
+    // The component moved from styled-jsx to CSS Modules. jsdom never loads the
+    // real stylesheet (jest maps CSS to identity-obj-proxy), so computed values
+    // are unavailable here and asserting them would only pass if the component
+    // hardcoded inline styles. Assert the class contract instead, and cover
+    // rendered appearance with visual regression.
+    test('should apply CSS Module and global hook classes to the container', () => {
       const { container } = render(<GameOverScreen {...defaultProps} />)
-      
-      // Check that styled-jsx styles are applied
+
       const gameOverScreen = container.querySelector('.game-over-screen')
-      expect(gameOverScreen).toHaveStyle({
-        display: 'flex'
-      })
+      expect(gameOverScreen).toBeInTheDocument()
+      expect(gameOverScreen?.className).toMatch(/gameOverScreen/)
     })
   })
 

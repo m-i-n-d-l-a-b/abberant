@@ -34,11 +34,22 @@ class MockAudioContext {
   }
 }
 
+/**
+ * Poolable declares only an optional reset(), which makes it a TypeScript
+ * "weak type": an object literal sharing none of its properties is rejected.
+ * Naming the element type explicitly lets the fixtures stay minimal.
+ */
+interface TestPoolItem {
+  id: number
+  value: string
+  reset?: () => void
+}
+
 describe('ObjectPool', () => {
-  let pool: ObjectPool<{ id: number; value: string; reset?: () => void }>
+  let pool: ObjectPool<TestPoolItem>
 
   beforeEach(() => {
-    pool = new ObjectPool({
+    pool = new ObjectPool<TestPoolItem>({
       initialSize: 5,
       maxSize: 10,
       createFn: () => ({ id: Math.random(), value: 'default', reset: jest.fn() })
@@ -54,7 +65,7 @@ describe('ObjectPool', () => {
     })
 
     test('should initialize with custom configuration', () => {
-      const customPool = new ObjectPool({
+      const customPool = new ObjectPool<TestPoolItem>({
         initialSize: 3,
         maxSize: 20,
         createFn: () => ({ id: 1, value: 'test' })
@@ -375,7 +386,7 @@ describe('ParticlePool', () => {
 })
 
 describe('AudioNodePool', () => {
-  let audioContext: MockAudioContext
+  let audioContext: AudioContext
   let audioNodePool: AudioNodePool
 
   beforeEach(() => {
@@ -478,7 +489,7 @@ describe('AudioNodePool', () => {
 
 describe('Object Pool Performance', () => {
   test('should handle high-frequency object creation efficiently', () => {
-    const pool = new ObjectPool({
+    const pool = new ObjectPool<TestPoolItem>({
       initialSize: 100,
       maxSize: 1000,
       createFn: () => ({ id: Math.random(), value: 'test' })
@@ -501,32 +512,51 @@ describe('Object Pool Performance', () => {
     expect(stats.utilizationRate).toBeGreaterThan(90) // High reuse rate
   })
 
-  test('should maintain consistent performance under load', () => {
-    const pool = new ObjectPool({
-      initialSize: 50,
+  // This previously timed five batches and asserted each was within 2x the
+  // mean. Each batch measures well under a millisecond, so the ratio was
+  // dominated by JIT warm-up on the first batch and by GC and OS scheduling
+  // noise afterwards -- and jest runs suites in parallel workers, so a single
+  // batch could stall for reasons unrelated to the pool. It failed
+  // intermittently in full-suite runs while always passing in isolation.
+  //
+  // The property that test was reaching for is not wall-clock stability, it is
+  // that a balanced acquire/release workload keeps reusing pooled objects
+  // instead of allocating, and that the pool does not grow while doing so.
+  // That is exactly what the counters record, and it is deterministic.
+  test('should reuse pooled objects under sustained load without allocating', () => {
+    const INITIAL_SIZE = 50
+    const BATCHES = 5
+    const CYCLES_PER_BATCH = 100
+
+    const createFn = jest.fn(() => ({ id: Math.random(), value: 'test' }))
+    const pool = new ObjectPool<TestPoolItem>({
+      initialSize: INITIAL_SIZE,
       maxSize: 200,
-      createFn: () => ({ id: Math.random(), value: 'test' })
+      createFn
     })
-    
-    const times: number[] = []
-    
-    // Run multiple batches to test consistency
-    for (let batch = 0; batch < 5; batch++) {
-      const startTime = performance.now()
-      
-      for (let i = 0; i < 100; i++) {
+
+    // The constructor pre-fills the pool, and those allocations are not
+    // counted as totalCreated.
+    expect(createFn).toHaveBeenCalledTimes(INITIAL_SIZE)
+    createFn.mockClear()
+
+    for (let batch = 0; batch < BATCHES; batch++) {
+      for (let i = 0; i < CYCLES_PER_BATCH; i++) {
         const obj = pool.acquire()
         pool.release(obj)
       }
-      
-      const endTime = performance.now()
-      times.push(endTime - startTime)
     }
-    
-    // Check that performance is consistent (within 100% of average)
-    const avgTime = times.reduce((a, b) => a + b, 0) / times.length
-    times.forEach(time => {
-      expect(time).toBeLessThan(avgTime * 2.0)
-    })
+
+    const stats = pool.getStats()
+
+    // Every acquire was served from the pool: no new objects were allocated.
+    expect(createFn).not.toHaveBeenCalled()
+    expect(stats.totalCreated).toBe(0)
+    expect(stats.totalReused).toBe(BATCHES * CYCLES_PER_BATCH)
+    expect(stats.utilizationRate).toBe(100)
+
+    // Everything was handed back, and the pool did not grow.
+    expect(stats.activeCount).toBe(0)
+    expect(stats.poolSize).toBe(INITIAL_SIZE)
   })
 }) 

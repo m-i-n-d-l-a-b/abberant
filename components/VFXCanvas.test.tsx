@@ -1,5 +1,26 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+
+// @react-three/fiber's <Canvas> needs a real WebGL context, which jsdom does
+// not provide -- unmocked, it throws and every assertion about rendered output
+// becomes a test of jsdom rather than of VFXCanvas. Mock it to a plain <canvas>
+// so the component's own behaviour (enabled gating, error boundary, prop
+// updates) is what gets exercised. mockCanvasShouldThrow lets a single test
+// simulate a WebGL failure; the `mock` prefix is required for jest to allow the
+// reference inside the module factory.
+let mockCanvasShouldThrow = false;
+
+jest.mock('@react-three/fiber', () => ({
+  Canvas: () => {
+    if (mockCanvasShouldThrow) {
+      throw new Error('WebGL context unavailable');
+    }
+    return <canvas data-testid="r3f-canvas" />;
+  },
+  useThree: () => ({}),
+  useFrame: () => undefined,
+}));
+
 import VFXCanvas from './VFXCanvas';
 
 // Mock for HTMLCanvasElement
@@ -8,6 +29,10 @@ mockCanvas.width = 100;
 mockCanvas.height = 100;
 
 describe('VFXCanvas', () => {
+  beforeEach(() => {
+    mockCanvasShouldThrow = false;
+  });
+
   it('renders when enabled', () => {
     render(
       <VFXCanvas
@@ -35,18 +60,15 @@ describe('VFXCanvas', () => {
     expect(document.querySelector('canvas')).not.toBeInTheDocument();
   });
 
-  it('renders error fallback UI if error is thrown', () => {
-    // Force an error by mocking the Canvas component to throw
-    jest.spyOn(console, 'error').mockImplementation(() => {}); // Suppress error output
-    const Broken = () => { throw new Error('fail'); };
-    const VFXCanvasWithError = (props: any) => (
-      <VFXCanvas {...props} />
-    );
-    // Patch VFXCanvas to render the broken component inside error boundary
-    // (simulate error boundary behavior)
-    // This is a bit hacky, but demonstrates error fallback
+  it('renders error fallback UI if the WebGL canvas throws', () => {
+    // Suppress React's error-boundary logging for this expected throw.
+    const consoleError = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    mockCanvasShouldThrow = true;
+
     render(
-      <VFXCanvasWithError
+      <VFXCanvas
         enabled={true}
         effect="glitch"
         intensity={0.5}
@@ -54,9 +76,12 @@ describe('VFXCanvas', () => {
         sourceCanvas={mockCanvas}
       />
     );
-    // The fallback UI should be present
-    expect(screen.queryByText(/WebGL Error/i)).toBeInTheDocument();
-    (console.error as jest.Mock).mockRestore();
+
+    // The fallback UI should be present, and no canvas should have rendered.
+    expect(screen.getByText(/WebGL Error/i)).toBeInTheDocument();
+    expect(document.querySelector('canvas')).not.toBeInTheDocument();
+
+    consoleError.mockRestore();
   });
 
   it('updates when props change', () => {
@@ -81,4 +106,4 @@ describe('VFXCanvas', () => {
     );
     expect(document.querySelector('canvas')).toBeInTheDocument();
   });
-}); 
+});

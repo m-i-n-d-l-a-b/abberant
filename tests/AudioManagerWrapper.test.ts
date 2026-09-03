@@ -7,7 +7,7 @@
 import { AudioManagerWrapper, GameSoundType } from '../lib/game/AudioManagerWrapper'
 
 // Mock AudioManager
-jest.mock('./AudioManager', () => {
+jest.mock('../lib/game/AudioManager', () => {
   return {
     AudioManager: jest.fn().mockImplementation(() => ({
       initAudioContext: jest.fn().mockReturnValue(true),
@@ -109,35 +109,30 @@ describe('AudioManagerWrapper', () => {
       audioWrapper.initAudioContext()
     })
 
-    test('should play jump sound', () => {
-      const playSpy = jest.spyOn(audioWrapper as any, 'audioManager')
-      audioWrapper.playGameSound('jump')
-      expect(playSpy).toBeDefined()
-    })
+    // These previously did jest.spyOn(audioWrapper, 'audioManager') -- which
+    // throws, because audioManager is an object property rather than a method --
+    // and then asserted only that the spy was defined, which proves nothing.
+    // Assert delegation to the mocked AudioManager instead.
+    test.each([
+      ['jump'],
+      ['dash'],
+      ['collect'],
+      ['explosion']
+    ])('should play the %s sound through a preset', soundType => {
+      const audioManager = (audioWrapper as any).audioManager
 
-    test('should play dash sound', () => {
-      const playSpy = jest.spyOn(audioWrapper as any, 'audioManager')
-      audioWrapper.playGameSound('dash')
-      expect(playSpy).toBeDefined()
-    })
+      audioWrapper.playGameSound(soundType as GameSoundType)
 
-    test('should play collect sound', () => {
-      const playSpy = jest.spyOn(audioWrapper as any, 'audioManager')
-      audioWrapper.playGameSound('collect')
-      expect(playSpy).toBeDefined()
-    })
-
-    test('should play explosion sound', () => {
-      const playSpy = jest.spyOn(audioWrapper as any, 'audioManager')
-      audioWrapper.playGameSound('explosion')
-      expect(playSpy).toBeDefined()
+      expect(audioManager.playPreset).toHaveBeenCalled()
     })
 
     test('should not play sounds when audio is disabled', () => {
+      const audioManager = (audioWrapper as any).audioManager
       audioWrapper.setSoundEnabled(false)
-      const playSpy = jest.spyOn(audioWrapper as any, 'audioManager')
+
       audioWrapper.playGameSound('jump')
-      expect(playSpy).toBeDefined()
+
+      expect(audioManager.playPreset).not.toHaveBeenCalled()
     })
   })
 
@@ -147,40 +142,40 @@ describe('AudioManagerWrapper', () => {
     })
 
     test('should start BGM', () => {
-      const startSpy = jest.spyOn(audioWrapper as any, 'audioManager')
+      const audioManager = (audioWrapper as any).audioManager
+
       audioWrapper.startBGM()
-      expect(startSpy).toBeDefined()
-      
-      const state = audioWrapper.getGameAudioState()
-      expect(state.bgmPlaying).toBe(true)
+
+      expect(audioManager.startBGM).toHaveBeenCalled()
+      expect(audioWrapper.getGameAudioState().bgmPlaying).toBe(true)
     })
 
     test('should stop BGM', () => {
+      const audioManager = (audioWrapper as any).audioManager
       audioWrapper.startBGM()
-      const stopSpy = jest.spyOn(audioWrapper as any, 'audioManager')
+
       audioWrapper.stopBGM()
-      expect(stopSpy).toBeDefined()
-      
-      const state = audioWrapper.getGameAudioState()
-      expect(state.bgmPlaying).toBe(false)
+
+      expect(audioManager.stopBGM).toHaveBeenCalled()
+      expect(audioWrapper.getGameAudioState().bgmPlaying).toBe(false)
     })
 
     test('should set BGM tempo', () => {
-      const setTempoSpy = jest.spyOn(audioWrapper as any, 'audioManager')
+      const audioManager = (audioWrapper as any).audioManager
+
       audioWrapper.setBGMTempo(300)
-      expect(setTempoSpy).toBeDefined()
-      
-      const state = audioWrapper.getGameAudioState()
-      expect(state.bgmTempo).toBe(300)
+
+      expect(audioManager.setBGMTempo).toHaveBeenCalledWith(300)
+      expect(audioWrapper.getGameAudioState().bgmTempo).toBe(300)
     })
 
     test('should set BGM pitch modulation', () => {
-      const setPitchSpy = jest.spyOn(audioWrapper as any, 'audioManager')
+      const audioManager = (audioWrapper as any).audioManager
+
       audioWrapper.setBGMPitchMod(1.5)
-      expect(setPitchSpy).toBeDefined()
-      
-      const state = audioWrapper.getGameAudioState()
-      expect(state.bgmPitchMod).toBe(1.5)
+
+      expect(audioManager.setBGMPitchMod).toHaveBeenCalledWith(1.5)
+      expect(audioWrapper.getGameAudioState().bgmPitchMod).toBe(1.5)
     })
   })
 
@@ -293,20 +288,22 @@ describe('AudioManagerWrapper', () => {
     })
 
     test('should reset performance statistics', () => {
-      const resetSpy = jest.spyOn(audioWrapper as any, 'audioManager')
+      const audioManager = (audioWrapper as any).audioManager
+
       audioWrapper.resetPerformanceStats()
-      expect(resetSpy).toBeDefined()
+
+      expect(audioManager.resetPerformanceStats).toHaveBeenCalled()
     })
   })
 
   describe('Cleanup', () => {
     test('should cleanup audio resources', () => {
-      const cleanupSpy = jest.spyOn(audioWrapper as any, 'audioManager')
+      const audioManager = (audioWrapper as any).audioManager
+
       audioWrapper.cleanup()
-      expect(cleanupSpy).toBeDefined()
-      
-      const state = audioWrapper.getGameAudioState()
-      expect(state.bgmPlaying).toBe(false)
+
+      expect(audioManager.cleanup).toHaveBeenCalled()
+      expect(audioWrapper.getGameAudioState().bgmPlaying).toBe(false)
     })
   })
 }) 

@@ -28,7 +28,7 @@ class VFXErrorBoundary extends React.Component<{ children: React.ReactNode }, { 
       return (
         <div style={{ color: 'red', background: '#111', padding: 16, borderRadius: 8, textAlign: 'center' }}>
           <strong>WebGL Error:</strong> Unable to render VFX overlay.<br />
-          Please check your browser's WebGL support or try refreshing the page.
+          Please check your browser&apos;s WebGL support or try refreshing the page.
         </div>
       );
     }

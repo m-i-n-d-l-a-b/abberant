@@ -20,6 +20,24 @@ import {
   CANVAS_HEIGHT,
 } from '../constants/game'
 
+/**
+ * Builds a fully-typed Platform. Fixtures previously supplied only geometry,
+ * which drifted from the Platform interface as fields were added.
+ */
+function makePlatform(overrides: Partial<Platform> = {}): Platform {
+  return {
+    x: 0,
+    y: 0,
+    width: 200,
+    height: 20,
+    color: '#ffffff',
+    type: 'normal',
+    liquidPixels: [],
+    distortionOffset: 0,
+    ...overrides,
+  }
+}
+
 describe('EnemyManager', () => {
   let enemyManager: EnemyManager
   let mockEnemy: Enemy
@@ -60,8 +78,8 @@ describe('EnemyManager', () => {
     }
 
     mockPlatforms = [
-      { x: 100, y: 350, width: 200, height: 20 },
-      { x: 400, y: 250, width: 150, height: 20 },
+      makePlatform({ x: 100, y: 350, width: 200, height: 20 }),
+      makePlatform({ x: 400, y: 250, width: 150, height: 20 }),
     ]
 
     enemyManager = new EnemyManager(mockCollisionSystem, CANVAS_WIDTH, CANVAS_HEIGHT)
@@ -123,7 +141,7 @@ describe('EnemyManager', () => {
 
     test('should not spawn enemies on unsuitable platforms', () => {
       const smallPlatforms = [
-        { x: 100, y: 350, width: 10, height: 20 }, // Too small
+        makePlatform({ x: 100, y: 350, width: 10, height: 20 }), // Too small
       ]
 
       const spawnConfig: EnemySpawnConfig = {
@@ -173,7 +191,7 @@ describe('EnemyManager', () => {
       enemyManager.addEnemy(enemy) // Use addEnemy to create movement pattern
       
       // Mock collision system to not ground the enemy so it falls
-      mockCollisionSystem.checkPlayerPlatformCollisions.mockReturnValue({
+      ;(mockCollisionSystem.checkPlayerPlatformCollisions as jest.Mock).mockReturnValue({
         grounded: false,
         platforms: []
       })
@@ -186,7 +204,7 @@ describe('EnemyManager', () => {
 
   describe('Enemy AI Behavior', () => {
     test('should handle horizontal movement', () => {
-      const enemy = { ...mockEnemy, movementType: 'horizontal' }
+      const enemy = { ...mockEnemy, movementType: 'horizontal' as const }
       enemyManager.setEnemies([enemy])
       
       const result = enemyManager.updateEnemies()
@@ -195,7 +213,7 @@ describe('EnemyManager', () => {
     })
 
     test('should handle vertical movement', () => {
-      const enemy = { ...mockEnemy, movementType: 'vertical' }
+      const enemy = { ...mockEnemy, movementType: 'vertical' as const }
       enemyManager.setEnemies([enemy])
       
       const result = enemyManager.updateEnemies()
@@ -450,8 +468,8 @@ describe('EnemyManager', () => {
     })
 
     test('should get enemy stats', () => {
-      const horizontalEnemy = { ...mockEnemy, movementType: 'horizontal' }
-      const verticalEnemy = { ...mockEnemy, x: 300, movementType: 'vertical' }
+      const horizontalEnemy = { ...mockEnemy, movementType: 'horizontal' as const }
+      const verticalEnemy = { ...mockEnemy, x: 300, movementType: 'vertical' as const }
       enemyManager.setEnemies([horizontalEnemy, verticalEnemy])
       
       const stats = enemyManager.getEnemyStats()

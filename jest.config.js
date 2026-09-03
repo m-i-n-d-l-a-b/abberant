@@ -9,6 +9,7 @@ module.exports = {
         jsx: 'react-jsx'
       }
     }],
+    '^.+\\.glsl$': '<rootDir>/jest.glsl-transformer.js',
   },
   collectCoverageFrom: [
     'lib/**/*.{ts,tsx}',

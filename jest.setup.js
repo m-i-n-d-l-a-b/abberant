@@ -5,7 +5,7 @@
  * Mocks browser APIs and globals required for game and UI tests.
  */
 
-import '@testing-library/jest-dom';
+require('@testing-library/jest-dom');
 
 // --- Canvas/DOM Mocks ---
 if (typeof global.Path2D === 'undefined') {

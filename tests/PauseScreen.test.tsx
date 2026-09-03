@@ -105,14 +105,14 @@ describe('PauseScreen', () => {
   })
 
   describe('Styling', () => {
-    test('should render with styled-jsx styles', () => {
+    // See the note in GameOverScreen.test.tsx: CSS Modules are stubbed by
+    // identity-obj-proxy under jsdom, so computed styles are not observable.
+    test('should apply CSS Module and global hook classes to the container', () => {
       const { container } = render(<PauseScreen {...defaultProps} />)
-      
-      // Check that styled-jsx styles are applied
+
       const pauseScreen = container.querySelector('.pause-screen')
-      expect(pauseScreen).toHaveStyle({
-        display: 'flex'
-      })
+      expect(pauseScreen).toBeInTheDocument()
+      expect(pauseScreen?.className).toMatch(/pauseScreen/)
     })
   })
 
