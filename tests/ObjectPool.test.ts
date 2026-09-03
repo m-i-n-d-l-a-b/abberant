@@ -34,11 +34,22 @@ class MockAudioContext {
   }
 }
 
+/**
+ * Poolable declares only an optional reset(), which makes it a TypeScript
+ * "weak type": an object literal sharing none of its properties is rejected.
+ * Naming the element type explicitly lets the fixtures stay minimal.
+ */
+interface TestPoolItem {
+  id: number
+  value: string
+  reset?: () => void
+}
+
 describe('ObjectPool', () => {
-  let pool: ObjectPool<{ id: number; value: string; reset?: () => void }>
+  let pool: ObjectPool<TestPoolItem>
 
   beforeEach(() => {
-    pool = new ObjectPool({
+    pool = new ObjectPool<TestPoolItem>({
       initialSize: 5,
       maxSize: 10,
       createFn: () => ({ id: Math.random(), value: 'default', reset: jest.fn() })
@@ -54,7 +65,7 @@ describe('ObjectPool', () => {
     })
 
     test('should initialize with custom configuration', () => {
-      const customPool = new ObjectPool({
+      const customPool = new ObjectPool<TestPoolItem>({
         initialSize: 3,
         maxSize: 20,
         createFn: () => ({ id: 1, value: 'test' })
@@ -375,7 +386,7 @@ describe('ParticlePool', () => {
 })
 
 describe('AudioNodePool', () => {
-  let audioContext: MockAudioContext
+  let audioContext: AudioContext
   let audioNodePool: AudioNodePool
 
   beforeEach(() => {
@@ -478,7 +489,7 @@ describe('AudioNodePool', () => {
 
 describe('Object Pool Performance', () => {
   test('should handle high-frequency object creation efficiently', () => {
-    const pool = new ObjectPool({
+    const pool = new ObjectPool<TestPoolItem>({
       initialSize: 100,
       maxSize: 1000,
       createFn: () => ({ id: Math.random(), value: 'test' })
@@ -502,7 +513,7 @@ describe('Object Pool Performance', () => {
   })
 
   test('should maintain consistent performance under load', () => {
-    const pool = new ObjectPool({
+    const pool = new ObjectPool<TestPoolItem>({
       initialSize: 50,
       maxSize: 200,
       createFn: () => ({ id: Math.random(), value: 'test' })

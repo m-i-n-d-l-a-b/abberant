@@ -17,6 +17,7 @@ import {
 // Mock canvas context
 const mockCanvasContext = {
   fillRect: jest.fn(),
+  strokeRect: jest.fn(),
   clearRect: jest.fn(),
   setTransform: jest.fn(),
   translate: jest.fn(),
@@ -75,32 +76,33 @@ describe('Renderer', () => {
       y: 300,
       width: 32,
       height: 32,
-      vx: 0,
-      vy: 0,
-      onGround: false,
-      canJump: true,
-      canDash: true,
+      velX: 0,
+      velY: 0,
+      speed: 5,
+      jumpPower: 12,
+      grounded: false,
+      doubleJump: false,
       dashCooldown: 0,
-      invulnerable: false,
-      invulnerableTimer: 0,
-      trail: [],
+      invulnerable: 0,
       color: '#00ffff',
+      trail: [],
+      respawning: false,
     }
 
     mockEnemies = [
       {
-        id: 'enemy-1',
         x: 200,
         y: 300,
         width: 24,
         height: 24,
-        vx: 1,
-        vy: 0,
-        startX: 200,
-        moveRange: 100,
-        direction: 1,
-        onGround: true,
+        velX: 1,
+        velY: 0,
+        speed: 1,
         color: '#ff0000',
+        movementType: 'horizontal',
+        startY: 300,
+        moveRange: 100,
+        stompZoneActive: true,
       },
     ]
 
@@ -111,12 +113,14 @@ describe('Renderer', () => {
         width: 200,
         height: 20,
         color: '#00ff00',
+        type: 'normal',
+        liquidPixels: [],
+        distortionOffset: 0,
       },
     ]
 
     mockCollectibles = [
       {
-        id: 'collectible-1',
         x: 300,
         y: 250,
         width: 16,
@@ -130,15 +134,16 @@ describe('Renderer', () => {
     mockCamera = {
       x: 0,
       y: 0,
+      targetX: 0,
+      targetY: 0,
+      smoothing: 0.1,
       zoom: 1,
       targetZoom: 1,
-      zoomSpeed: 0.1,
     }
 
     mockEffects = {
-      dreamParticles: [],
-      dreamWaves: [],
-      dreamLayers: [],
+      dreamFactor: 0,
+      dreamWaveFactor: 0,
       dataBleedEffects: [],
       particles: [],
       glitchOffset: { x: 0, y: 0 },
@@ -181,6 +186,10 @@ describe('Renderer', () => {
 
     test('should set custom config', () => {
       const customConfig: RenderConfig = {
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
+        fps: 30,
+        enableOptimization: false,
         enableOptimizations: false,
         maxFPS: 30,
         enableShadows: true,
@@ -375,6 +384,10 @@ describe('Renderer', () => {
   describe('Optimized Rendering', () => {
     test('should use optimized rendering when enabled', () => {
       const config: RenderConfig = {
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
+        fps: 60,
+        enableOptimization: true,
         enableOptimizations: true,
         maxFPS: 60,
         enableShadows: false,
@@ -437,7 +450,7 @@ describe('Renderer', () => {
 
   describe('Special Effects', () => {
     test('should render invulnerability effect', () => {
-      const invulnerablePlayer = { ...mockPlayer, invulnerable: true }
+      const invulnerablePlayer = { ...mockPlayer, invulnerable: 60 }
       
       renderer.renderPlayer(invulnerablePlayer)
       
@@ -449,7 +462,7 @@ describe('Renderer', () => {
       const effectsWithParticles = {
         ...mockEffects,
         particles: [
-          { x: 100, y: 200, vx: 1, vy: -1, life: 10, color: '#ffffff' },
+          { x: 100, y: 200, vx: 1, vy: -1, life: 10, color: '#ffffff', size: 3 },
         ],
       }
 
@@ -463,7 +476,7 @@ describe('Renderer', () => {
       const effectsWithDataBleed = {
         ...mockEffects,
         dataBleedEffects: [
-          { x: 100, y: 200, size: 20, life: 10, color: '#ff00ff' },
+          { x: 100, y: 200, size: 20, duration: 10 },
         ],
       }
 
@@ -566,7 +579,15 @@ describe('Renderer', () => {
         height: CANVAS_HEIGHT,
       } as unknown as HTMLCanvasElement
 
-      expect(() => new Renderer(invalidCanvas)).toThrow()
+      expect(
+        () =>
+          new Renderer(invalidCanvas, {
+            width: CANVAS_WIDTH,
+            height: CANVAS_HEIGHT,
+            fps: 60,
+            enableOptimization: true,
+          })
+      ).toThrow()
     })
 
     test('should handle invalid render state', () => {

@@ -101,7 +101,13 @@ export class Renderer {
 
   constructor(canvas: HTMLCanvasElement, config: RenderConfig) {
     this._canvas = canvas
-    this._ctx = canvas.getContext('2d')!
+    const ctx = canvas.getContext('2d')
+    if (!ctx) {
+      // Previously a non-null assertion, which deferred the failure to an
+      // opaque null-dereference on the first draw call.
+      throw new Error('Renderer requires a 2D canvas context')
+    }
+    this._ctx = ctx
     this.config = config
     this.optimizer = new RenderingOptimizer(this._ctx)
     this.backgroundRenderer = new BackgroundRenderer(this.config.width, this.config.height)

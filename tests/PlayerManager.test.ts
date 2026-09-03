@@ -74,6 +74,7 @@ describe('PlayerManager', () => {
       targetX: 0,
       targetY: 0,
       smoothing: 0.1,
+      zoom: 1,
     }
 
     playerManager = new PlayerManager(
@@ -108,8 +109,8 @@ describe('PlayerManager', () => {
       
       expect(player.x).toBe(mockPlayer.x)
       expect(player.y).toBe(mockPlayer.y)
-      expect(player.vx).toBe(mockPlayer.vx)
-      expect(player.vy).toBe(mockPlayer.vy)
+      expect(player.velX).toBe(mockPlayer.velX)
+      expect(player.velY).toBe(mockPlayer.velY)
     })
   })
 
