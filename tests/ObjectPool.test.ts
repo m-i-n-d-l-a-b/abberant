@@ -512,32 +512,51 @@ describe('Object Pool Performance', () => {
     expect(stats.utilizationRate).toBeGreaterThan(90) // High reuse rate
   })
 
-  test('should maintain consistent performance under load', () => {
+  // This previously timed five batches and asserted each was within 2x the
+  // mean. Each batch measures well under a millisecond, so the ratio was
+  // dominated by JIT warm-up on the first batch and by GC and OS scheduling
+  // noise afterwards -- and jest runs suites in parallel workers, so a single
+  // batch could stall for reasons unrelated to the pool. It failed
+  // intermittently in full-suite runs while always passing in isolation.
+  //
+  // The property that test was reaching for is not wall-clock stability, it is
+  // that a balanced acquire/release workload keeps reusing pooled objects
+  // instead of allocating, and that the pool does not grow while doing so.
+  // That is exactly what the counters record, and it is deterministic.
+  test('should reuse pooled objects under sustained load without allocating', () => {
+    const INITIAL_SIZE = 50
+    const BATCHES = 5
+    const CYCLES_PER_BATCH = 100
+
+    const createFn = jest.fn(() => ({ id: Math.random(), value: 'test' }))
     const pool = new ObjectPool<TestPoolItem>({
-      initialSize: 50,
+      initialSize: INITIAL_SIZE,
       maxSize: 200,
-      createFn: () => ({ id: Math.random(), value: 'test' })
+      createFn
     })
-    
-    const times: number[] = []
-    
-    // Run multiple batches to test consistency
-    for (let batch = 0; batch < 5; batch++) {
-      const startTime = performance.now()
-      
-      for (let i = 0; i < 100; i++) {
+
+    // The constructor pre-fills the pool, and those allocations are not
+    // counted as totalCreated.
+    expect(createFn).toHaveBeenCalledTimes(INITIAL_SIZE)
+    createFn.mockClear()
+
+    for (let batch = 0; batch < BATCHES; batch++) {
+      for (let i = 0; i < CYCLES_PER_BATCH; i++) {
         const obj = pool.acquire()
         pool.release(obj)
       }
-      
-      const endTime = performance.now()
-      times.push(endTime - startTime)
     }
-    
-    // Check that performance is consistent (within 100% of average)
-    const avgTime = times.reduce((a, b) => a + b, 0) / times.length
-    times.forEach(time => {
-      expect(time).toBeLessThan(avgTime * 2.0)
-    })
+
+    const stats = pool.getStats()
+
+    // Every acquire was served from the pool: no new objects were allocated.
+    expect(createFn).not.toHaveBeenCalled()
+    expect(stats.totalCreated).toBe(0)
+    expect(stats.totalReused).toBe(BATCHES * CYCLES_PER_BATCH)
+    expect(stats.utilizationRate).toBe(100)
+
+    // Everything was handed back, and the pool did not grow.
+    expect(stats.activeCount).toBe(0)
+    expect(stats.poolSize).toBe(INITIAL_SIZE)
   })
 }) 
