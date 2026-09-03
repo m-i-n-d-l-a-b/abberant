@@ -35,7 +35,6 @@ export const PLAYER_GRAVITY = 0.8
 export const CAMERA_SMOOTHING = 0.1
 export const CAMERA_ZOOM_MIN = 1
 export const CAMERA_ZOOM_MAX = 2.5
-export const CAMERA_ZOOM_TRANSITION_DURATION = 30
 
 // Level Generation Constants
 export const BASE_LEVEL_WIDTH = 3000
@@ -151,67 +150,8 @@ export const STAR_PROPERTIES = {
   }
 } as const
 
-// Audio Constants
-export const BGM_TEMPO = 500
-export const BGM_PITCH_MOD = 1.0
-export const BGM_TEMPO_VARIATION = 200
-export const BGM_PITCH_VARIATION = 0.05
-
-// Effects Constants
-export const EFFECTS_UPDATE_INTERVAL = 300 // 5 seconds at 60fps
-export const EFFECTS_MAJOR_UPDATE_INTERVAL = 1800 // 30 seconds at 60fps
-export const DATA_BLEED_DURATION = 20
-export const DATA_BLEED_SIZE_MIN = 50
-export const DATA_BLEED_SIZE_VARIATION = 80
-
-// Particle Constants
-export const PARTICLE_EXPLOSION_COUNT = 20
-export const PARTICLE_VELOCITY_MIN = 2
-export const PARTICLE_VELOCITY_MAX = 7
-export const PARTICLE_SIZE_MIN = 1
-export const PARTICLE_SIZE_MAX = 4
-
-// Visual Effects Constants
-export const DREAM_LAYER_ALPHA_BASE = 0.15
-export const DREAM_LAYER_ALPHA_DECREMENT = 0.03
-export const DREAM_LAYER_SCALE_BASE = 1.0
-export const DREAM_LAYER_SCALE_INCREMENT = 0.3
-export const DREAM_WAVE_AMPLITUDE_BASE = 30
-export const DREAM_WAVE_AMPLITUDE_VARIATION = 10
-export const DREAM_WAVE_FREQUENCY_BASE = 0.02
-export const DREAM_WAVE_FREQUENCY_INCREMENT = 0.01
-export const DREAM_WAVE_ALPHA = 0.2
-
-// Level Effects Constants
-export const LEVEL_EFFECTS = {
-  LEVEL_1: ['melting', 'colorShift'],
-  LEVEL_2_3: ['melting', 'colorShift', 'pulse'],
-  LEVEL_4_6: ['melting', 'colorShift', 'pulse', 'blur'],
-  LEVEL_7_10: ['melting', 'colorShift', 'pulse', 'blur', 'noise'],
-  LEVEL_11_PLUS: ['melting', 'colorShift', 'pulse', 'blur', 'noise', 'rgbShift', 'wave', 'zoom', 'rotation', 'pixelBleed']
-} as const
-
 // Transition Constants
 export const TRANSITION_DURATION = 30
 export const TRANSITION_ZOOM_IN_DURATION = 30
 export const TRANSITION_ZOOM_OUT_DURATION = 30
 export const LEVEL_COMPLETION_SCORE_MULTIPLIER = 1000
-
-// Collision System Constants
-export const COLLISION_WORLD_BUFFER = 100
-export const COLLISION_GRID_SIZE = 10
-export const COLLISION_MAX_ENTITIES = 8
-
-// Object Pool Constants
-export const PARTICLE_POOL_SIZE = 50
-export const PARTICLE_POOL_MAX = 500
-export const AUDIO_NODE_POOL_SIZE = 10
-export const AUDIO_NODE_POOL_MAX = 50
-
-// Input Constants
-export const MOBILE_BUTTON_SIZE = 60
-export const MOBILE_BUTTON_MARGIN = 20
-
-// UI Constants
-export const SOUND_TOGGLE_SIZE = 40
-export const SOUND_TOGGLE_MARGIN = 20 
